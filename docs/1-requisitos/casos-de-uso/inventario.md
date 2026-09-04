@@ -1,15 +1,15 @@
 # Casos de Uso — Inventario
 
-| CU-INV-01 | Gestionar Catálogo de Artículos |  |
+| CU-INV-01 | Alta de Artículo |  |
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
-| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-01 Gestión de Inventario |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock requiera dar de alta, modificar, listar o inhabilitar un artículo del catálogo de articulos. |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee registrar un nuevo artículo en el catálogo. |  |
 | **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El usuario solicita al sistema acceder a la gestión del catálogo de artículos. |
 |  | 2 | El sistema despliega el listado de artículos existentes. |
-|  | 3 | El usuario selecciona la opción de "Crear nuevo artículo". |
+|  | 3 | El usuario selecciona la opción "Crear nuevo artículo". |
 |  | 4 | El usuario ingresa los datos del artículo: Código SKU, Nombre, Tipo (Materia Prima, Insumo, Producto Terminado) y Unidad de Medida (ej. Kg, Unidad, Litros). |
 |  | 5 | El usuario confirma la operación de guardado. |
 |  | 6 | El sistema valida que el Código SKU sea único y registra el nuevo artículo con stock físico inicial en cero. |
@@ -17,22 +17,112 @@
 |  |  |  |
 | **Postcondición**  | El artículo queda disponible en el sistema para recibir ingresos, ajustes o parametrizaciones. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 3 | **(Flujo de Modificación):** Si el usuario selecciona un artículo de la lista y elige "Modificar", el sistema carga los datos. Tras confirmar (Paso 5), el sistema actualiza el registro sin alterar su stock. |
-|  |  |  |
-|  |  |  |
-|  | 3 | **(Flujo de Baja):** Si el usuario selecciona "Dar de Baja", el sistema realiza una baja lógica (lo inactiva) para conservar el historial en las órdenes pasadas. Si el artículo aún tiene stock físico disponible, el sistema advierte de la situación y pide doble confirmación. |
-|  | 5 | Si el Código SKU ingresado ya pertenece a otro artículo, el sistema cancela el guardado e informa el error al usuario. |
+|  | 6 | Si el Código SKU ingresado ya pertenece a otro artículo, el sistema cancela el guardado e informa el error al usuario. |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 6 | Menos de 2 segundos |
 | **Frecuencia**  | Baja (Alta inicial y mantenimientos puntuales). |  |
 | **Estabilidad**  | Alta |  |
+| **Comentarios**  | Si el artículo es un Producto Terminado, su hoja de ruta (etapas) se define en Producción (CU-PROD-21), no aquí. |  |
+
+
+| CU-INV-02 | Baja de Artículo |  |
+| :---- | :---- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee dar de baja un artículo del catálogo. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. El artículo existe en el catálogo. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la gestión del catálogo de artículos. |
+|  | 2 | El sistema despliega el listado de artículos existentes. |
+|  | 3 | El usuario selecciona un artículo del listado y elige la opción "Dar de Baja". |
+|  | 4 | El sistema solicita la confirmación de la baja. |
+|  | 5 | El usuario confirma la operación. |
+|  | 6 | El sistema realiza una baja lógica (inactiva el artículo) conservando el historial en las órdenes pasadas. |
+|  | 7 | El sistema informa al usuario que la baja se completó con éxito y actualiza el listado. |
+|  |  |  |
+| **Postcondición**  | El artículo queda inactivo y deja de estar disponible para nuevos movimientos, conservando su historial. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 6 | Si el artículo aún tiene stock físico disponible, el sistema advierte de la situación y pide doble confirmación antes de proceder. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 6 | Menos de 1 segundo |
+| **Frecuencia**  | Baja (esporádica). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | La baja es lógica para conservar la trazabilidad del historial. |  |
+
+
+| CU-INV-03 | Modificación de Artículo |  |
+| :---- | :---- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee modificar los datos de un artículo existente. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. El artículo existe en el catálogo. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la gestión del catálogo de artículos. |
+|  | 2 | El sistema despliega el listado de artículos existentes. |
+|  | 3 | El usuario selecciona un artículo del listado y elige la opción "Modificar". |
+|  | 4 | El sistema carga los datos del artículo en el formulario para su edición. |
+|  | 5 | El usuario modifica los campos deseados (nombre, tipo o unidad de medida). |
+|  | 6 | El usuario confirma la operación. |
+|  | 7 | El sistema valida los datos y actualiza el registro sin alterar su stock. |
+|  | 8 | El sistema informa al usuario que la modificación se completó con éxito. |
+|  |  |  |
+| **Postcondición**  | El artículo queda actualizado con los nuevos valores, conservando su stock e historial. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 7 | Si el Código SKU modificado ya pertenece a otro artículo, el sistema cancela el guardado e informa el error al usuario. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 7 | Menos de 2 segundos |
+| **Frecuencia**  | Baja (mantenimientos puntuales). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | La modificación no altera el stock ni las reservas del artículo. |  |
+
+
+| CU-INV-04 | Listado de Artículos |  |
+| :---- | :---- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee visualizar el conjunto de artículos del catálogo y su estado de stock. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la gestión del catálogo de artículos. |
+|  | 2 | El sistema despliega el listado de artículos, mostrando para cada uno su SKU, nombre, tipo, stock físico, stock comprometido y stock disponible. |
+|  |  |  |
+| **Postcondición**  | El usuario visualiza el listado de artículos con su estado de stock. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 2 | Si no existen artículos registrados, el sistema muestra el mensaje "No hay artículos registrados". |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 2 | Menos de 2 segundos |
+| **Frecuencia**  | Alta (consultas diarias). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | El listado distingue stock físico de stock comprometido (reservas lógicas), clave para el modelo de stock. |  |
+
+
+| CU-INV-05 | Buscar Artículo |  |
+| :---- | :---- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee localizar un artículo específico del catálogo mediante criterios de búsqueda. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la gestión del catálogo de artículos. |
+|  | 2 | El sistema despliega el listado de artículos y un campo de búsqueda. |
+|  | 3 | El usuario ingresa un criterio de búsqueda (ej. Código SKU, nombre o tipo). |
+|  | 4 | El usuario ejecuta la búsqueda. |
+|  | 5 | El sistema filtra los artículos y muestra los resultados coincidentes. |
+|  |  |  |
+| **Postcondición**  | El usuario visualiza los artículos que coinciden con el criterio ingresado. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 5 | Si no existen artículos que coincidan con el criterio, el sistema muestra el mensaje "No se encontraron artículos para el criterio especificado". |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 5 | Menos de 2 segundos |
+| **Frecuencia**  | Alta (consultas diarias). |  |
+| **Estabilidad**  | Alta |  |
 | **Comentarios**  | Ninguno |  |
 
 
-| CU-INV-02 | Registrar ingreso de materiales |  |
+| CU-INV-06 | Registrar ingreso de materiales |  |
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-03 Sincronización Inteligente de Abastecimiento |  |
-| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario IRQ-03 Información sobre Proveedores y Trazabilidad de Compras RF-01 Gestión de Inventario |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario IRQ-03 Información sobre Proveedores y Trazabilidad de Compras RF-02 Gestión de Inventario |  |
 | **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock reciba físicamente mercancía en el depósito proveniente de un proveedor, impactando directamente en el stock real y en las métricas predictivas. |  |
 | **Precondición**  | El/Los artículo existen en el catálogo y existe una Orden de Compra (OC) oficial emitida previamente. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
@@ -57,10 +147,10 @@
 | **Comentarios**  | Ninguno |  |
 
 
-| CU-INV-03 | Registrar Ajuste de Inventario |  |
+| CU-INV-07 | Registrar Ajuste de Inventario |  |
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
-| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-01 Gestión de Inventario |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
 | **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock necesite realizar correcciones manuales sobre las existencias reales en el sistema debido a mermas o roturas |  |
 | **Precondición**  | El artículo seleccionado existe en el sistema. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
@@ -84,10 +174,10 @@
 | **Comentarios**  | Ninguno |  |
 
 
-| CU-INV-04 | Parametrizar Umbrales de Stock |  |
+| CU-INV-08 | Parametrizar Umbrales de Stock |  |
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-03 Sincronización Inteligente de Abastecimiento OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
-| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-01 Gestión de Inventario |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
 | **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock defina o modifique los límites mínimos y máximos tolerables de un artículo en particular. |  |
 | **Precondición**  | El artículo seleccionado se encuentra registrado en el catálogo. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
@@ -108,6 +198,4 @@
 |  | 5 | 1 segundo |
 | **Frecuencia**  | Media |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | Ninguno |  |
-
-
+| **Comentarios**  | Estos umbrales son el insumo de las alertas automáticas de reposición (proceso automático, no caso de uso). |  |
