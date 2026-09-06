@@ -118,12 +118,12 @@ El Supervisor gestiona a los operarios de la planta (nombre, datos de contacto, 
 2. El sistema valida que exista control de calidad registrado para la última etapa (prerrequisito).
 3. El sistema consolida las unidades válidas y pasa la orden a `Cerrada`.
 
-### F12 — Gestionar Cronograma de Producción (Gantt gerencial — nuevo)
+### F12 — Gestionar Cronograma de Producción (Gantt — nuevo)
 
-1. La Gerencia accede al cronograma dinámico de producción.
+1. El Supervisor de Producción accede al cronograma dinámico de producción.
 2. El sistema muestra las órdenes de producción y sus etapas ordenadas en el tiempo, calculado a partir de los tiempos por unidad de cada etapa.
-3. La Gerencia visualiza qué orden de producción y qué etapas corresponden a cada día.
-4. La Gerencia puede asignar y reordenar las órdenes dentro del cronograma.
+3. El Supervisor visualiza qué orden de producción y qué etapas corresponden a cada día.
+4. El Supervisor puede asignar y reordenar las órdenes dentro del cronograma.
 5. El cronograma se actualiza dinámicamente con los datos reales de avance (Parte Diario) y las predicciones del Microservicio.
 
 ### F13 — Mantenimiento preventivo por uso (subdominio)

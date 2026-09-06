@@ -15,7 +15,7 @@
 |  |  |  |
 |  |  |  |
 |  |  |  |
-| **Postcondición**  | - |  |
+| **Postcondición**  | El usuario obtiene el detalle de los eventos de auditoría que coinciden con los filtros aplicados. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
 |  | 5 | Si no existen eventos que coincidan con los filtros aplicados, el sistema muestra el mensaje "No se encontraron registros para los criterios especificados". |
 |  |  |  |

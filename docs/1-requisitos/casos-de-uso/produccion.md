@@ -415,8 +415,8 @@
 | :---- | ----- | :---- |
 | **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-02 Prevención Proactiva de Cuellos de Botella |  |
 | **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance IRQ-04 Información Analítica, Predictiva y de Simulación RF-01 Gestión de la Producción y Parte Diario |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando la Gerencia desee visualizar y administrar el cronograma dinámico de producción (Gantt), donde se muestran las órdenes de producción y sus etapas ordenadas en el tiempo, y desde el cual se pueden asignar y reordenar dichas órdenes. |  |
-| **Precondición**  | El usuario ha iniciado sesión con el rol de Gerente. Existen órdenes de producción registradas con sus hojas de ruta (etapas y tiempos por unidad) definidas. |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor de Producción desee visualizar y administrar el cronograma dinámico de producción (Gantt), donde se muestran las órdenes de producción y sus etapas ordenadas en el tiempo, y desde el cual se pueden asignar y reordenar dichas órdenes. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Supervisor de Producción. Existen órdenes de producción registradas con sus hojas de ruta (etapas y tiempos por unidad) definidas. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El usuario solicita al sistema acceder al Cronograma de Producción. |
 |  | 2 | El sistema recopila las órdenes de producción activas y calcula su proyección temporal a partir del tiempo por unidad de cada etapa de su hoja de ruta. |

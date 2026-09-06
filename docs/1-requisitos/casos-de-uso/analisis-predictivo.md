@@ -4,7 +4,7 @@
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-02 Prevención Proactiva de Cuellos de Botella |  |
 | **Requisitos**  **asociados**  | IRQ-04 Información Analítica, Predictiva y de Simulación RF-04 Análisis Predictivo y Monitoreo de Alertas |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el sistema dispare el proceso de reentrenamiento para que el algoritmo de Machine Learning incorpore los datos históricos recientes . |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Reloj del Sistema dispare el proceso de reentrenamiento para que el algoritmo de Machine Learning incorpore los datos históricos recientes, delegando la ejecución en el Microservicio Predictivo. |  |
 | **Precondición**  | Ha transcurrido el tiempo configurado para el ciclo de reentrenamiento y existen nuevos datos consolidados (Partes Diarios y Órdenes Cerradas) en la base de datos. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El Reloj del Sistema alcanza el intervalo programado (ej. Domingo a las 02:00 AM) y solicita el inicio del reentrenamiento. |
@@ -30,9 +30,9 @@
 | CU-PRED-02 | Recalcular Tiempo de Producción |  |
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-02 Prevención Proactiva de Cuellos de Botella |  |
-| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción IRQ-04 Información Analítica, Predictiva y de Simulación RF-04 Análisis Predictivo y Monitoreo de Alertas |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando reciba nuevos datos de avance productivo, delegando al Microservicio el recálculo de los cronogramas para detectar retrasos. |  |
-| **Precondición**  | El Supervisor de Producción acaba de cerrar exitosamente un Parte Diario  |  |
+| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance IRQ-04 Información Analítica, Predictiva y de Simulación RF-04 Análisis Predictivo y Monitoreo de Alertas |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando, de forma reactiva al cierre de un Parte Diario en Producción, el sistema principal dispare el recálculo del cronograma delegando en el Microservicio la detección de retrasos. |  |
+| **Precondición**  | El Supervisor de Producción cerró exitosamente un Parte Diario (CU-PROD-13), lo que dispara automáticamente este proceso. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El sistema principal envía los datos del avance de la Orden de Producción al Microservicio Predictivo. |
 |  | 2 | El Microservicio procesa la información y calcula la Tasa de Rendimiento Real (TRR) comparándola con los estándares esperados. |
@@ -53,11 +53,12 @@
 | **Estabilidad**  | Alta |  |
 | **Comentarios**  | Ninguno |  |
 
+
 | CU-PRED-03 | Evaluar Riesgo de Suministro |  |
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-03 Sincronización Inteligente de Abastecimiento |  |
 | **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario IRQ-03 Información sobre Proveedores y Trazabilidad de Compras IRQ-04 Información Analítica, Predictiva y de Simulación RF-04 Análisis Predictivo y Monitoreo de Alertas |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando analice la velocidad de consumo de materiales y los tiempos logísticos para sugerir compras anticipadas. |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Reloj del Sistema dispare la evaluación periódica de la velocidad de consumo de materiales y los tiempos logísticos, delegando en el Microservicio la sugerencia de compras anticipadas. |  |
 | **Precondición**  | Existen Órdenes de Producción activas consumiendo insumos y existen parámetros de tiempos de entrega en los perfiles de los proveedores. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El Reloj del Sistema activa la evaluación periódica de inventario. |
