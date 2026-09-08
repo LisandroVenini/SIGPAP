@@ -702,19 +702,19 @@
 |  | 1 | El usuario solicita al sistema acceder a la gestión de maquinarias. |
 |  | 2 | El sistema despliega el listado de maquinarias existentes. |
 |  | 3 | El usuario selecciona la opción "Registrar nueva maquinaria". |
-|  | 4 | El usuario ingresa los datos de la maquinaria: nombre, tipo y umbral de desgaste crítico (volumen procesado). |
+|  | 4 | El usuario ingresa los datos de la maquinaria: nombre y tipo. |
 |  | 5 | El usuario confirma la operación. |
 |  | 6 | El sistema valida los datos y registra la nueva maquinaria con desgaste acumulado inicial en cero. |
 |  | 7 | El sistema informa al usuario que el proceso ha terminado con éxito y actualiza el listado. |
 |  |  |  |
 | **Postcondición**  | La maquinaria queda registrada y disponible para ser asignada a las etapas de las órdenes de producción (CU-PROD-11). |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 6 | Si los datos obligatorios están incompletos o el umbral es cero o negativo, el sistema detiene el guardado e indica los campos erróneos. |
+|  | 6 | Si los datos obligatorios están incompletos, el sistema detiene el guardado e indica los campos erróneos. |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 6 | Menos de 1 segundo. |
 | **Frecuencia**  | Baja (altas iniciales y adquisición puntual de equipos). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | Ninguno |  |
+| **Comentarios**  | El umbral de desgaste crítico no se registra en el alta: se define en el Plan de Mantenimiento de la maquinaria (CU-MANT-06), que es quien dispara el bloqueo preventivo. |  |
 
 
 | CU-MANT-02 | Baja de Maquinaria |  |
@@ -753,14 +753,14 @@
 |  | 2 | El sistema despliega el listado de maquinarias existentes. |
 |  | 3 | El usuario selecciona una maquinaria y elige la opción "Modificar". |
 |  | 4 | El sistema carga los datos de la maquinaria en el formulario para su edición. |
-|  | 5 | El usuario modifica los campos deseados (nombre, tipo o umbral de desgaste crítico). |
+|  | 5 | El usuario modifica los campos deseados (nombre o tipo). |
 |  | 6 | El usuario confirma la operación. |
 |  | 7 | El sistema valida los datos y actualiza el registro. |
 |  | 8 | El sistema informa al usuario que la modificación se completó con éxito. |
 |  |  |  |
 | **Postcondición**  | La maquinaria queda actualizada con los nuevos valores. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 7 | Si el umbral de desgaste crítico queda en cero o negativo, el sistema detiene el guardado e indica el campo erróneo. |
+|  | 7 | Si los datos modificados quedan incompletos, el sistema detiene el guardado e indica el campo erróneo. |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 7 | Menos de 1 segundo. |
 | **Frecuencia**  | Baja (esporádica). |  |

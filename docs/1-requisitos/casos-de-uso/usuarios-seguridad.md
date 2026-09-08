@@ -68,7 +68,7 @@
 |  |  |  |
 | **Postcondición**  | El usuario queda actualizado con su nuevo rol o contraseña. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 7 | Si el nuevo email ingresado ya pertenece a otro usuario, el sistema bloquea el guardado y solicita uno diferente. |
+|  | 7 | Si los datos modificados quedan incompletos, el sistema bloquea el guardado e informa al Administrador. |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 7 | Menos de 2 segundos |
 | **Frecuencia**  | Baja |  |

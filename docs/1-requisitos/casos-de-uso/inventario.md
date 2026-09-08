@@ -68,7 +68,7 @@
 |  |  |  |
 | **Postcondición**  | El artículo queda actualizado con los nuevos valores, conservando su stock e historial. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 7 | Si el Código SKU modificado ya pertenece a otro artículo, el sistema cancela el guardado e informa el error al usuario. |
+|  | 7 | Si los datos modificados quedan incompletos, el sistema cancela el guardado e informa el error al usuario. |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 7 | Menos de 2 segundos |
 | **Frecuencia**  | Baja (mantenimientos puntuales). |  |
