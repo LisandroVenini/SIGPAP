@@ -6,8 +6,8 @@
 
 ## Nota de alcance
 
-- Se documenta un contrato por **operación del sistema** con reglas de negocio (altas, modificaciones y flujos críticos), en total **15**. El `Nombre` coincide carácter por carácter con el mensaje del DSS (trazabilidad vertical estricta).
-- Los ABM triviales y las consultas **no llevan contrato** (Larman): CU-PROD-02, 04, 05, 07, 09, 10, 17, 19, 20, 22, 25, 27, 28.
+- Se documenta un contrato por **operación del sistema** con reglas de negocio (altas, modificaciones y flujos críticos), en total **16**. El `Nombre` coincide carácter por carácter con el mensaje del DSS (trazabilidad vertical estricta).
+- Los ABM triviales y las consultas **no llevan contrato** (Larman): CU-PROD-02, 04, 05, 07, 09, 10, 17, 19, 20, 25, 27, 28.
 - Convención de firmas: parámetros por nombre de dominio sin tipo de dato (consistente con `DSS/produccion.md` y `DSS/inventario.md`).
 - Los parámetros de la firma que no tienen atributo en el Modelo de Dominio se señalan en `Notas` de cada contrato y se consolidan en el informe de trazabilidad (no se modifica el dominio).
 
@@ -220,3 +220,17 @@
 | **Salida** | `confirmacionCierre()`. |
 | **Precondiciones** | La `OrdenDeProduccion` está en estado "En Curso", la última etapa reportó avance completo y existe `ControlDeCalidad` para ella. |
 | **Postcondiciones** | Se modificó `OrdenDeProduccion.estado` a "Cerrada". Se inicializó `OrdenDeProduccion.cantidadProducida` con `unidadesFinales`. |
+
+## CU-PROD-22 — Desasignar Etapa de Producto
+
+| Campo | Contenido |
+| --- | --- |
+| **Nombre** | `desasignarEtapaProducto(producto, etapa)` |
+| **Responsabilidades** | Quitar una etapa de la hoja de ruta de un producto, rompiendo la asignación existente. |
+| **Tipo** | Sistema |
+| **Referencias cruzadas** | CU-PROD-22 |
+| **Notas** | Rompe la asociación materializada en `AsignacionDeEtapa` (rotura de asociación, postcondición contractual según la plantilla). El bloqueo aplica mientras existan órdenes en curso que usen esa hoja de ruta. |
+| **Excepciones** | Si existe una `OrdenDeProduccion` en estado "En Curso" que usa la etapa, el sistema bloquea la desasignación e informa al actor. |
+| **Salida** | `confirmacionDesasignacion()`. |
+| **Precondiciones** | Existe la `AsignacionDeEtapa` entre el `Articulo` (producto) y la `Etapa`. |
+| **Postcondiciones** | Se destruyó la instancia de `AsignacionDeEtapa` que vinculaba el `Articulo` (producto) con la `Etapa`. Se rompió la asociación producto-etapa. |

@@ -6,7 +6,7 @@
 
 ## Nota de alcance
 
-Se documentan solo las operaciones del sistema con regla de negocio (altas, modificaciones y flujos críticos). Los ABM triviales (Baja de Usuario, Listado de Usuarios, Buscar Usuario — CU-USR-02, 04 y 05) no llevan contrato. El CU-USR-06 modela dos operaciones en un mismo diagrama (iniciar sesión y cerrar sesión), por lo que genera dos contratos.
+Se documentan solo las operaciones del sistema con regla de negocio (altas, modificaciones y flujos críticos). Los ABM triviales (Baja de Usuario, Listado de Usuarios, Buscar Usuario — CU-USR-02, 04 y 05) no llevan contrato. El CU-USR-06 modela dos operaciones en un mismo diagrama (iniciar sesión y cerrar sesión), por lo que genera dos contratos. La creación inicial de los parámetros globales se realiza como carga inicial de configuración en la puesta en marcha del sistema (fuera de los casos de uso); CU-USR-07 solo ajusta sus valores.
 
 ## CU-USR-01 — Alta de Usuario
 

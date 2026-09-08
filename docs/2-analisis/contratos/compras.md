@@ -6,7 +6,7 @@
 
 ## Nota de alcance
 
-Se documentan solo las operaciones del sistema con regla de negocio (altas, modificaciones y flujos críticos). Las bajas, listados, búsquedas y la consulta de ranking (CU-COM-02, 04, 05, 07, 09, 10, 12, 14, 15, 18) no llevan contrato.
+Se documentan solo las operaciones del sistema con regla de negocio (altas, modificaciones y flujos críticos). Las bajas, listados, búsquedas y la consulta de ranking (CU-COM-02, 04, 05, 09, 10, 14, 15, 18) no llevan contrato. Las anulaciones de Solicitud de Cotización y de Orden de Compra (CU-COM-07 y CU-COM-12) sí llevan contrato: transicionan `estado` a "Anulada" y su ejecución depende de una regla de bloqueo según el estado previo.
 
 ## CU-COM-01 — Alta de Proveedor
 
@@ -147,3 +147,31 @@ Se documentan solo las operaciones del sistema con regla de negocio (altas, modi
 | **Salida** | `recomendacion(escenario)` presentada al `EncargadoDeCompras`. |
 | **Precondiciones** | Existe una `SolicitudDeDisponibilidad` con respuesta de disponibilidad cargada por el `Proveedor` (CU-COM-16). |
 | **Postcondiciones** | Se modificó `SolicitudDeDisponibilidad.estado` a "Respondida". En el flujo normal (escenario Ideal) no se crea ni modifica ninguna otra instancia persistida: la recomendación es una salida derivada presentada al actor. En el escenario "Variación Fuerte" se creó una instancia de `Alerta` asociada al `Articulo` consultado. |
+
+## CU-COM-07 — Anular Solicitud de Cotización
+
+| Campo | Contenido |
+| --- | --- |
+| **Nombre** | `anularSolicitudCotizacion(idSolicitudCotizacion, motivo)` |
+| **Responsabilidades** | Anular una solicitud de cotización que aún no fue adjudicada, conservando su historial. |
+| **Tipo** | Sistema |
+| **Referencias cruzadas** | CU-COM-07 |
+| **Notas** | La regla de negocio "la anulación se bloquea si fue adjudicada" está declarada en `SolicitudDeCotizacion.estado` (04-atributos.md). La anulación no elimina el registro: solo transiciona el estado. |
+| **Excepciones** | Si la solicitud ya fue adjudicada, el sistema bloquea la anulación e informa al actor. |
+| **Salida** | `confirmacionAnulacion()`. |
+| **Precondiciones** | Existe una `SolicitudDeCotizacion` y no fue adjudicada (estado ≠ "Adjudicada"). |
+| **Postcondiciones** | Se modificó `SolicitudDeCotizacion.estado` a "Anulada". |
+
+## CU-COM-12 — Anular Orden de Compra
+
+| Campo | Contenido |
+| --- | --- |
+| **Nombre** | `anularOrdenCompra(idOrdenCompra, motivo)` |
+| **Responsabilidades** | Anular una Orden de Compra que aún no fue confirmada por el proveedor. |
+| **Tipo** | Sistema |
+| **Referencias cruzadas** | CU-COM-12 |
+| **Notas** | La anulación aplica solo mientras la OC está en estado "Emitida"; una vez confirmada (CU-COM-17) ya no es anulable, se rechaza o se gestiona la entrega. |
+| **Excepciones** | Si la OC ya fue confirmada por el proveedor, el sistema bloquea la anulación e informa al actor. |
+| **Salida** | `confirmacionAnulacion()`. |
+| **Precondiciones** | Existe una `OrdenDeCompra` en estado "Emitida" (identificada por `numeroOC`). |
+| **Postcondiciones** | Se modificó `OrdenDeCompra.estado` a "Anulada". |

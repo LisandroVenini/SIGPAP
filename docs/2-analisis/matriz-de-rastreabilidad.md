@@ -24,7 +24,7 @@
 | CU-INV-03 | Modificación de Artículo | `modificarArticulo(codigoSKU, descripcion, tipo, unidadDeMedida)` | `modificarArticulo(codigoSKU, descripcion, tipo, unidadDeMedida)` | `Articulo`, `UnidadDeMedida` |
 | CU-INV-04 | Listado de Artículos | `solicitarListadoArticulos()` | — | `Articulo` (consulta) |
 | CU-INV-05 | Buscar Artículo | `buscarArticulo(criterio)` | — | `Articulo` (consulta) |
-| CU-INV-06 | Registrar ingreso de materiales | `registrarIngresoMateriales(numeroRemito, numeroOC, lineasDeRecepcion)` | `registrarIngresoMateriales(numeroRemito, numeroOC, lineasDeRecepcion)` | `Articulo`, `OrdenDeCompra`, `MovimientoDeStock`, `DesempenoProveedor`, `Proveedor` |
+| CU-INV-06 | Registrar ingreso de materiales | `registrarIngresoMateriales(numeroRemito, numeroOC, lineasDeRecepcion)` | `registrarIngresoMateriales(numeroRemito, numeroOC, lineasDeRecepcion)` | `Articulo`, `OrdenDeCompra`, `MovimientoDeStock`, `DesempenoProveedor`, `Proveedor`, `Incidencia` |
 | CU-INV-07 | Registrar Ajuste de Inventario | `registrarAjusteInventario(codigoSKU, nuevoStockObservado, motivo)` | `registrarAjusteInventario(codigoSKU, nuevoStockObservado, motivo)` | `Articulo`, `MovimientoDeStock` |
 | CU-INV-08 | Parametrizar Umbrales de Stock | `parametrizarUmbralesStock(codigoSKU, stockMinimo, stockMaximo)` | `parametrizarUmbralesStock(codigoSKU, stockMinimo, stockMaximo)` | `Articulo` |
 
@@ -38,12 +38,12 @@
 | CU-COM-04 | Listado de Proveedores | `solicitarListadoProveedores()` | — | `Proveedor` (consulta) |
 | CU-COM-05 | Buscar Proveedor | `buscarProveedor(criterio)` | — | `Proveedor` (consulta) |
 | CU-COM-06 | Alta de Solicitud de Cotización | `solicitarBorradorCotizacion(); altaSolicitudCotizacion(lineas, proveedores, fechaVencimiento)` | `altaSolicitudCotizacion(lineas, proveedores, fechaVencimiento)` | `SolicitudDeCotizacion`, `LineaSolicitudCotizacion`, `Articulo`, `Proveedor` |
-| CU-COM-07 | Baja de Solicitud de Cotización | `anularSolicitudCotizacion(idSolicitudCotizacion, motivo)` | — | `SolicitudDeCotizacion` (estado → Anulada) |
+| CU-COM-07 | Baja de Solicitud de Cotización | `anularSolicitudCotizacion(idSolicitudCotizacion, motivo)` | `anularSolicitudCotizacion(idSolicitudCotizacion, motivo)` | `SolicitudDeCotizacion` (estado → Anulada) |
 | CU-COM-08 | Modificación de Solicitud de Cotización | `modificarSolicitudCotizacion(idSolicitudCotizacion, lineas, proveedores, fechaVencimiento)` | `modificarSolicitudCotizacion(idSolicitudCotizacion, lineas, proveedores, fechaVencimiento)` | `SolicitudDeCotizacion`, `LineaSolicitudCotizacion`, `Articulo`, `Proveedor` |
 | CU-COM-09 | Listado de Solicitudes de Cotización | `solicitarListadoSolicitudesCotizacion()` | — | `SolicitudDeCotizacion` (consulta) |
 | CU-COM-10 | Buscar Solicitud de Cotización | `buscarSolicitudCotizacion(criterio)` | — | `SolicitudDeCotizacion` (consulta) |
 | CU-COM-11 | Alta de Orden de Compra | `solicitarInformeMulticriterio(idSolicitudCotizacion); emitirOrdenCompra(idSolicitudCotizacion, proveedor, lineas)` | `emitirOrdenCompra(idSolicitudCotizacion, proveedor, lineas)` | `OrdenDeCompra`, `Proveedor`, `Cotizacion`, `LineaOrdenCompra`, `Articulo`, `SolicitudDeCotizacion` (estado → Adjudicada) |
-| CU-COM-12 | Baja de Orden de Compra | `anularOrdenCompra(idOrdenCompra, motivo)` | — | `OrdenDeCompra` (estado → Anulada) |
+| CU-COM-12 | Baja de Orden de Compra | `anularOrdenCompra(idOrdenCompra, motivo)` | `anularOrdenCompra(idOrdenCompra, motivo)` | `OrdenDeCompra` (estado → Anulada) |
 | CU-COM-13 | Modificación de Orden de Compra | `modificarOrdenCompra(idOrdenCompra, lineas)` | `modificarOrdenCompra(idOrdenCompra, lineas)` | `OrdenDeCompra`, `LineaOrdenCompra`, `Articulo` |
 | CU-COM-14 | Listado de Órdenes de Compra | `solicitarListadoOrdenesCompra()` | — | `OrdenDeCompra` (consulta) |
 | CU-COM-15 | Buscar Orden de Compra | `buscarOrdenCompra(criterio)` | — | `OrdenDeCompra` (consulta) |
@@ -90,7 +90,7 @@
 | CU-PROD-19 | Listado de Etapas de Producción | `solicitarListadoEtapas()` | — | `Etapa` (consulta) |
 | CU-PROD-20 | Buscar Etapa de Producción | `buscarEtapa(criterio)` | — | `Etapa` (consulta) |
 | CU-PROD-21 | Asignar Etapa a Producto | `asignarEtapaProducto(producto, etapa, tiempoPorUnidad)` | `asignarEtapaProducto(producto, etapa, tiempoPorUnidad)` | `AsignacionDeEtapa`, `Articulo`, `Etapa` |
-| CU-PROD-22 | Desasignar Etapa de Producto | `desasignarEtapaProducto(producto, etapa)` | — | `AsignacionDeEtapa`, `Articulo`, `Etapa` |
+| CU-PROD-22 | Desasignar Etapa de Producto | `desasignarEtapaProducto(producto, etapa)` | `desasignarEtapaProducto(producto, etapa)` | `AsignacionDeEtapa`, `Articulo`, `Etapa` |
 | CU-PROD-23 | Gestionar Cronograma de Producción | `gestionarCronograma(orden, nuevaPosicion)` | `gestionarCronograma(orden, nuevaPosicion)` | `OrdenDeProduccion` (ordenamiento; vista Gantt excluida del dominio) |
 | CU-PROD-24 | Alta de Operario | `altaOperario(nombre, apellido, especialidad)` | `altaOperario(nombre, apellido, especialidad)` | `Operario` |
 | CU-PROD-25 | Baja de Operario | `bajaOperario(operario)` | — | `Operario` |
@@ -136,19 +136,19 @@
 | Módulo | CU | Operaciones DSS | Contratos | Cobertura (contratos/CU) |
 | --- | --- | --- | --- | --- |
 | Inventario | 8 | 8 | 4 | 50,0 % |
-| Compras | 20 | 23 | 10 | 50,0 % |
+| Compras | 20 | 23 | 12 | 60,0 % |
 | Usuarios y Seguridad | 7 | 8 | 5 | 71,4 % |
-| Producción | 28 | 28 | 15 | 53,6 % |
+| Producción | 28 | 28 | 16 | 57,1 % |
 | Mantenimiento | 11 | 11 | 5 | 45,5 % |
 | Análisis Predictivo | 5 | 6 | 4 | 80,0 % |
 | Reportes y Auditoría | 2 | 2 | 0 | 0,0 % |
-| **Total** | **81** | **86** | **43** | **53,1 %** |
+| **Total** | **81** | **86** | **46** | **56,8 %** |
 
-## Hallazgos de trazabilidad (sin corrección)
+## Hallazgos de trazabilidad (con resolución)
 
-1. **`Incidencia` sin operación que la cree.** Ningún contrato crea, modifica ni asocia una instancia de `Incidencia`. Solo aparece como insumo en las Notas del contrato CU-COM-11 (informe multicriterio) y como concepto consultado en CU-COM-18 (ranking, sin contrato). No existe operación de sistema que registre retrasos, faltantes o roturas; el ranking de proveedores (`01-conceptos.md`: "derivado del desempeño (`Incidencia`)") queda sin fuente de datos contratada.
-2. **Anulaciones con regla de negocio sin contrato.** `anularSolicitudCotizacion` (CU-COM-07) y `anularOrdenCompra` (CU-COM-12) transicionan estado del dominio ("Anulada"). Además `04-atributos.md` declara la regla "la anulación se bloquea si fue adjudicada" para `SolicitudDeCotizacion`, regla que queda sin formalizar en ningún contrato. La nota de alcance de Compras las excluye como "bajas", pero la regla del bloqueo no está declarada.
-3. **CU-PROD-22 (Desasignar Etapa de Producto) sin contrato aunque rompe una asociación.** La operación `desasignarEtapaProducto(producto, etapa)` destruye la instancia `AsignacionDeEtapa` (rotura de asociación, postcondición contractual según la plantilla). Figura en el set "sin contrato" de la nota de alcance de Producción.
-4. **`ParametroGlobal` sin operación que lo cree.** CU-USR-07 solo modifica `ParametroGlobal.valor`; ninguna operación contratada crea el parámetro (su precondición exige que ya exista). Presumiblemente se carga como configuración inicial fuera de los CU, pero queda sin respaldo contractual.
+1. **`Incidencia` sin operación que la cree (resuelto, H-039).** Ningún contrato creaba una instancia de `Incidencia`; solo aparecía como insumo en las Notas del contrato CU-COM-11 (informe multicriterio) y como concepto consultado en CU-COM-18 (ranking, sin contrato), dejando al ranking sin fuente de datos contratada. Se resolvió declarando la creación automática de `Incidencia` en la postcondición del contrato CU-INV-06 (`registrarIngresoMateriales`): por cada línea cuya entrega llegó con retraso respecto de `Cotizacion.fechaPrometida` o con cantidad faltante respecto de la OC, se crea la instancia (tipo "Retraso" o "Faltante", con `fecha` y `detalle`) asociada al `Proveedor` de la orden (ver Notas del contrato).
+2. **Anulaciones con regla de negocio sin contrato (resuelto, H-040).** `anularSolicitudCotizacion` (CU-COM-07) y `anularOrdenCompra` (CU-COM-12) transicionan estado del dominio ("Anulada") y la regla "la anulación se bloquea si fue adjudicada" (`SolicitudDeCotizacion.estado`, `04-atributos.md`) quedaba sin formalizar en ningún contrato. Se resolvió con los contratos `anularSolicitudCotizacion(idSolicitudCotizacion, motivo)` y `anularOrdenCompra(idOrdenCompra, motivo)`, que declaran la precondición de estado y la postcondición de transición.
+3. **CU-PROD-22 (Desasignar Etapa de Producto) sin contrato aunque rompe una asociación (resuelto, H-041).** La operación `desasignarEtapaProducto(producto, etapa)` destruye la instancia `AsignacionDeEtapa` (rotura de asociación, postcondición contractual según la plantilla). Se resolvió con el contrato `desasignarEtapaProducto(producto, etapa)`, incluyendo el bloqueo cuando existen órdenes en curso que usan esa hoja de ruta.
+4. **`ParametroGlobal` sin operación que lo cree (resuelto por decisión, H-042).** CU-USR-07 solo modifica `ParametroGlobal.valor`; ninguna operación contratada crea el parámetro (su precondición exige que ya exista). Se documentó en la nota de alcance de `contratos/usuarios-seguridad.md` que la creación inicial se realiza como carga inicial de configuración en la puesta en marcha del sistema (fuera de los casos de uso); CU-USR-07 solo ajusta sus valores.
 5. **Bajas lógicas que transicionan estado sin contrato (informativo, decisión de plantilla).** `bajaArticulo` (INV-02), `bajaProveedor` (COM-02), `inhabilitarUsuario` (USR-02), `anularOrdenProduccion` (PROD-07), `bajaPlanificacion` (PROD-02), `bajaEtapa` (PROD-17), `bajaOperario` (PROD-25), `bajaMaquinaria` (MANT-02) y `bajaPlanMantenimiento` (MANT-07) modifican el estado del dominio sin contrato; coherente con la regla "bajas triviales sin contrato" de `_plantilla-contrato.md`, pero el cambio de estado queda declarado solo en Notas de otros contratos.
-6. **Verificación positiva de trazabilidad vertical.** Los 43 contratos tienen su firma exacta en el DSS correspondiente (0 contratos sin DSS). Las operaciones sin contrato son consultas/listados/búsquedas o bajas (Solo DSS, regla Larman); ninguna operación de alta o modificación quedó sin contratar.
+6. **Verificación positiva de trazabilidad vertical.** Los 46 contratos tienen su firma exacta en el DSS correspondiente (0 contratos sin DSS). Las operaciones sin contrato son consultas/listados/búsquedas o bajas (Solo DSS, regla Larman); ninguna operación de alta, modificación o anulación con regla de negocio quedó sin contratar.
