@@ -59,7 +59,7 @@ Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking
 | Concepto | Descripción |
 | --- | --- |
 | TasaDeRendimiento | TRR por etapa + desviación respecto del estándar. |
-| Alerta | Notificación de riesgo (reposición, caducidad, quiebre, cuello de botella). |
+| Alerta | Notificación de riesgo (reposición, caducidad, quiebre, cuello de botella, técnica). |
 | EscenarioDeSimulacion | Parámetros de una simulación + impacto proyectado. |
 
 ### Auditoría
@@ -79,11 +79,11 @@ Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking
 ## Decisiones de modelado
 
 1. **`AsignacionDeEtapa` como clase de asociación.** Producto↔Etapa es N:M con dato propio (tiempo por unidad); ese dato no es ni del producto ni de la etapa.
-2. **`Articulo` sin jerarquía.** Las tres variantes comparten atributos; la diferencia la captura el atributo `tipo` (Materia Prima / Insumo / Producto Terminado).
+2. **`Articulo` sin jerarquía.** Las tres variantes comparten atributos; la diferencia la captura el atributo `tipo` (Materia Prima / Insumo Consumible / Producto Terminado).
 3. **`Proveedor` es actor y concepto a la vez.** No se excluyen mutuamente.
 4. **`SectorProductivo` descartado.** Sector == etapa; la TRR se calcula por `Etapa`.
 5. **`Lote` fusionado en `ControlDeCalidad`.** El lote es el conjunto inspeccionado; se registra la inspección.
-6. **`Alerta` unifica los tipos de notificación** (reposición, caducidad, quiebre de stock, cuello de botella predictivo y preventivo) mediante un atributo `tipo`.
+6. **`Alerta` unifica los tipos de notificación** (reposición, caducidad, quiebre de stock, cuello de botella predictivo, preventivo y técnica por falla/timeout del sistema) mediante un atributo `tipo`.
 7. **`ParametroGlobal` captura la configuración de negocio** (turnos, feriados, umbrales de tolerancia), que antes aparecía dispersa.
 8. **`LineaSolicitudCotizacion` y `LineaOrdenCompra` como clases de asociación.** Solicitud↔Artículo y Orden↔Artículo son N:M con dato propio (cantidad por línea, precio pactado); ese dato no es ni de la cabecera ni del artículo, igual que en `AsignacionDeEtapa`.
 9. **`Cotizacion` se asocia al `Articulo` cotizado.** Cada oferta refiere el artículo concreto de la solicitud; el precio, la cantidad ofertada y la fecha prometida quedan en la cotización.

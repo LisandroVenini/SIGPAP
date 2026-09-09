@@ -21,7 +21,7 @@ Para cada concepto se describe su **Símbolo** (nombre PascalCase, compartimento
 | Elemento | Descripción del Concepto |
 | --- | --- |
 | Símbolo | OrdenDeProduccion |
-| Intensión | Representa el mandato formal de fabricación emitido por la gerencia para manufacturar un lote específico de muebles en la planta. Define de manera única el producto a fabricar, la cantidad solicitada y los tiempos límite de inicio y fin, y transita estados durante su ciclo de vida (Pendiente, Asignada, En Curso, Cerrada). |
+| Intensión | Representa el mandato formal de fabricación emitido por la gerencia para manufacturar un lote específico de muebles en la planta. Define de manera única el producto a fabricar, la cantidad solicitada y los tiempos límite de inicio y fin, y transita estados durante su ciclo de vida (Pendiente, Pendiente por Insumos, Asignada, En Curso, Cerrada o Anulada). |
 | Extensión | El conjunto de todas las órdenes de trabajo reales y activas en el piso de la planta de Confort y Muebles (por ejemplo: la orden OP-501 del 07/09/2026 para fabricar 50 Sillas de Pino). |
 
 ### Etapa

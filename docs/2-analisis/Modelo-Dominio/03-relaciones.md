@@ -16,7 +16,7 @@ Cada relación se documenta en su propia tabla de dos columnas: la izquierda exp
 
 | Concepto | Relación |
 | --- | --- |
-| A es una parte lógica de B | AsignacionDeEtapa - Articulo |
+| A se vincula a B | AsignacionDeEtapa - Articulo |
 
 | Concepto | Relación |
 | --- | --- |
