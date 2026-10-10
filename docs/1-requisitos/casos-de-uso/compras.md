@@ -258,6 +258,7 @@
 | **Postcondición**  | La Orden de Compra queda en estado "Emitida", a la espera de confirmación por parte del proveedor. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
 |  | 1 | **(Flujo Manual):** El usuario selecciona "Crear Orden de Compra", selecciona proveedor, artículos y precios pactados, y emite la orden sin pasar por una licitación previa. |
+|  | 1 | **(Regla de Cota):** Si el monto total de una OC manual supera la cota máxima de compra directa configurada en los parámetros del sistema, el sistema bloquea la emisión directa y sugiere abrir una licitación (la compra directa queda habilitada solo por debajo de la cota). |
 |  |  |  |
 |  |  |  |
 |  | 3 | **(Elección Manual):** Si el usuario decide no aceptar la sugerencia del sistema, selecciona manualmente a otro proveedor de la lista y emite la orden para este. |
@@ -265,7 +266,7 @@
 |  | 5 | Hasta 3 segundos |
 | **Frecuencia**  | Media |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | La adjudicación de la licitación y la emisión de la OC son responsabilidad del Encargado de Compras. |  |
+| **Comentarios**  | La adjudicación de la licitación y la emisión de la OC son responsabilidad del Encargado de Compras. La cota máxima de compra directa se configura en Parámetros del Sistema (criterios de adjudicación). |  |
 
 
 | CU-COM-12 | Baja de Orden de Compra |  |

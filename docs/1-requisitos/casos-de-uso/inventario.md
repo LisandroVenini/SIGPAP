@@ -10,7 +10,7 @@
 |  | 1 | El usuario solicita al sistema acceder a la gestión del catálogo de artículos. |
 |  | 2 | El sistema despliega el listado de artículos existentes. |
 |  | 3 | El usuario selecciona la opción "Crear nuevo artículo". |
-|  | 4 | El usuario ingresa los datos del artículo: Código SKU, Nombre, Tipo (Materia Prima, Insumo, Producto Terminado) y Unidad de Medida (ej. Kg, Unidad, Litros). |
+|  | 4 | El usuario ingresa los datos del artículo: Código SKU, Nombre, Tipo (Materia Prima, Insumo, Producto Terminado), Unidad de Medida (ej. Kg, Unidad, Litros) y, si el Tipo es Producto Terminado, su Origen (Fabricado o Tercero). |
 |  | 5 | El usuario confirma la operación de guardado. |
 |  | 6 | El sistema valida que el Código SKU sea único y registra el nuevo artículo con stock físico inicial en cero. |
 |  | 7 | El sistema informa al usuario que el proceso ha terminado con éxito y actualiza el listado. |
@@ -22,7 +22,7 @@
 |  | 6 | Menos de 2 segundos |
 | **Frecuencia**  | Baja (Alta inicial y mantenimientos puntuales). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | Si el artículo es un Producto Terminado, su hoja de ruta (etapas) se define en Producción (CU-PROD-21), no aquí. |  |
+| **Comentarios**  | Si el artículo es un Producto Terminado, su hoja de ruta (etapas) se define en Producción (CU-PROD-21), no aquí. Si es de origen "Tercero", no tendrá hoja de ruta: se compra listo y la venta queda fuera del sistema. |  |
 
 
 | CU-INV-02 | Baja de Artículo |  |

@@ -21,8 +21,16 @@ Para cada concepto se describe su **Símbolo** (nombre PascalCase, compartimento
 | Elemento | Descripción del Concepto |
 | --- | --- |
 | Símbolo | OrdenDeProduccion |
-| Intensión | Representa el mandato formal de fabricación emitido por la gerencia para manufacturar un lote específico de muebles en la planta. Define de manera única el producto a fabricar, la cantidad solicitada y los tiempos límite de inicio y fin, y transita estados durante su ciclo de vida (Pendiente, Pendiente por Insumos, Asignada, En Curso, Cerrada o Anulada). |
+| Intensión | Representa el mandato formal de fabricación emitido por la gerencia para manufacturar un lote específico de muebles en la planta. Define de manera única el producto a fabricar, la cantidad solicitada y los tiempos límite de inicio y fin, y transita estados durante su ciclo de vida (Pendiente, Pendiente por Insumos, Asignada, En Curso, Cerrada o Anulada). Posee una prioridad actual de programación en el cronograma, cuyo historial de cambios (con justificación) se registra en `RegistroPrioridad`. |
 | Extensión | El conjunto de todas las órdenes de trabajo reales y activas en el piso de la planta de Confort y Muebles (por ejemplo: la orden OP-501 del 07/09/2026 para fabricar 50 Sillas de Pino). |
+
+### RegistroPrioridad
+
+| Elemento | Descripción del Concepto |
+| --- | --- |
+| Símbolo | RegistroPrioridad |
+| Intensión | Representa el registro inmutable de cada cambio de prioridad que sufre una orden de producción dentro del cronograma: la prioridad anterior, la nueva, la fecha, el usuario que lo realizó y el motivo del reordenamiento. Complementa la auditoría técnica con el historial de negocio de la programación, permitiendo reconstruir por qué una orden subió o bajó de prioridad. |
+| Extensión | El conjunto de todos los reordenamientos registrados (por ejemplo: el registro del 08/09/2026 que bajó la orden OP-503 de prioridad 1 a 2 por "insumo atrasado"). |
 
 ### Etapa
 
@@ -95,8 +103,8 @@ Para cada concepto se describe su **Símbolo** (nombre PascalCase, compartimento
 | Elemento | Descripción del Concepto |
 | --- | --- |
 | Símbolo | Articulo |
-| Intensión | Representa un ítem del catálogo de la fábrica, que puede ser materia prima, insumo consumible o producto terminado. Identifica de manera única cada material o producto mediante su SKU, lleva su unidad de medida y su stock, y posee un estado (Activo/Inactivo): la baja lógica lo inactiva conservando el historial en las órdenes pasadas. |
-| Extensión | El conjunto de todos los artículos del catálogo de Confort y Muebles (por ejemplo: la madera de pino como materia prima, el barniz como insumo y la Silla de Pino como producto terminado). |
+| Intensión | Representa un ítem del catálogo de la fábrica, que puede ser materia prima, insumo consumible o producto terminado. Identifica de manera única cada material o producto mediante su SKU, lleva su unidad de medida y su stock, y posee un estado (Activo/Inactivo): la baja lógica lo inactiva conservando el historial en las órdenes pasadas. El producto terminado además posee un origen (Fabricado o Tercero): los de origen Tercero se compran listos para la venta, no tienen hoja de ruta ni generan órdenes de producción. |
+| Extensión | El conjunto de todos los artículos del catálogo de Confort y Muebles (por ejemplo: la madera de pino como materia prima, el barniz como insumo, la Silla de Pino como producto terminado fabricado y una lámpara de diseño como producto terminado de tercero). |
 
 ### Reserva
 

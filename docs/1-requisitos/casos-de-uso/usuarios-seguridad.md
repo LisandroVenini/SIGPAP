@@ -154,7 +154,7 @@
 | **Precondición**  | El usuario ha iniciado sesión con el rol de Administrador. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El usuario ingresa a la vista de "Configuración del Sistema". |
-|  | 2 | El sistema muestra los parámetros globales agrupados por categoría (Producción, Compras, Motor Predictivo). |
+|  | 2 | El sistema muestra los parámetros globales agrupados por categoría (Producción, Compras, Motor Predictivo). La categoría Compras incluye los criterios de adjudicación: cota máxima de compra directa, pesos del Informe Multicriterio y umbral de tolerancia de disponibilidad. |
 |  | 3 | El usuario modifica un parámetro (ej. cambiar los días estándar de vigencia de una Solicitud de Cotización de 7 a 5 días) y presiona "Guardar Cambios". |
 |  | 4 | El sistema valida el formato de los datos ingresados. |
 |  | 5 | El sistema sobrescribe los parámetros y notifica que los cambios se aplicaron correctamente. |

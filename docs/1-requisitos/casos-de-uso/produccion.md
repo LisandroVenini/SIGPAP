@@ -137,11 +137,13 @@
 | **Postcondición**  | La Orden de Producción queda creada en estado "Pendiente" y los materiales necesarios quedan "Comprometidos" en el inventario (reserva lógica). |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
 |  | 6 | Si el stock físico no alcanza para cubrir la reserva lógica, el sistema alerta al usuario del quiebre inminente y deja la OP en estado "Pendiente por Insumos", disparando una alerta para el módulo de Compras. |
+|  | 4 | Si el producto seleccionado es de origen "Tercero", el sistema bloquea la creación e informa que ese producto no se fabrica (se compra listo por Compras). |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 6 | Menos de 2 segundos. |
 | **Frecuencia**  | Alta (Múltiples veces por semana). |  |
 | **Estabilidad**  | Alta |  |
 | **Comentarios**  | Ninguno |  |
+| **Comentarios**  | El producto a fabricar debe ser de origen "Fabricado"; los de origen "Tercero" no generan órdenes de producción (se compran listos por Compras y la venta queda fuera del sistema). |  |
 
 
 | CU-PROD-07 | Baja de Orden de Producción |  |
@@ -382,7 +384,7 @@
 |  | 7 | Menos de 1 segundo. |
 | **Frecuencia**  | Baja (la hoja de ruta se define una sola vez por producto). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | El tiempo por unidad se define aquí y no en el catálogo de etapas (CU-PROD-16), porque el mismo tipo de etapa puede durar distinto según el producto. |  |
+| **Comentarios**  | El tiempo por unidad se define aquí y no en el catálogo de etapas (CU-PROD-16), porque el mismo tipo de etapa puede durar distinto según el producto. Solo aplica a productos terminados de origen "Fabricado"; los de origen "Tercero" no tienen hoja de ruta. |  |
 
 
 | CU-PROD-22 | Desasignar Etapa de Producto |  |
@@ -422,12 +424,12 @@
 |  | 2 | El sistema recopila las órdenes de producción activas y calcula su proyección temporal a partir del tiempo por unidad de cada etapa de su hoja de ruta. |
 |  | 3 | El sistema renderiza el diagrama de Gantt, mostrando cada orden y sus etapas ubicadas en el calendario según sus tiempos estimados. |
 |  | 4 | El usuario visualiza qué órdenes de producción y qué etapas corresponden a cada día. |
-|  | 5 | El usuario selecciona una orden del cronograma y la reordena (asignándole una nueva posición o prioridad) o ajusta su ventana temporal. |
+|  | 5 | El usuario selecciona una orden del cronograma y la reordena (asignándole una nueva posición o prioridad) o ajusta su ventana temporal. Al cambiar la prioridad de una orden, el sistema solicita la justificación del cambio (catálogo de motivos con detalle libre opcional). |
 |  | 6 | El sistema recalcula el cronograma y despliega el impacto del reordenamiento sobre las demás órdenes. |
 |  | 7 | El usuario confirma los cambios y el sistema persiste el nuevo cronograma. |
 |  | 8 | El sistema informa al usuario que el cronograma fue actualizado con éxito. |
 |  |  |  |
-| **Postcondición**  | El cronograma de producción queda actualizado con el nuevo ordenamiento y refleja la proyección temporal recalculada de las órdenes. |  |
+| **Postcondición**  | El cronograma de producción queda actualizado con el nuevo ordenamiento y refleja la proyección temporal recalculada de las órdenes. Cada cambio de prioridad queda registrado en `RegistroPrioridad` (prioridad anterior, nueva, motivo, autor y fecha) y en la auditoría del sistema. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
 |  | 2 | Si no existen órdenes de producción activas, el sistema muestra el cronograma vacío con la leyenda "No hay órdenes de producción para programar". |
 |  |  |  |

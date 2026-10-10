@@ -14,7 +14,7 @@ Un concepto entra al modelo de dominio si cumple **todas** estas condiciones:
 
 Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking), vistas y salidas (Gantt, Dashboard, Reporte), componentes de software (ModeloPredictivo) y procesos (Licitación Predictiva).
 
-## Lista de conceptos idóneos (30)
+## Lista de conceptos idóneos (31)
 
 ### Producción
 
@@ -22,6 +22,7 @@ Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking
 | --- | --- |
 | PlanificacionDeProduccion | Campaña que agrupa órdenes de producción en un período. |
 | OrdenDeProduccion | Orden de fabricación de un producto, con cantidad y fechas; transita estados. |
+| RegistroPrioridad | Historial de cambios de prioridad de una orden de producción, con la justificación de cada reordenamiento (motivo, autor, fecha). |
 | Etapa | Paso del catálogo de fabricación (Lijado, Pintado, Armado, Embalado). |
 | AsignacionDeEtapa | Vínculo producto↔etapa con su tiempo por unidad (la hoja de ruta). |
 | ParteDiario | Registro de avance por etapa y turno (unidades conformadas). |
@@ -88,6 +89,8 @@ Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking
 8. **`LineaSolicitudCotizacion` y `LineaOrdenCompra` como clases de asociación.** Solicitud↔Artículo y Orden↔Artículo son N:M con dato propio (cantidad por línea, precio pactado); ese dato no es ni de la cabecera ni del artículo, igual que en `AsignacionDeEtapa`.
 9. **`Cotizacion` se asocia al `Articulo` cotizado.** Cada oferta refiere el artículo concreto de la solicitud; el precio, la cantidad ofertada y la fecha prometida quedan en la cotización.
 10. **`DesempenoProveedor` registra el desempeño de entregas reales.** Cada entrega confirmada y recibida genera un registro; el ranking y la evaluación de criticidad son valores derivados de este historial.
+11. **`RegistroPrioridad` respalda la prioridad de las órdenes.** La prioridad de programación de una OP deja de ser una vista derivada: es un atributo de `OrdenDeProduccion` (`prioridadActual`) y cada cambio de prioridad —con su justificación— se persiste en `RegistroPrioridad`, complementando la auditoría técnica con el historial de negocio.
+12. **`Articulo.origen` distingue el producto terminado de tercero.** La diferencia entre fabricar y comprar listo se captura con un atributo (Fabricado / Tercero), no con un tipo de artículo nuevo: un mismo artículo puede cambiar de origen si la fábrica decide fabricarlo. Los de origen Tercero no generan órdenes de producción ni hoja de ruta.
 
 ## Excluidos (con justificación)
 

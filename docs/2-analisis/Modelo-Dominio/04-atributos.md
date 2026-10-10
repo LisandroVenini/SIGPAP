@@ -30,6 +30,16 @@
 | OrdenDeProduccion | fechaEntrega: fecha límite en la que el pedido debe estar terminado para el cliente. |
 | OrdenDeProduccion | fechaInicio: fecha en que la orden inició efectivamente su ejecución (registrada en el inicio de la orden). |
 | OrdenDeProduccion | cantidadProducida: número de unidades válidas consolidadas al cierre de la orden. |
+| OrdenDeProduccion | prioridadActual: posición actual de la orden en el cronograma de producción (1 = mayor prioridad); su historial de cambios se registra en `RegistroPrioridad`. |
+
+### RegistroPrioridad
+
+| Concepto | Atributo – Descripción |
+| --- | --- |
+| RegistroPrioridad | prioridadAnterior: prioridad que tenía la orden antes del cambio (vacía en el primer registro, cuando se le asigna prioridad por primera vez en el cronograma). |
+| RegistroPrioridad | prioridadNueva: prioridad asignada a la orden a partir del cambio. |
+| RegistroPrioridad | fechaCambio: fecha y hora en que se registró el cambio de prioridad. |
+| RegistroPrioridad | motivo: justificación del reordenamiento, elegida de un catálogo (cliente urgente, insumo atrasado, desvío de producción, mantenimiento de máquina, reordenamiento manual) con detalle libre opcional. |
 
 ### Etapa
 
@@ -108,6 +118,7 @@
 | Articulo | stockMaximo: tope de existencias deseado para el artículo. |
 | Articulo | fechaVencimiento: fecha de caducidad, aplicable a los insumos consumibles. |
 | Articulo | estado: condición del artículo en el catálogo (Activo, Inactivo); la baja lógica lo inactiva conservando su historial. |
+| Articulo | origen: procedencia del artículo cuando es Producto Terminado (Fabricado — se produce en planta con hoja de ruta; Tercero — se compra listo, sin hoja de ruta, no genera órdenes de producción). |
 
 ### Reserva
 

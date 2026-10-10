@@ -1,4 +1,4 @@
-# Modelo de Dominio — Diagrama Mermaid (30 conceptos)
+# Modelo de Dominio — Diagrama Mermaid (31 conceptos)
 
 > **Disciplina:** Análisis · Proceso Unificado
 > **Fuente:** `01-conceptos.md`, `02-descripciones.md`, `03-relaciones.md`, `04-atributos.md`
@@ -19,6 +19,13 @@ classDiagram
         fechaEntrega
         fechaInicio
         cantidadProducida
+        prioridadActual
+    }
+    class RegistroPrioridad {
+        prioridadAnterior
+        prioridadNueva
+        fechaCambio
+        motivo
     }
     class Etapa {
         nombre
@@ -65,6 +72,7 @@ classDiagram
         codigoSKU
         descripcion
         tipo
+        origen
         stockFisico
         stockMinimo
         stockMaximo
@@ -180,6 +188,7 @@ classDiagram
     Articulo "1" --> "0..*" AsignacionDeEtapa : incluye
     Etapa "1" --> "0..*" AsignacionDeEtapa : define
     OrdenDeProduccion "1" --> "0..*" ParteDiario : registra
+    OrdenDeProduccion "1" --> "0..*" RegistroPrioridad : registra
     OrdenDeProduccion "1" --> "0..*" ControlDeCalidad : inspecciona
     Maquinaria "1" --> "0..*" IntervencionDeMantenimiento : registra
     Operario "0..*" --> "0..*" OrdenDeProduccion : asignado
@@ -222,6 +231,7 @@ classDiagram
 
     %% ===================== Auditoría =====================
     Usuario "1" --> "0..*" EventoDeAuditoria : genera
+    Usuario "1" --> "0..*" RegistroPrioridad : justifica
 
     %% ===================== Usuarios y Seguridad =====================
     Rol "1" --> "0..*" Usuario : asigna

@@ -24,6 +24,14 @@ Cada relación se documenta en su propia tabla de dos columnas: la izquierda exp
 
 | Concepto | Relación |
 | --- | --- |
+| A es un registro de B | RegistroPrioridad - OrdenDeProduccion |
+
+| Concepto | Relación |
+| --- | --- |
+| A es un registro de B | RegistroPrioridad - Usuario |
+
+| Concepto | Relación |
+| --- | --- |
 | A es un registro de B | ControlDeCalidad - OrdenDeProduccion |
 
 | Concepto | Relación |
