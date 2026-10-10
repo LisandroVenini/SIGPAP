@@ -8,11 +8,11 @@
 |  |  |
 | **Comentarios**  | Ninguno  |
 
-| NFR–02 | Arquitectura Híbrida y Escalabilidad |
+| NFR–02 | Monolito Modular con Componente Especializado de ML y Escalabilidad |
 | :---- | :---- |
 | **Objetivos asociados**  | OBJ–02 Prevención Proactiva de Cuellos de Botella OBJ-04 Soporte Gerencial mediante Simulación de Escenarios |
 | **Requisitos asociados**  | RF-04 Análisis Predictivo y Monitoreo de Alertas RF-05 Simulación Gerencial de Escenarios |
-| **Descripción**  | El sistema deberá asegurar su escalabilidad mediante una arquitectura híbrida que separe el monolito transaccional (desarrollado en Laravel) del microservicio especializado en Machine Learning (desarrollado en FastAPI). La comunicación entre ambos entornos deberá ser asíncrona mediante trabajos en segundo plano |
+| **Descripción**  | El sistema deberá asegurar su escalabilidad mediante un monolito modular (Laravel) que invoca, cuando corresponde, un componente especializado de Machine Learning en Python. El componente recibe datos, calcula y devuelve resultados; Laravel persiste el estado. La comunicación deberá ser asíncrona mediante trabajos en segundo plano |
 |  |  |
 | **Comentarios**  | Ninguno  |
 

@@ -25,7 +25,7 @@ Este subsistema no solo permite la gestión administrativa clásica de proveedor
 
 ### Análisis Predictivo e Inteligencia de Negocios
 
-Representa el diferencial estratégico de SIGPAP y su núcleo como Sistema de Soporte a Decisiones (DSS). Operando como un microservicio independiente, este subsistema procesa asíncronamente los volúmenes de datos generados por la planta y el almacén. Implementa algoritmos de Machine Learning para identificar desviaciones en el cronograma, emitir alertas tempranas sobre cuellos de botella y adelantar decisiones de compra. Asimismo, provee un entorno de simulación que otorga a la gerencia la capacidad de proyectar matemática y operativamente el impacto de la inserción de pedidos urgentes sobre la cola de producción vigente.
+Representa el diferencial estratégico de SIGPAP y su núcleo como Sistema de Soporte a Decisiones (DSS). Operando como un componente especializado de ML en Python, invocado por el monolito, este subsistema recibe los datos generados por la planta y el almacén, calcula y devuelve resultados; Laravel los persiste. Implementa algoritmos de Machine Learning para identificar desviaciones en el cronograma, emitir alertas tempranas sobre cuellos de botella y adelantar decisiones de compra. Asimismo, provee un entorno de simulación que otorga a la gerencia la capacidad de proyectar matemática y operativamente el impacto de la inserción de pedidos urgentes sobre la cola de producción vigente.
 
 ### Reportes
 

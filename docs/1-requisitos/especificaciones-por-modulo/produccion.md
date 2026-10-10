@@ -105,7 +105,7 @@ El Supervisor gestiona a los operarios de la planta (nombre, datos de contacto, 
 1. Al finalizar el turno, el Supervisor registra la cantidad de unidades completadas por etapa.
 2. El sistema acumula el avance de la orden y consume el stock físico de insumos.
 3. El sistema incrementa el desgaste acumulado de la maquinaria utilizada.
-4. El sistema dispara una petición asíncrona al Microservicio Predictivo para recalcular la Tasa de Rendimiento Real (TRR).
+4. El sistema dispara una petición asíncrona al Componente Predictivo para recalcular la Tasa de Rendimiento Real (TRR).
 
 ### F10 — Control de calidad
 
@@ -124,7 +124,7 @@ El Supervisor gestiona a los operarios de la planta (nombre, datos de contacto, 
 2. El sistema muestra las órdenes de producción y sus etapas ordenadas en el tiempo, calculado a partir de los tiempos por unidad de cada etapa.
 3. El Supervisor visualiza qué orden de producción y qué etapas corresponden a cada día.
 4. El Supervisor puede asignar y reordenar las órdenes dentro del cronograma.
-5. El cronograma se actualiza dinámicamente con los datos reales de avance (Parte Diario) y las predicciones del Microservicio.
+5. El cronograma se actualiza dinámicamente con los datos reales de avance (Parte Diario) y las predicciones del Componente Predictivo.
 
 ### F13 — Mantenimiento preventivo por uso (subdominio)
 

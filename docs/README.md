@@ -10,8 +10,8 @@ Documentación del trabajo final organizada por fases del proceso unificado (UP)
 docs/
 ├── 0-propuesta/                  ← Documento vinculante (punto de partida)
 ├── 1-requisitos/                 ← Requisitos del sistema + casos de uso
-├── 2-analisis/                   ← (pendiente) Modelo de dominio, DSS, clases de análisis
-├── 3-diseno/                     ← (pendiente) Arquitectura, componentes, despliegue
+├── 2-analisis/                   ← Modelo de dominio, DSS, contratos de operación
+├── 3-diseno/                     ← Arquitectura, contratos entre módulos, despliegue
 └── 4-implementacion/             ← (pendiente)
 ```
 
@@ -66,3 +66,11 @@ Estas especificaciones no son un entregable formal de la cátedra: son un artefa
 ## 2. Análisis (entregables formales de la cátedra)
 
 Pendiente: modelo de dominio, diagramas de secuencia del sistema (DSS), clases de análisis y demás artefactos que exige la cátedra en esta fase.
+
+## 3. Diseño
+
+| Archivo | Contenido |
+| --- | --- |
+| [DESIGN.md](3-diseno/DESIGN.md) | Design system (Salvia & Teja) |
+| [contratos-entre-modulos.md](3-diseno/contratos-entre-modulos.md) | Contratos y dependencias entre módulos |
+| [diagrama-despliegue.mmd.md](3-diseno/diagrama-despliegue.mmd.md) | Diagrama de despliegue (monolito + componente ML + PostgreSQL) |

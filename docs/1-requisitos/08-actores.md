@@ -24,10 +24,10 @@
 | **Comentarios**  | Ninguno   |
 
 
-| ACT–05 | Microservicio Predictivo  |
+| ACT–05 | Componente Predictivo  |
 | :---- | :---- |
-| **Descripción**  | Este actor representa al subsistema externo de Inteligencia Artificial. Interactúa de forma asíncrona con el sistema principal para procesar cálculos matemáticos complejos, evaluar riesgos logísticos y devolver tiempos recalculados para el simulador de escenarios. |
-| **Comentarios**  | Este actor representa el núcleo del Sistema de Soporte a Decisiones (DSS). Actúa tanto de forma autónoma (procesando colas de tareas) como respondiendo a solicitudes directas de simulación.   |
+| **Descripción**  | Este actor representa al componente Python de Machine Learning, invocado por el monolito para recibir datos, procesar cálculos matemáticos complejos, evaluar riesgos logísticos y devolver tiempos recalculados para el simulador de escenarios. |
+| **Comentarios**  | Este actor representa el núcleo del Sistema de Soporte a Decisiones (DSS). Es invocado por el monolito para recibir datos, calcular y devolver resultados, tanto en procesos automáticos como en solicitudes directas de simulación.   |
 
 
 | ACT–06 | Gerente  |

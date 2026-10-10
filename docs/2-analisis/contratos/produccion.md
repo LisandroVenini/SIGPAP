@@ -187,7 +187,7 @@
 | **Responsabilidades** | Registrar el avance de un turno: asentar unidades conformadas, consumir stock físico, incrementar desgaste y disparar la evaluación predictiva. |
 | **Tipo** | Sistema |
 | **Referencias cruzadas** | CU-PROD-13 |
-| **Notas** | La evaluación de la `TasaDeRendimiento` se dispara de forma asíncrona hacia el Microservicio Predictivo (sin retorno al actor en este flujo). |
+| **Notas** | La evaluación de la `TasaDeRendimiento` se dispara de forma asíncrona hacia el Componente Predictivo (sin retorno al actor en este flujo). |
 | **Excepciones** | Si `cantidad` supera `OrdenDeProduccion.cantidadRequerida`, el sistema exige confirmación doble antes de guardar. |
 | **Salida** | `confirmacionCargaParte()`. |
 | **Precondiciones** | Existe una `OrdenDeProduccion` en estado "En Curso". |

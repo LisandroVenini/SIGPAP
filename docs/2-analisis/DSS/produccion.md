@@ -6,11 +6,11 @@
 
 ## Criterio de modelado
 
-- **Caja negra inviolable:** el sistema se representa como una única línea de vida `:Sistema`. No se exponen bases de datos, controladores, clases internas ni el Microservicio Predictivo como línea de vida.
+- **Caja negra inviolable:** el sistema se representa como una única línea de vida `:Sistema`. No se exponen bases de datos, controladores, clases internas ni el Componente Predictivo como línea de vida.
 - **Actor:** `SupervisorDeProduccion` (PascalCase), único actor del módulo Producción core.
 - **Eventos del sistema:** operaciones públicas con intención de negocio (camelCase), derivadas de la secuencia normal de cada caso de uso. No se modelan eventos de interfaz (`presionarBotonGuardar()`, `clicEnCrear()`) ni navegación.
 - **Retornos:** solo se dibujan cuando aportan datos relevantes (listados, resultados de búsqueda); en los flujos de escritura se usa un retorno descriptivo (`confirmacionAlta()`, `confirmacionCierre()`).
-- **Efectos asíncronos:** la petición asíncrona al Microservicio Predictivo (CU-PROD-13, paso 8) no es una interacción actor↔sistema en el mismo flujo; no se modela como actor ni como línea de vida. Queda documentada como postcondición/nota del contrato.
+- **Efectos asíncronos:** la petición asíncrona al Componente Predictivo (CU-PROD-13, paso 8) no es una interacción actor↔sistema en el mismo flujo; no se modela como actor ni como línea de vida. Queda documentada como postcondición/nota del contrato.
 
 ## CU-PROD-01 — Alta de Planificación de Producción
 

@@ -9,7 +9,7 @@
 - **Actores del módulo (PascalCase):**
   - `EncargadoDeCompras` — actor humano principal.
   - `Proveedor` — actor humano externo (CU-COM-16 y CU-COM-17).
-  - `MicroservicioPredictivo` — actor de sistema externo, secundario y no humano (CU-COM-20). Se modela como actor externo, nunca como lifeline interna.
+  - `ComponentePredictivo` — actor de sistema externo, secundario y no humano (CU-COM-20). Se modela como actor externo, nunca como lifeline interna.
 - **Orden de líneas de vida:** humano(s) primero, luego el sistema externo, luego `:Sistema`.
 - **Eventos del sistema:** operaciones públicas con intención de negocio (camelCase), derivadas de la secuencia normal de cada caso de uso. No se modelan eventos de interfaz (`presionarBoton()`, `clicEnEnviar()`) ni navegación.
 - **Retornos:** solo se dibujan cuando aportan datos relevantes (listados, resultados, borrador predictivo, informe multicriterio, recomendación). En los flujos de escritura se usa un retorno descriptivo (`confirmacionAlta()`, `ordenConfirmada()`, etc.).
@@ -213,14 +213,14 @@ sequenceDiagram
 
 ## CU-COM-20 — Resolver Disponibilidad de Compra
 
-> **Flujo automático:** se dispara cuando el `Proveedor` carga su respuesta de disponibilidad (CU-COM-16). No hay intervención humana que lo inicie; el `EncargadoDeCompras` solo recibe la recomendación. La colaboración `:Sistema → MicroservicioPredictivo` es una interacción entre sistemas: el microservicio es un actor externo (sistema secundario), no una clase interna, por lo que la caja negra del monolito permanece intacta.
+> **Flujo automático:** se dispara cuando el `Proveedor` carga su respuesta de disponibilidad (CU-COM-16). No hay intervención humana que lo inicie; el `EncargadoDeCompras` solo recibe la recomendación. La colaboración `:Sistema → ComponentePredictivo` es una interacción entre sistemas: el componente predictivo es un actor externo (sistema secundario), no una clase interna, por lo que la caja negra del monolito permanece intacta.
 
 ```mermaid
 sequenceDiagram
     actor Encargado as EncargadoDeCompras
-    actor Microservicio as MicroservicioPredictivo
+    actor Componente as ComponentePredictivo
     participant Sistema as :Sistema
-    Sistema->>Microservicio: resolverDisponibilidad(respuestaProveedor, umbralTolerancia)
-    Microservicio-->>Sistema: recomendacion(escenario)
+    Sistema->>Componente: resolverDisponibilidad(respuestaProveedor, umbralTolerancia)
+    Componente-->>Sistema: recomendacion(escenario)
     Sistema-->>Encargado: recomendacion(escenario)
 ```

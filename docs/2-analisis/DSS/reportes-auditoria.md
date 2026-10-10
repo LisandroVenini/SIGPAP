@@ -5,7 +5,7 @@
 
 ## Criterio de modelado
 
-- **Caja negra inviolable:** el sistema se representa como una única línea de vida `:Sistema`. No se exponen bases de datos, controladores, clases internas ni microservicios como lifeline.
+- **Caja negra inviolable:** el sistema se representa como una única línea de vida `:Sistema`. No se exponen bases de datos, controladores, clases internas ni componentes como lifeline.
 - **Actores del módulo (PascalCase):**
   - `Usuario` — actor humano genérico (CU-REP-01): representa a "los distintos actores" del sistema, cada uno con permisos sobre el área del reporte que solicita.
   - `Administrador` — actor humano principal (CU-AUD-01). El caso de uso también lo ejecuta `Gerente`; se modela con `Administrador` como representante de ambos roles con permiso de auditoría.

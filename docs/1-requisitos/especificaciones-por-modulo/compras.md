@@ -16,8 +16,8 @@ El módulo transforma la gestión de compras tradicional en una herramienta de g
 ## Decisiones de negocio (validadas)
 
 1. **Dos flujos de compra separados**: Flujo A (Solicitar Disponibilidad, proveedor único) y Flujo B (RFQ multi-proveedor) son casos de uso distintos.
-2. **Ranking automático + consulta**: el ranking se calcula automáticamente (proceso interno + microservicio), pero existe un CU de consulta para verlo.
-3. **Resolución DSS como CU del microservicio**: los escenarios del Flujo A se resuelven en el microservicio (actor ACT-05).
+2. **Ranking automático + consulta**: el ranking se calcula automáticamente (proceso interno + componente predictivo), pero existe un CU de consulta para verlo.
+3. **Resolución DSS como CU del componente predictivo**: los escenarios del Flujo A se resuelven en el componente predictivo (actor ACT-05).
 
 ## Flujos de compra
 
@@ -27,7 +27,7 @@ El módulo transforma la gestión de compras tradicional en una herramienta de g
 2. El gerente aprueba la intención de compra.
 3. El sistema envía al proveedor un correo con enlace seguro: "Confort y Muebles desea pedirte X. Confirmá disponibilidad, precio y fecha".
 4. El proveedor carga los 3 datos desde el enlace.
-5. El microservicio evalúa (resolución DSS):
+5. El componente predictivo evalúa (resolución DSS):
    - **Ideal** (stock OK, precio dentro de umbral de tolerancia): genera la OC final.
    - **Sin stock**: descarta al proveedor y dispara al siguiente del ranking.
    - **Variación fuerte** (precio/tiempo rompe umbral): frena y alerta al gerente.
@@ -73,9 +73,9 @@ El módulo transforma la gestión de compras tradicional en una herramienta de g
 1. El proveedor accede por enlace seguro y carga precio, cantidad y fecha prometida.
 2. El sistema valida el token y cierra el enlace tras el envío.
 
-### F6 — Resolver disponibilidad de compra (microservicio — nuevo)
+### F6 — Resolver disponibilidad de compra (componente predictivo — nuevo)
 
-1. El microservicio recibe la respuesta del proveedor del Flujo A.
+1. El componente predictivo recibe la respuesta del proveedor del Flujo A.
 2. Evalúa contra el umbral de tolerancia configurado por el gerente.
 3. Resuelve: genera OC (ideal), descarta y pasa al siguiente (sin stock), o alerta al gerente (variación fuerte).
 
@@ -99,7 +99,7 @@ El módulo transforma la gestión de compras tradicional en una herramienta de g
 ## Cruces con otros módulos
 
 - **Inventario**: la detección de stock bajo proviene de los umbrales de Inventario; el ingreso de mercancía (F2 de Inventario) referencia la OC y actualiza la métrica de tiempo de entrega real del proveedor.
-- **Análisis Predictivo**: el riesgo predictivo (30% del puntaje) y la resolución DSS provienen del microservicio.
+- **Análisis Predictivo**: el riesgo predictivo (30% del puntaje) y la resolución DSS provienen del componente predictivo.
 - **Auditoría**: las decisiones de compra (adjudicación, resoluciones DSS) quedan registradas.
 
 ## Observaciones de la facultad (a aplicar en los casos de uso)

@@ -20,7 +20,7 @@ Debe tener una lista de requisitos de almacenamientos y de restricciones de info
 | **Datos específicos**  | Identificador de Planificación y de Orden de Producción. Estado de la orden (Pendiente, En curso, Cerrada). Producto a fabricar y cantidad requerida. Fechas planificadas (Inicio y Entrega). Recursos asignados (Operarios y Maquinarias). Registro de unidades conformadas por etapa (Historial de Partes Diarios). Lotes aprobados o rechazados por control de calidad. |  |
 |  |  |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | Esta información transaccional es la que el monolito enviará de forma asíncrona al microservicio predictivo para calcular la desviación en los tiempos de fabricación. |  |
+| **Comentarios**  | Esta información transaccional es la que el monolito enviará de forma asíncrona al componente predictivo para calcular la desviación en los tiempos de fabricación. |  |
 
 | IRQ–03  | Información sobre Proveedores y Trazabilidad de Compras |  |
 | :---- | :---- | ----- |
@@ -37,7 +37,7 @@ Debe tener una lista de requisitos de almacenamientos y de restricciones de info
 | **Objetivos asociados**  | **OBJ–02 Prevención Proactiva de Cuellos de Botella,  OBJ–04 Soporte Gerencial mediante Simulación de Escenarios.** |  |
 | **Requisitos asociados** | CU-PRED-01…CU-PRED-05 CU-REP-01 |  |
 | **Descripción**  | El sistema deberá persistir los resultados de los cálculos asíncronos devueltos por el motor de Machine Learning y los parámetros de los escenarios simulados. |  |
-| **Datos específicos**  | Tasa de Rendimiento Real (TRR) por sector productivo y desviación respecto al estándar. Alertas activas de cuellos de botella o quiebres de stock. Velocidad de consumo diario de materiales. Parámetros de escenarios de simulación guardados (urgencia, cantidad ficticia, impacto proyectado en cronograma real). Logs de ejecución del microservicio y métricas de reentrenamiento del modelo. |  |
+| **Datos específicos**  | Tasa de Rendimiento Real (TRR) por sector productivo y desviación respecto al estándar. Alertas activas de cuellos de botella o quiebres de stock. Velocidad de consumo diario de materiales. Parámetros de escenarios de simulación guardados (urgencia, cantidad ficticia, impacto proyectado en cronograma real). Logs de ejecución del componente predictivo y métricas de reentrenamiento del modelo. |  |
 |  |  |  |
 | **Estabilidad**  | Media |  |
 | **Comentarios**  | Esta información es altamente volátil, ya que es recalculada y reescrita constantemente en la base de datos a medida que ingresan nuevos Partes Diarios. |  |

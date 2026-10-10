@@ -377,7 +377,7 @@
 |  | 5 | El sistema almacena los datos, los vincula a la solicitud original y cierra el token para evitar re-envíos. |
 |  | 6 | El sistema muestra un mensaje de confirmación al proveedor y notifica internamente al Encargado de Compras. |
 |  |  |  |
-| **Postcondición**  | La oferta comercial del proveedor queda registrada para ser evaluada por el motor multicriterio (Flujo B) o por el microservicio (Flujo A). |  |
+| **Postcondición**  | La oferta comercial del proveedor queda registrada para ser evaluada por el motor multicriterio (Flujo B) o por el componente predictivo (Flujo A). |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
 |  | 2 | Si el enlace ya fue utilizado, o la fecha límite expiró, el sistema deniega el acceso y muestra un mensaje informando que está cerrada. |
 |  |  |  |
@@ -436,7 +436,7 @@
 |  | 2 | Menos de 2 segundos |
 | **Frecuencia**  | Media (antes de cada decisión de compra). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | El ranking se calcula automáticamente (proceso interno + microservicio); este CU es solo la consulta. |  |
+| **Comentarios**  | El ranking se calcula automáticamente (proceso interno + componente predictivo); este CU es solo la consulta. |  |
 
 
 | CU-COM-19 | Solicitar Disponibilidad a Proveedor |  |
@@ -468,24 +468,24 @@
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-02 Prevención Proactiva de Cuellos de Botella OBJ-03 Sincronización Inteligente de Abastecimiento |  |
 | **Requisitos**  **asociados**  | IRQ-03 Información sobre Proveedores y Trazabilidad de Compras IRQ-04 Información Analítica, Predictiva y de Simulación RF-03 Gestión de Abastecimiento y Licitaciones |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Microservicio Predictivo evalúe la respuesta del proveedor a una consulta de disponibilidad (Flujo A) y recomiende una acción al Encargado de Compras. |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Componente Predictivo evalúe la respuesta del proveedor a una consulta de disponibilidad (Flujo A) y recomiende una acción al Encargado de Compras. |  |
 | **Precondición**  | Existe una consulta de disponibilidad con respuesta cargada por el proveedor (CU-COM-16). |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
-|  | 1 | El Monolito envía al Microservicio la respuesta del proveedor (disponibilidad, precio, fecha) y el umbral de tolerancia configurado. |
-|  | 2 | El Microservicio compara la respuesta contra el umbral de tolerancia y el cronograma de producción. |
-|  | 3 | El Microservicio clasifica el resultado en uno de tres escenarios (Ideal, Sin Stock, Variación Fuerte) y devuelve una recomendación. |
+|  | 1 | El Monolito envía al componente predictivo la respuesta del proveedor (disponibilidad, precio, fecha) y el umbral de tolerancia configurado. |
+|  | 2 | El componente predictivo compara la respuesta contra el umbral de tolerancia y el cronograma de producción. |
+|  | 3 | El componente predictivo clasifica el resultado en uno de tres escenarios (Ideal, Sin Stock, Variación Fuerte) y devuelve una recomendación. |
 |  | 4 | El Monolito presenta la recomendación al Encargado de Compras para su decisión. |
 |  |  |  |
-| **Postcondición**  | El Encargado de Compras recibe la recomendación del microservicio y es quien decide la acción final (emitir OC, cotizar con otro proveedor o aprobar el nuevo costo). |  |
+| **Postcondición**  | El Encargado de Compras recibe la recomendación del componente predictivo y es quien decide la acción final (emitir OC, cotizar con otro proveedor o aprobar el nuevo costo). |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 3 | **Escenario Sin Stock:** Si el proveedor respondió "Stock 0", el microservicio descarta al proveedor para esta compra y dispara la consulta al siguiente proveedor del ranking. |
+|  | 3 | **Escenario Sin Stock:** Si el proveedor respondió "Stock 0", el componente predictivo descarta al proveedor para esta compra y dispara la consulta al siguiente proveedor del ranking. |
 |  |  |  |
 |  |  |  |
-|  | 3 | **Escenario Variación Fuerte:** Si el precio subió por encima del umbral o el tiempo rompe el Gantt, el microservicio frena y alerta al Encargado de Compras: "el proveedor confirmó, pero el precio supera el umbral esperado". |
+|  | 3 | **Escenario Variación Fuerte:** Si el precio subió por encima del umbral o el tiempo rompe el Gantt, el componente predictivo frena y alerta al Encargado de Compras: "el proveedor confirmó, pero el precio supera el umbral esperado". |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 3 | Menos de 5 segundos |
 | **Frecuencia**  | Media (una por cada consulta de disponibilidad respondida). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | El microservicio EVALÚA y RECOMIENDA, pero nunca emite la Orden de Compra: la decisión final (y la emisión vía CU-COM-11) es siempre del Encargado de Compras. |  |
+| **Comentarios**  | El componente predictivo EVALÚA y RECOMIENDA, pero nunca emite la Orden de Compra: la decisión final (y la emisión vía CU-COM-11) es siempre del Encargado de Compras. El umbral de tolerancia comparado es configurable en Parámetros del Sistema (criterios de adjudicación). |  |
 
 

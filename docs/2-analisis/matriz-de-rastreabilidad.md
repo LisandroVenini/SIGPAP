@@ -51,7 +51,7 @@
 | CU-COM-17 | Confirmar Orden de Compra | `confirmarOrdenCompra(token)` | `confirmarOrdenCompra(token)` | `OrdenDeCompra`, `Proveedor` |
 | CU-COM-18 | Consultar Ranking de Proveedores | `consultarRankingProveedores(); consultarDetalleProveedor(cuit)` | — | `Proveedor`, `DesempenoProveedor`, `Incidencia` (ranking: valor derivado, consulta) |
 | CU-COM-19 | Solicitar Disponibilidad a Proveedor | `solicitarDisponibilidad(articulo, cantidad, proveedor)` | `solicitarDisponibilidad(articulo, cantidad, proveedor)` | `SolicitudDeDisponibilidad`, `Proveedor`, `Articulo` |
-| CU-COM-20 | Resolver Disponibilidad de Compra | `resolverDisponibilidad(respuestaProveedor, umbralTolerancia)` (Sistema→MicroservicioPredictivo, flujo automático) | `resolverDisponibilidad(respuestaProveedor, umbralTolerancia)` | `SolicitudDeDisponibilidad` (estado → Respondida), `Cotizacion`, `Articulo`, `Alerta` (escenario "Variación Fuerte"), `ParametroGlobal` (umbral de tolerancia) |
+| CU-COM-20 | Resolver Disponibilidad de Compra | `resolverDisponibilidad(respuestaProveedor, umbralTolerancia)` (Sistema→ComponentePredictivo, flujo automático) | `resolverDisponibilidad(respuestaProveedor, umbralTolerancia)` | `SolicitudDeDisponibilidad` (estado → Respondida), `Cotizacion`, `Articulo`, `Alerta` (escenario "Variación Fuerte"), `ParametroGlobal` (umbral de tolerancia) |
 
 ## Usuarios y Seguridad
 
@@ -119,7 +119,7 @@
 | CU | Nombre del CU | Operación(es) del sistema (del DSS) | Contrato (firma exacta o "—") | Conceptos de dominio afectados |
 | --- | --- | --- | --- | --- |
 | CU-PRED-01 | Ejecutar Reentrenamiento del Modelo | `iniciarReentrenamiento()` (RelojSistema→Sistema, flujo automático) | `iniciarReentrenamiento()` | `EventoDeAuditoria`, `Usuario` (alerta técnica por timeout en excepción: `Alerta`) |
-| CU-PRED-02 | Recalcular Tiempo de Producción | `recalcularTiempoProduccion(datosAvance)` (MicroservicioPredictivo→Sistema, flujo automático reactivo a CU-PROD-13) | `recalcularTiempoProduccion(datosAvance)` | `TasaDeRendimiento`, `Etapa`, `Alerta`, `OrdenDeProduccion` |
+| CU-PRED-02 | Recalcular Tiempo de Producción | `recalcularTiempoProduccion(datosAvance)` (ComponentePredictivo→Sistema, flujo automático reactivo a CU-PROD-13) | `recalcularTiempoProduccion(datosAvance)` | `TasaDeRendimiento`, `Etapa`, `Alerta`, `OrdenDeProduccion` |
 | CU-PRED-03 | Evaluar Riesgo de Suministro | `evaluarRiesgoSuministro()` (RelojSistema→Sistema, flujo automático) | `evaluarRiesgoSuministro()` | `SolicitudDeCotizacion` (estado → Borrador), `LineaSolicitudCotizacion`, `Proveedor`, `Articulo`, `Alerta` |
 | CU-PRED-04 | Simular escenario de producción | `simularEscenarioProduccion(articulo, cantidad, fechaLimite)` | `simularEscenarioProduccion(articulo, cantidad, fechaLimite)` | `EscenarioDeSimulacion`, `Articulo` |
 | CU-PRED-05 | Consultar Tablero Predictivo | `consultarTableroPredictivo(); filtrarTableroPredictivo(criterio)` | — | `Alerta`, `TasaDeRendimiento` (indicadores y alertas del tablero); cronograma proyectado: vista excluida del dominio |

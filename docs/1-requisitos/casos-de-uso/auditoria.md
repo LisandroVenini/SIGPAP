@@ -4,7 +4,7 @@
 | :---- | :---- | :---- |
 | **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
 | **Requisitos**  **asociados**  | RF-07 Seguridad, Accesos y Auditoría del Sistema |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Administrador o Gerente requiera rastrear quién realizó una acción específica o visualizar las decisiones automáticas tomadas por el Microservicio. |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Administrador o Gerente requiera rastrear quién realizó una acción específica o visualizar las decisiones automáticas tomadas por el Componente Predictivo. |  |
 | **Precondición**  | El usuario ha iniciado sesión con rol de Administrador o Gerente. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El usuario solicita acceder al Registro de Auditoría (Log del sistema). |

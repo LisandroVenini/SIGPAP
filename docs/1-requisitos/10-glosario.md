@@ -3,7 +3,7 @@
 | Término | Categoría | Comentarios |
 | :---- | :---- | :---- |
 | DSS (Decision Support System) | Dominio | Sistema de Soporte a la Toma de Decisiones. Naturaleza principal de SIGPAP: no solo registra datos, sino que los analiza para anticipar problemas y apoyar decisiones gerenciales. |
-| TRR (Tasa de Rendimiento Real) | Dominio | Métrica calculada por el microservicio a partir de los Partes Diarios. Compara la velocidad real de producción de una etapa contra su estándar esperado para detectar desviaciones. |
+| TRR (Tasa de Rendimiento Real) | Dominio | Métrica calculada por el componente predictivo a partir de los Partes Diarios. Compara la velocidad real de producción de una etapa contra su estándar esperado para detectar desviaciones. |
 | Parte Diario | Dominio | Registro diario que carga el Supervisor con las unidades completadas por etapa al final del turno. Es el insumo transaccional del motor predictivo. |
 | Orden de Producción (OP) | Dominio | Entidad central de Producción. Agrupa un producto, una cantidad y una fecha de entrega, y transita estados: Pendiente, Asignada, En Curso, Cerrada (más Pendiente por Insumos y Anulada). |
 | Planificación de Producción | Dominio | Campaña marco que agrupa múltiples órdenes de producción (ej. "septiembre-noviembre 2026"). |
@@ -40,21 +40,18 @@
 | Rol | Dominio | Perfil de permisos que determina qué módulos y operaciones puede ejecutar un usuario (Supervisor de Producción, Encargado de Compras, Gerente, Administrador...). |
 | Parámetro Global | Dominio | Variable de configuración de la fábrica agrupada por categoría (turnos, feriados, métricas base, umbrales de negocio). Se administra desde el módulo de Usuarios y Seguridad. |
 | RBAC (Role-Based Access Control) | Técnico | Control de Acceso Basado en Roles. Cada usuario opera solo los módulos habilitados para su rol. |
-| Microservicio Predictivo | Técnico | Servicio Python (FastAPI) que ejecuta el ML. Recibe pedidos asíncronos del monolito y devuelve predicciones. Es el actor ACT-05. |
+| Componente Predictivo | Técnico | Componente Python que ejecuta el ML. Recibe datos del monolito, calcula y devuelve predicciones. Es el actor ACT-05. |
 | Monolito | Técnico | Aplicación principal Laravel (transaccional): rutas, Eloquent, autenticación, colas y scheduler. |
-| Petición Asíncrona / Job | Técnico | Trabajo en segundo plano que el monolito despacha al microservicio sin bloquear al usuario. Implementado con Laravel Queue. |
-| FastAPI | Técnico | Framework Python para construir el microservicio de ML. |
-| Guzzle | Técnico | Cliente HTTP de PHP/Laravel usado para la comunicación interna monolito ↔ microservicio. |
+| Petición Asíncrona / Job | Técnico | Trabajo en segundo plano que el monolito despacha al componente predictivo sin bloquear al usuario. Implementado con Laravel Queue. |
 | scikit-learn | Técnico | Librería Python de Machine Learning (regresión, RandomForest, etc.). |
 | joblib (.pkl) | Técnico | Serialización de modelos scikit-learn para no reentrenar en cada request. |
 | Pandas / NumPy | Técnico | Librerías Python de ETL: limpieza de datos, detección de outliers, operaciones vectoriales. |
-| SQLAlchemy | Técnico | ORM Python para leer/escribir en PostgreSQL desde el microservicio. |
 | Reentrenamiento | Técnico | Job programado (Scheduler) que actualiza el modelo de ML con datos recientes. |
 | Drift Detection | Técnico | Comparación de métricas tras cada reentrenamiento; si empeoran más de un umbral, alerta al administrador. |
 | Prophet | Técnico | Librería de series temporales (Meta) para predicción estacional. Marcada como evolución futura del modelo, no en el alcance actual. |
 | Borrado Lógico (Soft Delete) | Técnico | Las bajas no eliminan registros físicamente: se inactivan conservando el historial. |
 | CASE | Metodología (UP) | Computer-Aided Software Engineering. Herramientas que asisten el modelado (contexto general del trabajo). |
 | Caso de Uso | Metodología (UP) | Interacción entre un actor y el sistema con valor observable. En SIGPAP se redactan en formato tabular extendido. |
-| Actor | Metodología (UP) | Rol externo que interactúa con el sistema (humano o sistema externo, como el Reloj del Sistema o el Microservicio). |
-| Actor Secundario | Metodología (UP) | Sistema externo que participa sin iniciar el caso de uso (ej. Microservicio Predictivo, Proveedor externo). |
+| Actor | Metodología (UP) | Rol externo que interactúa con el sistema (humano o sistema externo, como el Reloj del Sistema o el Componente Predictivo). |
+| Actor Secundario | Metodología (UP) | Sistema externo que participa sin iniciar el caso de uso (ej. Componente Predictivo, Proveedor externo). |
 | Matriz de Rastreabilidad | Metodología (UP) | Tabla que vincula objetivos, requisitos y casos de uso para verificar cobertura y completitud. |

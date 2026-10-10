@@ -5,7 +5,7 @@
 
 ## Criterio de modelado
 
-- **Caja negra inviolable:** el sistema se representa como una única línea de vida `:Sistema`. No se exponen bases de datos, controladores, clases internas ni microservicios.
+- **Caja negra inviolable:** el sistema se representa como una única línea de vida `:Sistema`. No se exponen bases de datos, controladores, clases internas ni componentes.
 - **Actor:** `EncargadoDeStock` (PascalCase), único actor del módulo.
 - **Eventos del sistema:** operaciones públicas con intención de negocio (camelCase), derivadas de la secuencia normal de cada caso de uso. No se modelan eventos de interfaz (`presionarBotonGuardar()`, `clicEnCrear()`) ni navegación.
 - **Retornos:** solo se dibujan cuando aportan datos relevantes (listados, resultados, datos de un artículo); en los flujos de escritura se usa un retorno descriptivo (`confirmacionAlta()`, etc.).

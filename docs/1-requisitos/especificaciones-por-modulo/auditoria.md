@@ -31,7 +31,7 @@ Se implementa mediante la librería [Laravel-activitylog (Spatie)](https://spati
 ## Cruces con otros módulos
 
 - **Todos los módulos**: el registro de eventos se dispara desde las operaciones clave de Producción (cierre de OP), Compras (adjudicación, resoluciones DSS), Usuarios (cambios de rol), etc.
-- **Microservicio Predictivo**: sus decisiones automáticas (resoluciones DSS) también se registran y son visibles en la auditoría.
+- **Componente Predictivo**: sus decisiones automáticas (resoluciones DSS) también se registran y son visibles en la auditoría.
 - **Usuarios/Seguridad**: el módulo soporte gestiona los roles, y Auditoría registra quién cambió qué.
 
 ## Observaciones de la facultad (a aplicar en los casos de uso)

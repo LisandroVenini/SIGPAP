@@ -30,7 +30,7 @@ Debe tener una lista de los requisitos funcionales, expresado en forma tradicion
 | :---- | :---- | ----- |
 | **Objetivos asociados**  | **OBJ-02 Prevención Proactiva de Cuellos de Botella OBJ-03 Sincronización Inteligente de Abastecimiento** |  |
 | **Requisitos asociados** | CU-PRED-01…CU-PRED-05 IRQ-04 Información Analítica, Predictiva y de Simulación |  |
-| **Descripción**  | El sistema principal deberá delegar asíncronamente al microservicio (Motor ML) el procesamiento matemático de la Tasa de Rendimiento Real y el consumo logístico. El sistema deberá recibir estos recálculos y presentarlos a la gerencia a través de Tableros y Alertas, indicando posibles cuellos de botella o sugiriendo la anticipación de compras. |  |
+| **Descripción**  | El sistema principal deberá delegar asíncronamente al componente predictivo (Motor ML) el procesamiento matemático de la Tasa de Rendimiento Real y el consumo logístico. El sistema deberá recibir estos recálculos y presentarlos a la gerencia a través de Tableros y Alertas, indicando posibles cuellos de botella o sugiriendo la anticipación de compras. |  |
 | **Estabilidad**  | Alta |  |
 | **Comentarios**  |  |  |
 
@@ -56,5 +56,5 @@ Debe tener una lista de los requisitos funcionales, expresado en forma tradicion
 | **Requisitos asociados** | CU-USR-01…CU-USR-07 CU-AUD-01 CU-REP-01 |  |
 | **Descripción**  | El sistema deberá garantizar un acceso seguro mediante autenticación y un modelo de Control de Acceso Basado en Roles (RBAC), controlando la visibilidad de los módulos. Adicionalmente, deberá contar con registros de auditoría y generación de reportes operativos y gerenciales para asegurar la trazabilidad de todos los actores. |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | Fundamental para asegurar la integridad de la base de datos y rastrear tanto las decisiones humanas como las acciones del microservicio predictivo. |  |
+| **Comentarios**  | Fundamental para asegurar la integridad de la base de datos y rastrear tanto las decisiones humanas como las acciones del componente predictivo. |  |
 

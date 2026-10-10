@@ -16,7 +16,7 @@ Para acometer esta problemática, SIGPAP plantea un cambio de paradigma: evoluci
 * **Motor de Análisis Predictivo:** Integración de modelos de Machine Learning encargados de recalcular continuamente los cronogramas, previendo cuellos de botella y emitiendo alertas gerenciales tempranas.  
 * **Simulador de escenarios:** Un entorno de pruebas que permite a la gerencia evaluar el impacto y el efecto dominó de insertar cargas de trabajo urgentes en la cola de producción actual.
 
-En síntesis, SIGPAP se concibe no solo como un software de digitalización administrativa, sino como un puente entre la operatividad diaria y la estrategia directiva. Apoyado en una arquitectura híbrida que combina el manejo robusto de transacciones con el procesamiento matemático avanzado, el sistema transformará los datos rutinarios de la fábrica en el respaldo analítico necesario para que la gerencia recupere el control de sus operaciones futuras.
+En síntesis, SIGPAP se concibe no solo como un software de digitalización administrativa, sino como un puente entre la operatividad diaria y la estrategia directiva. Apoyado en un monolito modular que combina el manejo robusto de transacciones con un componente especializado de ML en Python para el procesamiento matemático avanzado, el sistema transformará los datos rutinarios de la fábrica en el respaldo analítico necesario para que la gerencia recupere el control de sus operaciones futuras.
 
 ## Participantes del Proyecto
 

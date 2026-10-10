@@ -441,7 +441,7 @@
 |  | 6 | Menos de 3 segundos. |
 | **Frecuencia**  | Media (consultas y ajustes de planificación periódicos). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | El cronograma es un único caso de uso (no se desglosa en ABM) porque representa una vista dinámica de planificación, no una entidad con alta/baja/modificación. Se actualiza además automáticamente con los datos reales de avance (Partes Diarios) y las predicciones del Microservicio (CU-PRED-02). |  |
+| **Comentarios**  | El cronograma es un único caso de uso (no se desglosa en ABM) porque representa una vista dinámica de planificación, no una entidad con alta/baja/modificación. Se actualiza además automáticamente con los datos reales de avance (Partes Diarios) y las predicciones del Componente Predictivo (CU-PRED-02). |  |
 
 
 | CU-PROD-24 | Alta de Operario |  |
@@ -618,7 +618,7 @@
 | :---- | ----- | :---- |
 | **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-02 Prevención Proactiva de Cuellos de Botella |  |
 | **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor registre las unidades fabricadas al finalizar su turno, delegando procesos automatizados en el sistema central y en el microservicio. |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor registre las unidades fabricadas al finalizar su turno, delegando procesos automatizados en el sistema central y en el componente predictivo. |  |
 | **Precondición**  | Existe al menos una Orden de Producción en estado "En Curso". |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El Supervisor selecciona en su terminal una OP activa y solicita "Cargar Parte Diario". |
@@ -628,7 +628,7 @@
 |  | 5 | El sistema asienta el avance, acumulando las unidades terminadas para la etapa en cuestión. |
 |  | 6 | El sistema consume el stock físico de insumos (libera la reserva lógica y descuenta existencias). |
 |  | 7 | El sistema incrementa el desgaste acumulado de la maquinaria utilizada. |
-|  | 8 | El sistema envía una petición asíncrona al Microservicio Predictivo para evaluar la Tasa de Rendimiento Real (TRR). |
+|  | 8 | El sistema envía una petición asíncrona al Componente Predictivo para evaluar la Tasa de Rendimiento Real (TRR). |
 |  | 9 | El sistema notifica al usuario que el parte se registró exitosamente. |
 |  |  |  |
 | **Postcondición**  | El progreso de la OP se actualiza, el stock físico se consume, se incrementa el desgaste de la maquinaria y el motor predictivo recibe nueva información para evaluar desviaciones. |  |
