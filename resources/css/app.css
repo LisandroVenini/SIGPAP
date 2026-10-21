@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../js/**/*.vue';
+@source '../views/**/*.blade.php';
+
+@theme {
+    --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+    --color-canvas: #ebf0e9;
+    --color-surface: #ffffff;
+    --color-workshop: #dee6dc;
+    --color-ink: #22281f;
+    --color-steel: #5b6258;
+    --color-clay: #9ba39a;
+    --color-hairline: rgba(34, 40, 31, 0.1);
+    --color-shadow: rgba(34, 40, 31, 0.06);
+
+    --color-teja: #b4491f;
+    --color-teja-deep: #8f3a16;
+    --color-teja-wash: #f6e3da;
+
+    --color-sage-deep: #4a6b52;
+    --color-sage-wash: #e2ebe3;
+
+    --color-pine: #1e7a4f;
+    --color-pine-wash: #e7f1ec;
+    --color-oxide: #b42318;
+    --color-oxide-wash: #fbe9e7;
+    --color-amber: #b45309;
+    --color-amber-wash: #fbf3e4;
+    --color-slate: #4a5568;
+    --color-slate-wash: #edf0f3;
+
+    --radius-control: 0.5rem;
+    --radius-panel: 1rem;
+    --radius-shell: 1.25rem;
+
+    --shadow-diffused: 0 -8px 24px rgba(34, 40, 31, 0.06);
+}
+
+@layer base {
+    html {
+        color-scheme: light;
+    }
+
+    body {
+        @apply bg-canvas font-sans text-ink antialiased;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+    }
+}
+
+@layer utilities {
+    .num {
+        @apply font-mono tabular-nums;
+    }
+}
