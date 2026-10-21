@@ -1,0 +1,19 @@
+# Gentleman Guardian Angel Configuration — SIGPAP
+
+# AI Provider for code review
+PROVIDER="opencode"
+
+# File patterns to review (Laravel + Vue + Python ML)
+FILE_PATTERNS="*.php,*.vue,*.ts,*.js,*.py"
+
+# Patterns to exclude
+EXCLUDE_PATTERNS="*Test.php,*.test.*,*.spec.*,vendor/*,node_modules/*,dist/*,build/*"
+
+# Rules file
+RULES_FILE="AGENTS.md"
+
+# Strict mode (fail on ambiguous AI responses)
+STRICT_MODE="true"
+
+# Review timeout in seconds
+TIMEOUT="300"
