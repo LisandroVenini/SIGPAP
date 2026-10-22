@@ -26,5 +26,5 @@
 ## Reglas generales
 
 - Convenciones de commit: Conventional Commits, sin "Co-Authored-By" ni atribución de IA.
-- Código, comentarios e identificadores en inglés (salvo conceptos del dominio, que siguen el modelo en PascalCase español).
+- Código, comentarios e identificadores en inglés. Los conceptos del dominio van en español: clases de modelo en PascalCase (`Usuario`, `OrdenDeProduccion`) y tablas en snake_case plural (`usuarios`, `ordenes_de_produccion`). El inflector de Laravel es inglés y pluraliza mal el español (`proveedors`, `cotizacions`), así que **todo model con nombre español declara `$table` explícito**; no confiar en la pluralización automática. Las migraciones ya aplicadas no se editan: todo cambio de esquema va en una migración nueva.
 - No código muerto, no `var_dump`/`dd`/`console.log` residuales, no secretos en el código.

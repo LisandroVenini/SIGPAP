@@ -17,16 +17,16 @@ final class DatabaseConnectionTest extends TestCase
      * Verify the application connects to the configured PostgreSQL test database
      * and that migrations created the expected schema.
      */
-    public function test_it_uses_postgresql_and_has_users_table(): void
+    public function test_it_uses_postgresql_and_has_usuarios_table(): void
     {
         // Arrange
         $connectionName = DB::connection()->getDriverName();
 
         // Act
-        $hasUsersTable = Schema::hasTable('users');
+        $hasUsuariosTable = Schema::hasTable('usuarios');
 
         // Assert
         $this->assertSame('pgsql', $connectionName);
-        $this->assertTrue($hasUsersTable);
+        $this->assertTrue($hasUsuariosTable);
     }
 }

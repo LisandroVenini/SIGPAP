@@ -20,7 +20,7 @@ class UsuarioTest extends TestCase
         $usuario = Usuario::factory()->create(['password' => $plainPassword]);
 
         // Assert
-        $this->assertDatabaseHas('users', ['email' => $usuario->email]);
+        $this->assertDatabaseHas('usuarios', ['email' => $usuario->email]);
         $this->assertNotSame($plainPassword, $usuario->password);
         $this->assertTrue(Hash::check($plainPassword, $usuario->password));
     }

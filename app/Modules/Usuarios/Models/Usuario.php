@@ -19,12 +19,12 @@ class Usuario extends Authenticatable
     /**
      * The table associated with the model.
      *
-     * The legacy `users` table is kept until the Usuarios module owns its
-     * own migration; the domain concept lives in this module.
+     * Declared explicitly because Laravel's inflector is English-only and
+     * mishandles Spanish plurals.
      *
      * @var string
      */
-    protected $table = 'users';
+    protected $table = 'usuarios';
 
     /**
      * Create a new factory instance for the model.
