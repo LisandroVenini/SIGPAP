@@ -15,12 +15,12 @@
 ## Tasks
 
 - [x] T1 — Usuarios/Seguridad base: spatie + `usuarios` + `parametros_globales`
-- [ ] T2 — Inventario base: `unidades_de_medida`, `articulos`
-- [ ] T3 — Producción: etapas, operarios, maquinarias, planificaciones, órdenes, pivotes, asignaciones, partes, controles, planes, intervenciones, registros de prioridad
-- [ ] T4 — Compras: proveedores, solicitudes, pivotes, líneas, cotizaciones, líneas, OC, líneas, incidencias, desempeños
-- [ ] T5 — Inventario dependiente: reservas, movimientos de stock
-- [ ] T6 — Predictivo: tasas de rendimiento, escenarios de simulación
-- [ ] T7 — Shared/Auditoría: alertas, eventos de auditoría
+- [x] T2 — Inventario base: `unidades_de_medida`, `articulos`
+- [x] T3 — Producción: etapas, operarios, maquinarias, planificaciones, órdenes, pivotes, asignaciones, partes, controles, planes, intervenciones, registros de prioridad
+- [x] T4 — Compras: proveedores, solicitudes, pivotes, líneas, cotizaciones, líneas, OC, líneas, incidencias, desempeños
+- [x] T5 — Inventario dependiente: reservas, movimientos de stock
+- [x] T6 — Predictivo: tasas de rendimiento, escenarios de simulación
+- [x] T7 — Shared/Auditoría: alertas, eventos de auditoría
 - [ ] T8 — Modelos + relaciones
 - [ ] T9 — Factories + tests de esquema/restricciones
 - [ ] T10 — Cierre: `Closes #3`
@@ -29,3 +29,4 @@
 
 - L1: "dale, si ya todo quedo correcto, hagamos el primero pr al repo y luego empezamos con las migraciones".
 - L2: se vuelve a migración nueva para el renombre de `usuarios` (decisión b), porque `gga` bloquea editar migraciones aplicadas (AGENTS.md:29).
+- L3: T2–T7 implementados (32 migraciones) + `DatabaseSchemaTest` (XOR, RESTRICT, unique, existencia de tablas). 14 tests / 83 assertions verdes.
