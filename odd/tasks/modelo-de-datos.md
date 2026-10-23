@@ -21,7 +21,7 @@
 - [x] T5 — Inventario dependiente: reservas, movimientos de stock
 - [x] T6 — Predictivo: tasas de rendimiento, escenarios de simulación
 - [x] T7 — Shared/Auditoría: alertas, eventos de auditoría
-- [ ] T8 — Modelos + relaciones
+- [x] T8 — Modelos + relaciones (30 modelos, `$table` explícito, casts y relaciones; `EloquentRelationshipsTest`)
 - [ ] T9 — Factories + tests de esquema/restricciones
 - [ ] T10 — Cierre: `Closes #3`
 
@@ -30,3 +30,4 @@
 - L1: "dale, si ya todo quedo correcto, hagamos el primero pr al repo y luego empezamos con las migraciones".
 - L2: se vuelve a migración nueva para el renombre de `usuarios` (decisión b), porque `gga` bloquea editar migraciones aplicadas (AGENTS.md:29).
 - L3: T2–T7 implementados (32 migraciones) + `DatabaseSchemaTest` (XOR, RESTRICT, unique, existencia de tablas). 14 tests / 83 assertions verdes.
+- L4: T8 implementado (30 modelos Eloquent con `$table`, casts y relaciones) + `EloquentRelationshipsTest`. 22 tests / 112 assertions verdes.
