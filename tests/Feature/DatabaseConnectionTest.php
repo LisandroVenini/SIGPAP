@@ -29,4 +29,20 @@ final class DatabaseConnectionTest extends TestCase
         $this->assertSame('pgsql', $connectionName);
         $this->assertTrue($hasUsuariosTable);
     }
+
+    public function test_it_has_the_security_and_permissions_schema(): void
+    {
+        // Arrange / Act / Assert
+        $this->assertTrue(Schema::hasColumn('usuarios', 'nombre'));
+        $this->assertTrue(Schema::hasColumn('usuarios', 'clave_acceso'));
+        $this->assertTrue(Schema::hasColumn('usuarios', 'estado'));
+
+        $this->assertTrue(Schema::hasTable('roles'));
+        $this->assertTrue(Schema::hasTable('permissions'));
+        $this->assertTrue(Schema::hasTable('model_has_roles'));
+        $this->assertTrue(Schema::hasTable('model_has_permissions'));
+        $this->assertTrue(Schema::hasTable('role_has_permissions'));
+
+        $this->assertTrue(Schema::hasTable('parametros_globales'));
+    }
 }
