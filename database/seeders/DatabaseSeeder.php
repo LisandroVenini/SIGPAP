@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,13 +14,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        if (! app()->environment('local')) {
-            return;
-        }
-
-        Usuario::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            RoleSeeder::class,
+            ParametroGlobalSeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }
