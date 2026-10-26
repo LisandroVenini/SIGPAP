@@ -19,8 +19,8 @@
 
 - [x] T1 — Backend Usuarios/Seguridad: `UsuariosService`, `ParametroGlobalService`, seeders (roles/admin/parámetros) + tests. Arreglar `DatabaseSeeder`.
 - [x] T2 — `AuditoriaService` + `AlertaService` + tests.
-- [ ] T3 — Auth: controlador, rutas, página `Auth/Login` + tests.
-- [ ] T4 — Layout/App shell + `Dashboard` + tests.
+- [x] T3 — Auth: controlador, rutas, página `Auth/Login` (Stitch U-02) + tests.
+- [x] T4 — Layout/App shell (Stitch App Shell) + `Dashboard` (placeholder BI-01) + tests.
 
 ## Log
 
@@ -28,3 +28,5 @@
 - L2: orden acordado: Fase 0 fundacional (Usuarios + Auditoría + Alerta + shell), luego Inventario → Producción, Compras → Predictivo, Reportes. Front+back en vertical slices por módulo.
 - L3: T1 implementado: `UsuariosService::autorizar`, `ParametroGlobalService::{parametro,definirParametro}`, seeders de roles/admin/parámetros, `DatabaseSeeder` corregido. 25 tests / 140 assertions verdes.
 - L4: T2 implementado: `AuditoriaService::registrarEvento` (actor por id) y `AlertaService::emitirAlerta` (shared kernel). Tests de ambos.
+- L5: T3 implementado: login/logout con `clave_acceso`, rate limiting, ruta `login`/`logout`, página `Auth/Login` basada en la pantalla Acceso (U-02) de Stitch. `HandleInertiaRequests` comparte `auth.user`.
+- L6: T4 implementado: `DashboardController` (Reportes), ruta `/dashboard` con `auth`, `AppLayout` (basado en App Shell de Stitch) y `Dashboard` placeholder. Se combina con T3 para que el login aterrice en una ruta real.

@@ -55,4 +55,12 @@ class Usuario extends Authenticatable
     {
         return $this->clave_acceso;
     }
+
+    /**
+     * Get the name of the password attribute for authentication.
+     */
+    public function getAuthPasswordName(): string
+    {
+        return 'clave_acceso';
+    }
 }
