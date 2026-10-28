@@ -17,16 +17,6 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     /**
-     * Determines the current asset version.
-     *
-     * @see https://inertiajs.com/asset-versioning
-     */
-    public function version(Request $request): ?string
-    {
-        return parent::version($request);
-    }
-
-    /**
      * Define the props that are shared by default.
      *
      * @see https://inertiajs.com/shared-data
@@ -35,9 +25,22 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'appName' => config('app.name'),
+            'auth' => [
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'nombre' => $user->nombre,
+                    'email' => $user->email,
+                    'roles' => $user->getRoleNames(),
+                ] : null,
+            ],
+            'flash' => [
+                'success' => $request->session()->get('success'),
+            ],
         ];
     }
 }
