@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
-import AppLayout from '../../Layouts/AppLayout.vue';
+import AppLayout from '../Layouts/AppLayout.vue';
 
 type SharedProps = {
     auth: {
