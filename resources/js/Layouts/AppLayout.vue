@@ -80,14 +80,14 @@ const navGroups: NavGroup[] = [
     {
         label: 'Usuarios',
         items: [
-            { label: 'Usuarios y Seguridad' },
+            { label: 'Usuarios y Seguridad', href: '/usuarios' },
             { label: 'Configuración', href: '/usuarios/configuracion' },
         ],
     },
 ];
 
 function isActive(href?: string): boolean {
-    return href !== undefined && currentUrl.value === href;
+    return href !== undefined && currentUrl.value.split('?')[0] === href;
 }
 </script>
 

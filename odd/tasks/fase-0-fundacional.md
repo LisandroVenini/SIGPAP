@@ -22,6 +22,7 @@
 - [x] T3 — Auth: controlador, rutas, página `Auth/Login` (Stitch U-02) + tests.
 - [x] T4 — Layout/App shell (Stitch App Shell) + `Dashboard` (placeholder BI-01) + tests.
 - [x] T5 — U-03 Configuración del Sistema: seeder de parámetros, `ConfiguracionController` (index/update), ruta `/usuarios/configuracion`, página `Usuarios/Configuracion` (Stitch U-03) + tests.
+- [x] T6 — U-01 Usuarios y Seguridad: listado + filtros (buscar/rol/estado), alta/modificación/baja lógica (solo Administrador), auditoría; `GestionUsuariosService`, Form Requests y página `Usuarios/Index` (Stitch U-01) + tests.
 
 ## Log
 
@@ -33,3 +34,4 @@
 - L6: T4 implementado: `DashboardController` (Reportes), ruta `/dashboard` con `auth`, `AppLayout` (basado en App Shell de Stitch) y `Dashboard` placeholder. Se combina con T3 para que el login aterrice en una ruta real.
 - L7: T5 implementado: U-03 Configuración del Sistema (parámetros por categoría, guardado admin-only, flash de éxito). Pantallas de Stitch: Acceso (U-02), App Shell, U-03.
 - L8: refactor de T5 para respetar la arquitectura: la transacción, el loop, las queries y la auditoría se movieron del `ConfiguracionController` al `ParametroGlobalService::actualizar`; la validación a `ActualizarConfiguracionRequest`; el Controller quedó thin.
+- L9: T6 (U-01) implementado: `GestionUsuariosService` (listar/filtrar, crear, actualizar, alternar estado, resumen, auditoría), Form Requests, `UsuarioController` thin y página `Usuarios/Index` (tabla + drawer crear/editar). Solo Administrador. Sin PR: gga para revisión del usuario.
