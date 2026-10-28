@@ -22,10 +22,10 @@ class ParametroGlobalServiceTest extends TestCase
         $service = new ParametroGlobalService;
 
         // Act
-        $valor = $service->parametro('umbral_tolerancia_precio');
+        $valor = $service->parametro('compras_vigencia_cotizacion_dias');
 
         // Assert
-        $this->assertSame('10', $valor);
+        $this->assertSame('7', $valor);
     }
 
     public function test_parametro_returns_null_when_the_key_does_not_exist(): void

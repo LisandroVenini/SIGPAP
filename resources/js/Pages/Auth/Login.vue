@@ -18,7 +18,9 @@ function submit(): void {
         <Head title="Acceso" />
 
         <main class="w-full max-w-[400px]">
-            <div class="rounded-panel border border-hairline bg-surface p-8 shadow-diffused sm:p-10">
+            <div
+                class="rounded-panel border border-hairline bg-surface p-8 shadow-diffused sm:p-10"
+            >
                 <div class="mb-8 text-left">
                     <h1 class="text-2xl font-bold tracking-tight text-ink">SIGPAP</h1>
                     <p class="mt-1.5 text-[0.8125rem] text-clay">
@@ -28,7 +30,10 @@ function submit(): void {
 
                 <form class="space-y-5" @submit.prevent="submit">
                     <div>
-                        <label for="email" class="mb-2 block text-[0.8125rem] font-medium text-ink/80">
+                        <label
+                            for="email"
+                            class="mb-2 block text-[0.8125rem] font-medium text-ink/80"
+                        >
                             Correo electrónico
                         </label>
                         <input
@@ -46,7 +51,10 @@ function submit(): void {
                     </div>
 
                     <div>
-                        <label for="password" class="mb-2 block text-[0.8125rem] font-medium text-ink/80">
+                        <label
+                            for="password"
+                            class="mb-2 block text-[0.8125rem] font-medium text-ink/80"
+                        >
                             Contraseña
                         </label>
                         <input

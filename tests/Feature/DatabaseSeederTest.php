@@ -21,7 +21,7 @@ class DatabaseSeederTest extends TestCase
 
         // Assert
         $this->assertDatabaseHas('roles', ['name' => Rol::Administrador->value]);
-        $this->assertDatabaseHas('parametros_globales', ['nombre' => 'umbral_tolerancia_precio']);
+        $this->assertDatabaseHas('parametros_globales', ['nombre' => 'compras_vigencia_cotizacion_dias']);
         $this->assertDatabaseHas('usuarios', ['email' => config('sigpap.admin.email')]);
     }
 }

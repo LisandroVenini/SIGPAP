@@ -57,11 +57,19 @@ const navGroups: NavGroup[] = [
     },
     {
         label: 'Inventario',
-        items: [{ label: 'Artículos' }, { label: 'Ingreso de Mercancía' }, { label: 'Ajuste de Inventario' }],
+        items: [
+            { label: 'Artículos' },
+            { label: 'Ingreso de Mercancía' },
+            { label: 'Ajuste de Inventario' },
+        ],
     },
     {
         label: 'Compras',
-        items: [{ label: 'Proveedores' }, { label: 'Solicitudes de Cotización' }, { label: 'Órdenes de Compra' }],
+        items: [
+            { label: 'Proveedores' },
+            { label: 'Solicitudes de Cotización' },
+            { label: 'Órdenes de Compra' },
+        ],
     },
     {
         label: 'Predictivo',
@@ -71,7 +79,10 @@ const navGroups: NavGroup[] = [
     { label: 'Auditoría', items: [{ label: 'Registro de Auditoría' }] },
     {
         label: 'Usuarios',
-        items: [{ label: 'Usuarios y Seguridad' }, { label: 'Configuración' }],
+        items: [
+            { label: 'Usuarios y Seguridad' },
+            { label: 'Configuración', href: '/usuarios/configuracion' },
+        ],
     },
 ];
 
@@ -88,7 +99,9 @@ function isActive(href?: string): boolean {
                     <span class="text-sm font-semibold tracking-tight text-ink">
                         SIGPAP ERP | Confort y Muebles
                     </span>
-                    <span class="inline-flex items-center rounded bg-workshop px-2 py-0.5 text-[0.6875rem] font-medium text-steel">
+                    <span
+                        class="inline-flex items-center rounded bg-workshop px-2 py-0.5 text-[0.6875rem] font-medium text-steel"
+                    >
                         Planta Posadas · Misiones
                     </span>
                 </div>
@@ -96,12 +109,16 @@ function isActive(href?: string): boolean {
         </header>
 
         <div class="mx-auto flex w-full max-w-[1440px] flex-1 overflow-hidden">
-            <aside class="hidden w-64 shrink-0 flex-col justify-between border-r border-hairline bg-surface md:flex">
+            <aside
+                class="hidden w-64 shrink-0 flex-col justify-between border-r border-hairline bg-surface md:flex"
+            >
                 <div class="flex flex-1 flex-col overflow-y-auto">
                     <div class="border-b border-hairline px-5 py-4">
                         <div class="flex items-baseline justify-between">
                             <span class="text-lg font-bold tracking-tight text-ink">SIGPAP</span>
-                            <span class="text-[0.625rem] uppercase tracking-wider text-clay">Maderera ERP</span>
+                            <span class="text-[0.625rem] tracking-wider text-clay uppercase"
+                                >Maderera ERP</span
+                            >
                         </div>
                         <p class="mt-0.5 text-[0.6875rem] leading-snug text-clay">
                             Confort y Muebles · Sistema de Gestión
@@ -110,7 +127,9 @@ function isActive(href?: string): boolean {
 
                     <nav class="flex-1 space-y-4 px-3 py-3">
                         <div v-for="group in navGroups" :key="group.label">
-                            <div class="px-2 pt-2 pb-1 text-[0.75rem] font-semibold uppercase tracking-wider text-clay">
+                            <div
+                                class="px-2 pt-2 pb-1 text-[0.75rem] font-semibold tracking-wider text-clay uppercase"
+                            >
                                 {{ group.label }}
                             </div>
                             <ul class="mt-1 space-y-0.5">
@@ -149,17 +168,23 @@ function isActive(href?: string): boolean {
             </aside>
 
             <div class="flex min-w-0 flex-1 flex-col overflow-y-auto">
-                <header class="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface px-6">
+                <header
+                    class="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface px-6"
+                >
                     <h1 class="text-lg font-semibold tracking-tight text-ink">{{ title }}</h1>
 
                     <div class="flex items-center gap-4">
                         <template v-if="user">
                             <div class="flex items-center gap-3">
-                                <div class="flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-sage-wash text-xs font-semibold text-sage-deep">
+                                <div
+                                    class="flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-sage-wash text-xs font-semibold text-sage-deep"
+                                >
                                     {{ initials }}
                                 </div>
                                 <div class="flex flex-col text-left">
-                                    <span class="text-xs font-medium leading-tight text-ink">{{ user.nombre }}</span>
+                                    <span class="text-xs leading-tight font-medium text-ink">{{
+                                        user.nombre
+                                    }}</span>
                                     <span class="text-[0.6875rem] leading-tight text-clay">
                                         {{ user.roles.join(', ') || 'Sin rol' }}
                                     </span>
@@ -182,9 +207,12 @@ function isActive(href?: string): boolean {
                 </main>
 
                 <footer class="shrink-0 border-t border-hairline">
-                    <div class="mx-auto flex w-full max-w-[1440px] flex-col items-center justify-between gap-2 px-6 py-3 text-center text-xs text-clay md:flex-row md:text-left">
+                    <div
+                        class="mx-auto flex w-full max-w-[1440px] flex-col items-center justify-between gap-2 px-6 py-3 text-center text-xs text-clay md:flex-row md:text-left"
+                    >
                         <span class="text-steel">
-                            © 2024 Confort y Muebles S.A. — Sistema Integrado de Gestión de Producción (SIGPAP)
+                            © 2024 Confort y Muebles S.A. — Sistema Integrado de Gestión de
+                            Producción (SIGPAP)
                         </span>
                     </div>
                 </footer>

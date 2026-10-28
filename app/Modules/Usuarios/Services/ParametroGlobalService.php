@@ -6,9 +6,32 @@ use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\ParametroGlobal;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Collection;
 
 class ParametroGlobalService
 {
+    /**
+     * List every global parameter grouped by category.
+     *
+     * @return Collection<string, Collection<int, ParametroGlobal>>
+     */
+    public function listar(): Collection
+    {
+        return ParametroGlobal::query()
+            ->orderBy('categoria')
+            ->orderBy('nombre')
+            ->get()
+            ->groupBy('categoria');
+    }
+
+    /**
+     * Find a global parameter by its key.
+     */
+    public function buscar(string $clave): ?ParametroGlobal
+    {
+        return ParametroGlobal::where('nombre', $clave)->first();
+    }
+
     /**
      * Read a global parameter value. Transversal read access.
      */
