@@ -2,12 +2,22 @@
 
 namespace App\Modules\Inventario\Models;
 
+use Database\Factories\ArticuloFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Articulo extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): ArticuloFactory
+    {
+        return ArticuloFactory::new();
+    }
+
     /**
      * @var string
      */
@@ -40,6 +50,16 @@ class Articulo extends Model
             'stock_maximo' => 'decimal:2',
             'fecha_vencimiento' => 'date',
         ];
+    }
+
+    public function scopeTipo(Builder $query, string $tipo): void
+    {
+        $query->where('tipo', $tipo);
+    }
+
+    public function scopeEstado(Builder $query, string $estado): void
+    {
+        $query->where('estado', $estado);
     }
 
     public function unidadDeMedida(): BelongsTo

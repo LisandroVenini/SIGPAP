@@ -76,7 +76,9 @@ Prohibido crear `Repositories/` o `Interfaces/` de repositorio.
 ## Reglas generales
 
 - Convenciones de commit: Conventional Commits, sin "Co-Authored-By" ni atribución de IA.
-- Código, comentarios e identificadores en inglés. Los conceptos del dominio van en español: clases de modelo en PascalCase (`Usuario`, `OrdenDeProduccion`) y tablas en snake_case plural (`usuarios`, `ordenes_de_produccion`). El inflector de Laravel es inglés y pluraliza mal el español (`proveedors`, `cotizacions`), así que **todo model con nombre español declara `$table` explícito**; no confiar en la pluralización automática. Las migraciones ya aplicadas no se editan: todo cambio de esquema va en una migración nueva.
+- **Idioma del código:** el código de infraestructura (helpers, configuración, tests) y los comentarios van en inglés. El **dominio se expresa en español**: clases de modelo en PascalCase (`Usuario`, `OrdenDeProduccion`), tablas en snake_case plural (`usuarios`, `ordenes_de_produccion`) y **verbos/variables de dominio** en español (`crear`, `actualizar`, `listar`, `ajustar`, `definirParametro`, `registrarEvento`; `stockAnterior`, `nuevoStock`, `direccionIp`). El inflector de Laravel es inglés y pluraliza mal el español (`proveedors`, `cotizacions`), así que **todo model con nombre español declara `$table` explícito**; no confiar en la pluralización automática. Las migraciones ya aplicadas no se editan: todo cambio de esquema va en una migración nueva.
+- **Principal autenticado:** el `Usuario` autenticado puede recibirse como parámetro en Services/Policies; es la identidad de autenticación, no un acceso al Model interno de otro módulo. El intercambio de datos entre módulos sigue siendo exclusivamente por el Service público del módulo dueño.
+- **Tests:** viven en `tests/` y `resources/js/**/*.test.ts`. Están **excluidos del input de gga**, así que no asumir que faltan tests por el diff: verificá en el repo con `php artisan test` / `npm run test:js`.
 - No código muerto, no `var_dump`/`dd`/`console.log` residuales, no secretos en el código.
 
 ===
