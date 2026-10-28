@@ -109,6 +109,33 @@ class GestionUsuariosServiceTest extends TestCase
         $this->service()->alternarEstado($admin, $admin);
     }
 
+    public function test_an_inhabilitado_administrador_cannot_habilitate_self(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+        $admin->estado = 'Inhabilitado';
+        $admin->save();
+
+        // Act / Assert
+        $this->expectException(ValidationException::class);
+        $this->service()->alternarEstado($admin, $admin);
+    }
+
+    public function test_an_administrador_can_habilitate_another_inhabilitado_usuario(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+        $usuario = Usuario::factory()->create();
+        $usuario->estado = 'Inhabilitado';
+        $usuario->save();
+
+        // Act
+        $this->service()->alternarEstado($admin, $usuario, '127.0.0.1');
+
+        // Assert
+        $this->assertSame('Activo', $usuario->refresh()->estado);
+    }
+
     public function test_listar_filters_by_search_and_role(): void
     {
         // Arrange
