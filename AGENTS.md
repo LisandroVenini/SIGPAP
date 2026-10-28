@@ -15,6 +15,56 @@
 7. **`Alerta` es shared kernel transversal.** Se persiste vía un único subsistema de alertas. Ningún módulo la crea por su cuenta.
 8. **`ParametroGlobal`:** lectura transversal, escritura solo Administrador.
 
+### Contrato de capas (enforcement obligatorio)
+
+Cada cambio debe vivir en la capa correcta. El revisor DEBE marcar `FAILED` si no se cumple. Fuente detallada: skill `sigpap-arquitectura`.
+
+| Necesitás… | Va en… | Prohibido en… |
+| --- | --- | --- |
+| Recibir HTTP, delegar y responder | `Controllers/` (thin) | lógica de negocio |
+| Lógica de negocio / caso de uso | `Services/` | Controller o Model |
+| Validación de entrada | `Requests/` (Form Request) | Controller |
+| Persistencia / relaciones | `Models/` (Eloquent Active Record) | Repository |
+| Filtro simple (una línea) | `scope` del Model | Query Object |
+| Consulta multi-tabla / agregación | `Queries/` | Controller o Service |
+| Calcular con ML | `MLEngine` (Python) | FastAPI / Guzzle / SQLAlchemy |
+| Emitir notificación | subsistema transversal de alertas | lógica del emisor |
+| Renderizar vista | página Vue en `resources/js/Pages/` vía Inertia | Blade / SPA / API pública |
+
+**Regla del Controller thin (crítica):** un `Controller` SOLO recibe el request, delega en un `Service` y devuelve la respuesta (Inertia/redirect). NO puede contener:
+- lógica de negocio ni reglas de decisión,
+- transacciones (`DB::transaction`) ni transacciones implícitas,
+- consultas Eloquent (`Model::where`, `firstOrFail`, `update`, `create`, `insert`),
+- auditoría (`AuditoriaService`),
+- validación compleja (debe ir en un Form Request).
+
+Si el Controller tiene un `foreach` de negocio, una transacción, una query o una llamada de auditoría, es `FAILED`.
+
+**Estructura por módulo:**
+```
+app/Modules/<Modulo>/
+├── Controllers/   # thin: recibe HTTP, delega
+├── Services/      # lógica de negocio (casos de uso)
+├── Models/        # Eloquent (Active Record)
+├── Queries/       # solo consultas complejas
+├── Requests/      # Form Requests (validación)
+├── DTOs/          # transferencia
+├── Events/        # eventos de dominio (si aplica)
+└── Jobs/          # background (si aplica)
+```
+Prohibido crear `Repositories/` o `Interfaces/` de repositorio.
+
+**Anti-patrones (FAILED):**
+- Repository pasamanos (delegar CRUD a un Repository).
+- "Service hell": `findAll`/`findById`/`create`/`update`/`delete` disfrazados de Service.
+- Query Object para un filtro de una línea.
+- Lógica de negocio, queries, transacciones o auditoría en el Controller.
+- Acceder al Model/Eloquent de otro módulo (solo su Service público).
+
+**Comunicación entre módulos:** solo por el Service público del módulo dueño. Prohibido `ModeloDeOtroModulo::create(...)` o relaciones Eloquent cruzadas entre módulos.
+
+**Checklist del revisor (obligatoria):** si el diff toca un `Controller`, verificá el contrato de capas anterior; si toca un `Service`, verificá que la lógica y el acceso a datos estén ahí; si hay una escritura, verificá que la validación esté en un Form Request.
+
 ## Reglas de testing (obligatorias)
 
 1. **Todo cambio de comportamiento debe incluir sus tests.** Si se modifica o agrega un Service, un Query Object o una regla de negocio, el commit debe incluir el test unitario o de integración correspondiente. No hay excepción.
