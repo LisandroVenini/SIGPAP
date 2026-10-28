@@ -162,4 +162,43 @@ class GestionArticulosServiceTest extends TestCase
         $this->assertSame(2, $resumen['activos']);
         $this->assertSame(1, $resumen['inactivos']);
     }
+
+    public function test_productos_terminados_fabricados_filtra_tipo_origen_y_estado(): void
+    {
+        // Arrange
+        $fabricado = Articulo::factory()->create([
+            'descripcion' => 'Silla de pino',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => OrigenArticulo::Fabricado->value,
+        ]);
+        Articulo::factory()->create([
+            'descripcion' => 'Silla de tercero',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => OrigenArticulo::Tercero->value,
+        ]);
+        Articulo::factory()->create([
+            'descripcion' => 'Producto sin origen',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => null,
+        ]);
+        Articulo::factory()->create([
+            'descripcion' => 'Tabla de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+        ]);
+        $inactivo = Articulo::factory()->create([
+            'descripcion' => 'Silla inactiva',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => OrigenArticulo::Fabricado->value,
+        ]);
+        $inactivo->estado = 'Inactivo';
+        $inactivo->save();
+
+        $service = $this->service();
+
+        // Act / Assert
+        $this->assertSame([$fabricado->id], $service->productosTerminadosFabricados()->pluck('id')->all());
+        $this->assertSame([$fabricado->id], $service->productosTerminadosFabricados('pino')->pluck('id')->all());
+        $this->assertSame($fabricado->id, $service->productoTerminadoFabricado($fabricado->id)['id']);
+        $this->assertNull($service->productoTerminadoFabricado($inactivo->id));
+    }
 }

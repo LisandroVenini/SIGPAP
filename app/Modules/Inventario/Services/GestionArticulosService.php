@@ -54,6 +54,34 @@ class GestionArticulosService
     }
 
     /**
+     * @return Collection<int, array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}>
+     */
+    public function productosTerminadosFabricados(?string $buscar = null): Collection
+    {
+        return Articulo::query()
+            ->productoTerminadoFabricado()
+            ->when($buscar, fn ($query, string $buscar) => $query->buscar($buscar))
+            ->with('unidadDeMedida')
+            ->orderBy('descripcion')
+            ->get()
+            ->map(fn (Articulo $articulo): array => $this->resumenDeProducto($articulo));
+    }
+
+    /**
+     * @return array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}|null
+     */
+    public function productoTerminadoFabricado(int $id): ?array
+    {
+        $articulo = Articulo::query()
+            ->productoTerminadoFabricado()
+            ->with('unidadDeMedida')
+            ->whereKey($id)
+            ->first();
+
+        return $articulo === null ? null : $this->resumenDeProducto($articulo);
+    }
+
+    /**
      * @param  array{codigo_sku: string, descripcion: string, tipo: string, origen?: string|null, unidad_de_medida_id: int, stock_minimo?: float|string|null, stock_maximo?: float|string|null}  $datos
      */
     public function crear(Usuario $actor, array $datos, ?string $direccionIp = null): Articulo
@@ -165,6 +193,19 @@ class GestionArticulosService
 
             return $articulo;
         });
+    }
+
+    /**
+     * @return array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}
+     */
+    private function resumenDeProducto(Articulo $articulo): array
+    {
+        return [
+            'id' => $articulo->id,
+            'codigo_sku' => $articulo->codigo_sku,
+            'descripcion' => $articulo->descripcion,
+            'unidad' => $articulo->unidadDeMedida?->nombre,
+        ];
     }
 
     /**

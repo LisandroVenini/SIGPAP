@@ -2,6 +2,9 @@
 
 namespace App\Modules\Inventario\Models;
 
+use App\Modules\Inventario\Enums\EstadoArticulo;
+use App\Modules\Inventario\Enums\OrigenArticulo;
+use App\Modules\Inventario\Enums\TipoArticulo;
 use Database\Factories\ArticuloFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -60,6 +63,22 @@ class Articulo extends Model
     public function scopeEstado(Builder $query, string $estado): void
     {
         $query->where('estado', $estado);
+    }
+
+    public function scopeProductoTerminadoFabricado(Builder $query): void
+    {
+        $query->where('tipo', TipoArticulo::ProductoTerminado->value)
+            ->where('origen', OrigenArticulo::Fabricado->value)
+            ->where('estado', EstadoArticulo::Activo->value);
+    }
+
+    public function scopeBuscar(Builder $query, string $buscar): void
+    {
+        $query->where(function (Builder $query) use ($buscar): void {
+            $query->where('codigo_sku', 'like', "%{$buscar}%")
+                ->orWhere('descripcion', 'like', "%{$buscar}%")
+                ->orWhere('tipo', 'like', "%{$buscar}%");
+        });
     }
 
     public function unidadDeMedida(): BelongsTo
