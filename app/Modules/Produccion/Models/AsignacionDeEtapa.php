@@ -2,11 +2,20 @@
 
 namespace App\Modules\Produccion\Models;
 
+use Database\Factories\AsignacionDeEtapaFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AsignacionDeEtapa extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): AsignacionDeEtapaFactory
+    {
+        return AsignacionDeEtapaFactory::new();
+    }
+
     /**
      * @var string
      */
