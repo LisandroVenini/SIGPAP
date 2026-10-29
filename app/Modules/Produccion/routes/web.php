@@ -3,6 +3,7 @@
 use App\Modules\Produccion\Controllers\EtapaController;
 use App\Modules\Produccion\Controllers\HojaDeRutaController;
 use App\Modules\Produccion\Controllers\OperarioController;
+use App\Modules\Produccion\Controllers\PlanificacionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')
@@ -10,6 +11,11 @@ Route::middleware('web')
     ->name('produccion.')
     ->group(function (): void {
         Route::middleware('auth')->group(function (): void {
+            Route::get('planificaciones', [PlanificacionController::class, 'index'])->name('planificaciones.index');
+            Route::post('planificaciones', [PlanificacionController::class, 'store'])->name('planificaciones.store');
+            Route::put('planificaciones/{planificacion}', [PlanificacionController::class, 'update'])->name('planificaciones.update');
+            Route::delete('planificaciones/{planificacion}', [PlanificacionController::class, 'destroy'])->name('planificaciones.destroy');
+
             Route::get('etapas', [EtapaController::class, 'index'])->name('etapas.index');
             Route::post('etapas', [EtapaController::class, 'store'])->name('etapas.store');
             Route::put('etapas/{etapa}', [EtapaController::class, 'update'])->name('etapas.update');

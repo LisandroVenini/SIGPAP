@@ -44,7 +44,7 @@ const navGroups: NavGroup[] = [
     {
         label: 'Producción',
         items: [
-            { label: 'Planificaciones' },
+            { label: 'Planificaciones', href: '/produccion/planificaciones' },
             { label: 'Órdenes de Producción' },
             { label: 'Parte Diario' },
             { label: 'Cronograma' },
