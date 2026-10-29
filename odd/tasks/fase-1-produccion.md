@@ -20,7 +20,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T1 — Etapas: migración soft deletes, modelo + scope, Service, Requests, Policy, Controller, rutas, página Vue, tests. Commit `487b279`.
 - [x] T2 — Operarios: soft deletes, modelo + scope, Service, Requests, Policy, Controller, rutas, página Vue, tests. Commit `c492216`.
 - [x] T3 — Hoja de ruta (asignar/desasignar etapa a producto). Commit `9985fed`; soporte en Inventario `ffd4a6d`.
-- [ ] T4 — Planificaciones.
+- [x] T4 — Planificaciones: ABM + búsqueda, período validado (`fecha_fin >= fecha_inicio`), baja bloqueada con órdenes. Commit `212bca6`.
 - [ ] T5 — Órdenes de Producción + reservas lógicas.
 - [ ] T6 — Recursos e inicio.
 - [ ] T7 — Parte Diario, Calidad y Cierre.
@@ -32,3 +32,5 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L2: "dale, agrupalas" — se separó el trabajo pendiente en slices revisables: inventario (soporte), T1, T2, T3 y este documento.
 - L3: Evidencia — PHPUnit `tests/Feature/Modules/Produccion` + `tests/Feature/Modules/Inventario`: 70 tests, 255 assertions, en verde. Vitest `resources/js/Pages/Produccion`: 4 archivos, 17 tests, en verde. gga en verde en los cuatro commits de código.
 - L4: Los slices comparten `routes/web.php` y `ProduccionServiceProvider`; se commitearon con su porción de rutas y policies para que cada uno quede autocontenido. El test de `productosTerminadosFabricados` se agregó en el slice de Inventario porque el cambio de comportamiento lo exigía.
+- L5: "okey, sigamos con el modulo de produccion" — T4 implementado test-first: 16 tests nuevos en rojo (clase/route inexistentes) y luego en verde.
+- L6: Evidencia T4 — PHPUnit Producción + Inventario + Usuarios: 152 tests, 508 assertions. Vitest Producción: 5 archivos, 22 tests. `npm run typecheck`, Prettier y ESLint sin errores.
