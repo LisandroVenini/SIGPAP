@@ -15,6 +15,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - S7: Parte Diario, Calidad y Cierre (CU-PROD-13/14/15): avance por etapa, consumo de stock, desgaste de maquinaria, control de calidad, cierre solo con calidad de la última etapa.
 - S8: Cronograma (CU-PROD-23) y Mantenimiento (CU-MANT-01..11): se planifican al final del bloque.
 - S9: Receta (BOM) del producto terminado: insumos con cantidad expresada en la unidad de medida del insumo (5 tablones ≠ 5 ml). Solo Materia Prima o Insumo Consumible activos; a lo sumo una receta por producto. Habilita la reserva lógica de T5 y el consumo de stock de T7.
+- S10: Reserva lógica: la receta no compromete stock; el compromiso nace al crear la OP. Disponible = stock físico − reservas vigentes, con piso 0 (nunca negativo). Alta por lote: una OP por producto, modos `solo_disponibles` (omite las que no alcanzan) y `todas` (las crea en Pendiente por Insumos). Producto sin receta no genera OP. Anulación permitida solo en estados no ejecutados; modificación en Pendiente y Pendiente por Insumos.
 
 ## Tasks
 
@@ -23,7 +24,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T3 — Hoja de ruta (asignar/desasignar etapa a producto). Commit `9985fed`; soporte en Inventario `ffd4a6d`.
 - [x] T4 — Planificaciones: ABM + búsqueda, período validado (`fecha_fin >= fecha_inicio`), baja bloqueada con órdenes. Commit `212bca6`.
 - [x] T4.1 — Receta (BOM) del producto: migración, modelos, Service, Requests, Controller, rutas, sección Receta en la Hoja de Ruta, contrato nuevo en Inventario (`insumosDisponibles`, `resumenesDeArticulos`), docs de dominio. Commit `f57fca9`.
-- [ ] T5 — Órdenes de Producción + reservas lógicas.
+- [x] T5 — Órdenes de Producción + reservas lógicas: contrato de reservas en Inventario (`GestionReservasService`, `ReservasQuery`), alta por lote con modos, listado/búsqueda, anulación y modificación. Commits `a4939b7` y `c2c7a4e`.
 - [ ] T6 — Recursos e inicio.
 - [ ] T7 — Parte Diario, Calidad y Cierre.
 - [ ] T8 — Cronograma y Mantenimiento.
@@ -40,3 +41,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L8: Hallazgo previo a T5 — el dominio no tenía receta/BOM, así que la reserva lógica de CU-PROD-06 no tenía fuente de verdad; se resolvió con T4.1 antes de T5.
 - L9: T4.1 implementado por `gentle-ai-worker` con el brief de contrato (política de delegación adoptada). gga bloqueó el primer commit por una relación Eloquent cruzada (`ComponenteDeReceta::articulo()` apuntando al modelo de Inventario): se quitó la relación y la validación `exists:articulos,id`, y el insumo se valida por el Service público. Se agregó además el control de pertenencia al quitar un componente (`404` si la receta es de otro producto) y el manejo de la violación de unicidad como error de validación.
 - L10: Evidencia T4.1 — PHPUnit Producción + Inventario: 107 tests, 374 assertions. Vitest Producción: 27 tests. `vue-tsc`, Prettier y pint sin errores.
+- L11: "perfecto, vamos con la A" — una OP fabrica un producto; el alta es por lote y el agrupador sigue siendo la planificación.
+- L12: "disponible nunca puede ir en negativo. Una cosa es la receta del producto y otra cosa distinta es la orden de produccion..." — la receta es definición pura; el compromiso nace al crear la OP y el disponible se acota en 0.
+- L13: T5 implementado en dos unidades: contrato de reservas inline y Producción delegado a `gentle-ai-worker`. gga bloqueó dos veces: agregación en Service (movida a `ReservasQuery`/`PlanificacionesQuery`), tests con nombres en español, y un bug real de búsqueda (`when([])` descartaba el filtro y devolvía todas las órdenes). Se corrigió con test de regresión RED→GREEN. También se endureció la validación del producto de la línea y el test de Vue que era tautológico.
+- L14: Evidencia T5 — PHPUnit Producción + Inventario: 137 tests, 478 assertions. Vitest Producción: 33 tests. `vue-tsc`, pint y Prettier sin errores.
