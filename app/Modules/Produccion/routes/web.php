@@ -3,6 +3,7 @@
 use App\Modules\Produccion\Controllers\EtapaController;
 use App\Modules\Produccion\Controllers\HojaDeRutaController;
 use App\Modules\Produccion\Controllers\OperarioController;
+use App\Modules\Produccion\Controllers\OrdenDeProduccionController;
 use App\Modules\Produccion\Controllers\PlanificacionController;
 use App\Modules\Produccion\Controllers\RecetaController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,13 @@ Route::middleware('web')
             Route::post('planificaciones', [PlanificacionController::class, 'store'])->name('planificaciones.store');
             Route::put('planificaciones/{planificacion}', [PlanificacionController::class, 'update'])->name('planificaciones.update');
             Route::delete('planificaciones/{planificacion}', [PlanificacionController::class, 'destroy'])->name('planificaciones.destroy');
+
+            Route::get('ordenes-de-produccion', [OrdenDeProduccionController::class, 'index'])->name('ordenes-de-produccion.index');
+            Route::post('ordenes-de-produccion', [OrdenDeProduccionController::class, 'store'])->name('ordenes-de-produccion.store');
+            Route::match(['put', 'patch'], 'ordenes-de-produccion/{orden}', [OrdenDeProduccionController::class, 'update'])->name('ordenes-de-produccion.update');
+            Route::post('ordenes-de-produccion/{orden}/anular', [OrdenDeProduccionController::class, 'anular'])
+                ->whereNumber('orden')
+                ->name('ordenes-de-produccion.anular');
 
             Route::get('etapas', [EtapaController::class, 'index'])->name('etapas.index');
             Route::post('etapas', [EtapaController::class, 'store'])->name('etapas.store');

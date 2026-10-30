@@ -294,4 +294,57 @@ class GestionArticulosServiceTest extends TestCase
         $this->assertSame('Madera de pino', $resumenes[$madera->id]['descripcion']);
         $this->assertSame('Silla', $resumenes[$silla->id]['descripcion']);
     }
+
+    public function test_ids_que_coinciden_busca_por_sku_y_descripcion_sin_filtrar_tipo_ni_estado(): void
+    {
+        // Arrange
+        $madera = Articulo::factory()->create([
+            'codigo_sku' => 'MP-PINO',
+            'descripcion' => 'Madera de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        $silla = Articulo::factory()->create([
+            'codigo_sku' => 'PT-SILLA',
+            'descripcion' => 'Silla de pino',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'estado' => EstadoArticulo::Inactivo->value,
+        ]);
+        Articulo::factory()->create([
+            'codigo_sku' => 'PT-MESA',
+            'descripcion' => 'Mesa de algarrobo',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+        ]);
+
+        $service = $this->service();
+
+        // Act
+        $coincidenciasSku = $service->idsQueCoinciden('SILLA');
+        $coincidenciasDescripcion = $service->idsQueCoinciden('pino');
+
+        // Assert
+        $this->assertSame([$silla->id], $coincidenciasSku);
+        $this->assertSame([$madera->id, $silla->id], $coincidenciasDescripcion);
+    }
+
+    public function test_ids_que_coinciden_trata_comodines_como_literales(): void
+    {
+        // Arrange
+        Articulo::factory()->create([
+            'codigo_sku' => 'MP-PINO',
+            'descripcion' => 'Madera de pino',
+        ]);
+        $conComodin = Articulo::factory()->create([
+            'codigo_sku' => 'PT-%',
+            'descripcion' => 'Producto con porcentaje',
+        ]);
+
+        $service = $this->service();
+
+        // Act
+        $coincidencias = $service->idsQueCoinciden('%');
+
+        // Assert
+        $this->assertSame([$conComodin->id], $coincidencias);
+    }
 }

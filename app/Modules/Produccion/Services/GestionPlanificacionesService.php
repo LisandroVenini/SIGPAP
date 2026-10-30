@@ -4,6 +4,7 @@ namespace App\Modules\Produccion\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
+use App\Modules\Produccion\Queries\PlanificacionesQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Carbon\Carbon;
@@ -15,6 +16,7 @@ class GestionPlanificacionesService
 {
     public function __construct(
         private readonly AuditoriaService $auditoria,
+        private readonly PlanificacionesQuery $query,
         private readonly UsuariosService $usuarios,
     ) {}
 
@@ -28,21 +30,24 @@ class GestionPlanificacionesService
      */
     public function listar(array $filtros = []): LengthAwarePaginator
     {
+        return $this->query->listar($filtros);
+    }
+
+    /**
+     * @return array<int, array{id: int, nombre: string}>
+     */
+    public function opciones(): array
+    {
         return PlanificacionDeProduccion::query()
-            ->withCount('ordenesDeProduccion')
-            ->when($filtros['buscar'] ?? null, fn ($query, string $buscar) => $query->buscar($buscar))
             ->orderByDesc('fecha_inicio')
             ->orderBy('nombre')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(fn (PlanificacionDeProduccion $planificacion) => [
+            ->limit(200)
+            ->get(['id', 'nombre'])
+            ->map(fn (PlanificacionDeProduccion $planificacion): array => [
                 'id' => $planificacion->id,
                 'nombre' => $planificacion->nombre,
-                'fecha_inicio' => $planificacion->fecha_inicio?->toDateString(),
-                'fecha_fin' => $planificacion->fecha_fin?->toDateString(),
-                'observaciones' => $planificacion->observaciones,
-                'ordenes' => $planificacion->ordenes_de_produccion_count,
-            ]);
+            ])
+            ->all();
     }
 
     /**

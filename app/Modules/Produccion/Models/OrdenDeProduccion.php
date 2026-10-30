@@ -3,6 +3,7 @@
 namespace App\Modules\Produccion\Models;
 
 use Database\Factories\OrdenDeProduccionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,6 +52,19 @@ class OrdenDeProduccion extends Model
             'cantidad_producida' => 'decimal:2',
             'prioridad_actual' => 'integer',
         ];
+    }
+
+    /**
+     * @param  array<int, int>  $articuloIds
+     */
+    public function scopeBuscarPorArticulos(Builder $query, array $articuloIds): void
+    {
+        $query->whereIn('articulo_id', $articuloIds);
+    }
+
+    public function scopeConEstado(Builder $query, string $estado): void
+    {
+        $query->where('estado', $estado);
     }
 
     public function planificacionDeProduccion(): BelongsTo

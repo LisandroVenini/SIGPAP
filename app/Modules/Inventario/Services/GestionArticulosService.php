@@ -64,7 +64,7 @@ class GestionArticulosService
             ->with('unidadDeMedida')
             ->orderBy('descripcion')
             ->get()
-            ->map(fn (Articulo $articulo): array => $this->resumenDeProducto($articulo));
+            ->map(fn (Articulo $articulo): array => $this->resumenDeArticulo($articulo));
     }
 
     /**
@@ -78,7 +78,7 @@ class GestionArticulosService
             ->whereKey($id)
             ->first();
 
-        return $articulo === null ? null : $this->resumenDeProducto($articulo);
+        return $articulo === null ? null : $this->resumenDeArticulo($articulo);
     }
 
     /**
@@ -226,11 +226,16 @@ class GestionArticulosService
     }
 
     /**
-     * @return array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}
+     * @return array<int, int>
      */
-    private function resumenDeProducto(Articulo $articulo): array
+    public function idsQueCoinciden(string $texto): array
     {
-        return $this->resumenDeArticulo($articulo);
+        return Articulo::query()
+            ->buscar($texto)
+            ->orderBy('descripcion')
+            ->limit(200)
+            ->pluck('id')
+            ->all();
     }
 
     /**

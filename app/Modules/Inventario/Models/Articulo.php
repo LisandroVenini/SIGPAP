@@ -82,6 +82,8 @@ class Articulo extends Model
 
     public function scopeBuscar(Builder $query, string $buscar): void
     {
+        $buscar = addcslashes($buscar, '%_\\');
+
         $query->where(function (Builder $query) use ($buscar): void {
             $query->where('codigo_sku', 'like', "%{$buscar}%")
                 ->orWhere('descripcion', 'like', "%{$buscar}%")
