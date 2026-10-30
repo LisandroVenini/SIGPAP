@@ -2,11 +2,20 @@
 
 namespace App\Modules\Inventario\Models;
 
+use Database\Factories\ReservaFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Reserva extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): ReservaFactory
+    {
+        return ReservaFactory::new();
+    }
+
     /**
      * @var string
      */
