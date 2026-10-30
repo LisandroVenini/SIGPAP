@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 
 interface Producto {
@@ -20,6 +21,27 @@ interface Disponible {
     nombre: string;
 }
 
+interface ComponenteDeReceta {
+    id: number;
+    articulo_id: number;
+    codigo_sku: string;
+    descripcion: string;
+    unidad: string | null;
+    cantidad: number;
+}
+
+interface InsumoDisponible {
+    id: number;
+    codigo_sku: string;
+    descripcion: string;
+    unidad: string | null;
+}
+
+interface Receta {
+    componentes: ComponenteDeReceta[];
+    disponibles: InsumoDisponible[];
+}
+
 type SharedProps = {
     flash: { success: string | null };
     errors: Record<string, string>;
@@ -29,6 +51,7 @@ const props = defineProps<{
     producto: Producto;
     asignadas: Asignada[];
     disponibles: Disponible[];
+    receta: Receta;
 }>();
 
 const page = usePage<SharedProps>();
@@ -37,6 +60,19 @@ const form = useForm({
     etapa_id: '',
     tiempo_por_unidad: '',
 });
+
+const recetaForm = useForm({
+    articulo_insumo_id: '',
+    cantidad: '',
+});
+
+const insumoSeleccionado = computed(() => {
+    return props.receta.disponibles.find(
+        (insumo) => String(insumo.id) === recetaForm.articulo_insumo_id,
+    );
+});
+
+const unidadSeleccionada = computed(() => insumoSeleccionado.value?.unidad ?? '—');
 
 function asignar(): void {
     form.post(`/produccion/hoja-de-ruta/${props.producto.id}/etapas`, {
@@ -55,6 +91,28 @@ function desasignar(asignada: Asignada): void {
     router.delete(`/produccion/hoja-de-ruta/${props.producto.id}/etapas/${asignada.etapa_id}`, {
         preserveScroll: true,
     });
+}
+
+function agregarComponente(): void {
+    recetaForm.post(`/produccion/hoja-de-ruta/${props.producto.id}/receta/componentes`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            recetaForm.reset();
+        },
+    });
+}
+
+function quitarComponente(componente: ComponenteDeReceta): void {
+    if (!window.confirm(`¿Quitar el insumo "${componente.descripcion}" de la receta?`)) {
+        return;
+    }
+
+    router.delete(
+        `/produccion/hoja-de-ruta/${props.producto.id}/receta/componentes/${componente.id}`,
+        {
+            preserveScroll: true,
+        },
+    );
 }
 </script>
 
@@ -219,6 +277,151 @@ function desasignar(asignada: Asignada): void {
 
                 <p v-else class="mt-3 text-sm text-steel">
                     Todas las etapas del catálogo ya están asignadas a este producto.
+                </p>
+            </div>
+
+            <div
+                class="overflow-hidden rounded-panel border border-hairline bg-surface shadow-diffused"
+            >
+                <div
+                    class="border-b border-hairline bg-workshop px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                >
+                    Receta
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="border-b border-hairline">
+                            <tr>
+                                <th
+                                    class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Insumo
+                                </th>
+                                <th
+                                    class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Unidad
+                                </th>
+                                <th
+                                    class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Cantidad
+                                </th>
+                                <th
+                                    class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Acción
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-hairline">
+                            <tr
+                                v-for="componente in props.receta.componentes"
+                                :key="componente.id"
+                                class="hover:bg-teja-wash/30"
+                            >
+                                <td class="px-4 py-2.5 text-sm font-medium text-ink">
+                                    {{ componente.descripcion }}
+                                    <span class="block font-mono text-xs text-steel">
+                                        {{ componente.codigo_sku }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2.5 text-sm text-ink">
+                                    {{ componente.unidad ?? '—' }}
+                                </td>
+                                <td class="px-4 py-2.5 text-right font-mono text-xs text-ink">
+                                    {{ componente.cantidad.toFixed(2) }}
+                                </td>
+                                <td class="px-4 py-2.5 text-right text-xs">
+                                    <button
+                                        type="button"
+                                        class="font-medium text-steel hover:text-oxide"
+                                        @click="quitarComponente(componente)"
+                                    >
+                                        Quitar
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div
+                    v-if="props.receta.componentes.length === 0"
+                    class="px-4 py-10 text-center text-sm text-steel"
+                >
+                    Este producto no tiene receta definida.
+                </div>
+            </div>
+
+            <div class="rounded-panel border border-hairline bg-surface p-4 shadow-diffused">
+                <h3 class="text-sm font-semibold text-ink">Agregar insumo a la receta</h3>
+
+                <form
+                    v-if="props.receta.disponibles.length > 0"
+                    class="mt-3 flex flex-wrap items-end gap-3"
+                    data-testid="receta-form"
+                    @submit.prevent="agregarComponente"
+                >
+                    <div class="flex min-w-[220px] flex-1 flex-col gap-1.5">
+                        <label for="articulo_insumo_id" class="text-xs font-medium text-steel"
+                            >Insumo disponible</label
+                        >
+                        <select
+                            id="articulo_insumo_id"
+                            v-model="recetaForm.articulo_insumo_id"
+                            data-testid="receta-insumo-select"
+                            required
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        >
+                            <option value="" disabled>Seleccioná un insumo</option>
+                            <option
+                                v-for="insumo in props.receta.disponibles"
+                                :key="insumo.id"
+                                :value="String(insumo.id)"
+                            >
+                                {{ insumo.descripcion }}
+                                <template v-if="insumo.unidad"> ({{ insumo.unidad }})</template>
+                            </option>
+                        </select>
+                        <p v-if="recetaForm.errors.articulo_insumo_id" class="text-xs text-oxide">
+                            {{ recetaForm.errors.articulo_insumo_id }}
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label
+                            for="cantidad"
+                            class="text-xs font-medium text-steel"
+                            data-testid="receta-cantidad-label"
+                        >
+                            Cantidad ({{ unidadSeleccionada }})
+                        </label>
+                        <input
+                            id="cantidad"
+                            v-model="recetaForm.cantidad"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            required
+                            class="w-40 rounded-control border border-hairline bg-surface px-3 py-2 font-mono text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        />
+                        <p v-if="recetaForm.errors.cantidad" class="text-xs text-oxide">
+                            {{ recetaForm.errors.cantidad }}
+                        </p>
+                    </div>
+
+                    <button
+                        type="submit"
+                        :disabled="recetaForm.processing"
+                        class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98] disabled:opacity-60"
+                    >
+                        {{ recetaForm.processing ? 'Agregando…' : 'Agregar insumo' }}
+                    </button>
+                </form>
+
+                <p v-else class="mt-3 text-sm text-steel">
+                    No hay insumos disponibles para agregar a la receta.
                 </p>
             </div>
         </div>

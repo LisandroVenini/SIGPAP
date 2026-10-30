@@ -57,6 +57,8 @@ Notas Inventario:
 | `orden_de_produccion_operario` | orden_de_produccion_id, operario_id (PK compuesta) | pivote N:M |
 | `orden_de_produccion_maquinaria` | orden_de_produccion_id, maquinaria_id (PK compuesta) | pivote N:M |
 | `asignaciones_de_etapa` | id, articulo_id, etapa_id, tiempo_por_unidad | unique(articulo_id, etapa_id) |
+| `recetas` | id, articulo_id | FK `articulos`; unique(articulo_id) |
+| `componentes_de_receta` | id, receta_id, articulo_id, cantidad | 2 FK; unique(receta_id, articulo_id) |
 | `partes_diarios` | id, orden_de_produccion_id, etapa_id, maquinaria_id?, fecha, cantidad_conformada, observaciones? | 3 FK; unique(orden_de_produccion_id, etapa_id, fecha) |
 | `controles_de_calidad` | id, orden_de_produccion_id, fecha, cantidad_aprobada, cantidad_rechazada, motivo_rechazo? | |
 | `planes_de_mantenimiento` | id, maquinaria_id, umbral_uso, descripcion | |
@@ -113,7 +115,7 @@ Notas:
 
 ## Total
 
-**39 tablas** = 30 conceptos con tabla propia + `roles` (spatie, concepto `Rol`) + 4 tablas spatie (`permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`) + 3 pivotes N:M (`orden_de_produccion_operario`, `orden_de_produccion_maquinaria`, `solicitud_de_cotizacion_proveedor`) + `lineas_de_cotizacion`.
+**41 tablas** = 32 conceptos con tabla propia + `roles` (spatie, concepto `Rol`) + 4 tablas spatie (`permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`) + 3 pivotes N:M (`orden_de_produccion_operario`, `orden_de_produccion_maquinaria`, `solicitud_de_cotizacion_proveedor`) + `lineas_de_cotizacion`.
 
 ## Integridad referencial (regla global)
 

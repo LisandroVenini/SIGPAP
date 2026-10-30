@@ -14,7 +14,7 @@ Un concepto entra al modelo de dominio si cumple **todas** estas condiciones:
 
 Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking), vistas y salidas (Gantt, Dashboard, Reporte), componentes de software (ModeloPredictivo) y procesos (Licitación Predictiva).
 
-## Lista de conceptos idóneos (31)
+## Lista de conceptos idóneos (33)
 
 ### Producción
 
@@ -25,6 +25,8 @@ Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking
 | RegistroPrioridad | Historial de cambios de prioridad de una orden de producción, con la justificación de cada reordenamiento (motivo, autor, fecha). |
 | Etapa | Paso del catálogo de fabricación (Lijado, Pintado, Armado, Embalado). |
 | AsignacionDeEtapa | Vínculo producto↔etapa con su tiempo por unidad (la hoja de ruta). |
+| Receta | Lista de insumos y cantidades necesarias para fabricar un producto terminado (BOM). |
+| ComponenteDeReceta | Vínculo receta↔insumo con la cantidad requerida en la unidad de medida del insumo. |
 | ParteDiario | Registro de avance por etapa y turno (unidades conformadas). |
 | Operario | Persona de planta asignada a las órdenes. |
 | Maquinaria | Equipo de producción con desgaste acumulado y estado operativo. |

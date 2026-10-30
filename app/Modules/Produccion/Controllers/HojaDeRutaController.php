@@ -6,6 +6,7 @@ use App\Modules\Produccion\Requests\AsignarEtapaRequest;
 use App\Modules\Produccion\Requests\DesasignarEtapaRequest;
 use App\Modules\Produccion\Requests\GestionarHojaDeRutaRequest;
 use App\Modules\Produccion\Services\GestionHojaDeRutaService;
+use App\Modules\Produccion\Services\GestionRecetasService;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -13,7 +14,10 @@ use Inertia\Response;
 
 class HojaDeRutaController
 {
-    public function __construct(private readonly GestionHojaDeRutaService $hoja) {}
+    public function __construct(
+        private readonly GestionHojaDeRutaService $hoja,
+        private readonly GestionRecetasService $recetas,
+    ) {}
 
     public function index(GestionarHojaDeRutaRequest $request): Response
     {
@@ -36,7 +40,10 @@ class HojaDeRutaController
             abort(404);
         }
 
-        return Inertia::render('Produccion/HojaDeRuta/Detalle', $detalle);
+        return Inertia::render('Produccion/HojaDeRuta/Detalle', [
+            ...$detalle,
+            'receta' => $this->recetas->detalle($articulo),
+        ]);
     }
 
     public function store(AsignarEtapaRequest $request, int $articulo): RedirectResponse

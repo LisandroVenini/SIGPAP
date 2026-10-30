@@ -4,6 +4,7 @@ use App\Modules\Produccion\Controllers\EtapaController;
 use App\Modules\Produccion\Controllers\HojaDeRutaController;
 use App\Modules\Produccion\Controllers\OperarioController;
 use App\Modules\Produccion\Controllers\PlanificacionController;
+use App\Modules\Produccion\Controllers\RecetaController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')
@@ -37,5 +38,12 @@ Route::middleware('web')
                 ->whereNumber('articulo')
                 ->whereNumber('etapa')
                 ->name('hoja-de-ruta.etapas.destroy');
+
+            Route::post('hoja-de-ruta/{articulo}/receta/componentes', [RecetaController::class, 'store'])
+                ->whereNumber('articulo')
+                ->name('hoja-de-ruta.receta.componentes.store');
+            Route::delete('hoja-de-ruta/{articulo}/receta/componentes/{componente}', [RecetaController::class, 'destroy'])
+                ->whereNumber('articulo')
+                ->name('hoja-de-ruta.receta.componentes.destroy');
         });
     });

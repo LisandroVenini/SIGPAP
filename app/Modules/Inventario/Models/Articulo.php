@@ -72,6 +72,14 @@ class Articulo extends Model
             ->where('estado', EstadoArticulo::Activo->value);
     }
 
+    public function scopeInsumoActivo(Builder $query): void
+    {
+        $query->whereIn('tipo', [
+            TipoArticulo::MateriaPrima->value,
+            TipoArticulo::InsumoConsumible->value,
+        ])->where('estado', EstadoArticulo::Activo->value);
+    }
+
     public function scopeBuscar(Builder $query, string $buscar): void
     {
         $query->where(function (Builder $query) use ($buscar): void {

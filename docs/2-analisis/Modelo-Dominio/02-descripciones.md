@@ -48,6 +48,22 @@ Para cada concepto se describe su **Símbolo** (nombre PascalCase, compartimento
 | Intensión | Representa la inclusión de una etapa específica dentro de la hoja de ruta de un producto, junto con el tiempo estimado que insume producir una unidad en esa etapa. Es el dato que permite calcular los tiempos de fabricación y alimentar el cronograma. |
 | Extensión | El conjunto de todas las asignaciones etapa↔producto de la fábrica (por ejemplo: la asignación de "Lijado" a la Silla de Pino con 5 minutos por unidad, y la de "Lijado" a la Mesa de Pino con 20 minutos). |
 
+### Receta
+
+| Elemento | Descripción del Concepto |
+| --- | --- |
+| Símbolo | Receta |
+| Intensión | Representa la lista de materiales (BOM) de un producto terminado fabricado: el conjunto de insumos necesarios para producir una unidad del producto. Cada producto fabricado tiene a lo sumo una receta. |
+| Extensión | El conjunto de todas las recetas activas de la fábrica (por ejemplo: la receta de la Silla de Pino, que incluye tablones de pino, barniz y tornillos). |
+
+### ComponenteDeReceta
+
+| Elemento | Descripción del Concepto |
+| --- | --- |
+| Símbolo | ComponenteDeReceta |
+| Intensión | Representa la inclusión de un insumo dentro de la receta de un producto, junto con la cantidad requerida de ese insumo para fabricar una unidad del producto. La cantidad se expresa siempre en la unidad de medida del insumo. |
+| Extensión | El conjunto de todos los componentes de las recetas de la fábrica (por ejemplo: 0,5 litros de barniz natural por silla de pino, o 2 metros de tabla de pino por silla). |
+
 ### ParteDiario
 
 | Elemento | Descripción del Concepto |

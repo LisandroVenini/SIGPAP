@@ -196,9 +196,47 @@ class GestionArticulosService
     }
 
     /**
+     * @return Collection<int, array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}>
+     */
+    public function insumosDisponibles(?string $buscar = null): Collection
+    {
+        return Articulo::query()
+            ->insumoActivo()
+            ->when($buscar, fn ($query, string $buscar) => $query->buscar($buscar))
+            ->with('unidadDeMedida')
+            ->orderBy('descripcion')
+            ->get()
+            ->map(fn (Articulo $articulo): array => $this->resumenDeArticulo($articulo));
+    }
+
+    /**
+     * @param  array<int, int>  $ids
+     * @return array<int, array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}>
+     */
+    public function resumenesDeArticulos(array $ids): array
+    {
+        return Articulo::query()
+            ->whereKey($ids)
+            ->with('unidadDeMedida')
+            ->get()
+            ->mapWithKeys(fn (Articulo $articulo): array => [
+                $articulo->id => $this->resumenDeArticulo($articulo),
+            ])
+            ->all();
+    }
+
+    /**
      * @return array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}
      */
     private function resumenDeProducto(Articulo $articulo): array
+    {
+        return $this->resumenDeArticulo($articulo);
+    }
+
+    /**
+     * @return array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}
+     */
+    private function resumenDeArticulo(Articulo $articulo): array
     {
         return [
             'id' => $articulo->id,
