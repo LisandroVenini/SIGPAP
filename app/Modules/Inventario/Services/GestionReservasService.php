@@ -131,6 +131,30 @@ class GestionReservasService
     }
 
     /**
+     * Check whether the current reservations for the order cover every need.
+     *
+     * @param  array<int, float>  $necesidades  articuloId => required quantity
+     */
+    public function cubierta(int $ordenDeProduccionId, array $necesidades): bool
+    {
+        if ($necesidades === []) {
+            return true;
+        }
+
+        $comprometido = $this->query->comprometidoDeOrden($ordenDeProduccionId);
+
+        foreach ($necesidades as $articuloId => $cantidad) {
+            $reservado = $comprometido[$articuloId] ?? 0.0;
+
+            if (round($cantidad - $reservado, 2) > 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * @param  array<int, float>  $cantidades
      */
     private function asegurarCantidadesPositivas(array $cantidades): void

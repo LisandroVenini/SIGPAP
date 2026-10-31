@@ -24,6 +24,12 @@ Route::middleware('web')
             Route::post('ordenes-de-produccion/{orden}/anular', [OrdenDeProduccionController::class, 'anular'])
                 ->whereNumber('orden')
                 ->name('ordenes-de-produccion.anular');
+            Route::put('ordenes-de-produccion/{orden}/recursos', [OrdenDeProduccionController::class, 'asignar'])
+                ->whereNumber('orden')
+                ->name('ordenes-de-produccion.recursos.asignar');
+            Route::post('ordenes-de-produccion/{orden}/iniciar', [OrdenDeProduccionController::class, 'iniciar'])
+                ->whereNumber('orden')
+                ->name('ordenes-de-produccion.iniciar');
 
             Route::get('etapas', [EtapaController::class, 'index'])->name('etapas.index');
             Route::post('etapas', [EtapaController::class, 'store'])->name('etapas.store');

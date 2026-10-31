@@ -13,7 +13,7 @@ class OrdenesDeProduccionQuery
     public function listar(array $filtros = []): LengthAwarePaginator
     {
         return OrdenDeProduccion::query()
-            ->with('planificacionDeProduccion')
+            ->with(['planificacionDeProduccion', 'operarios', 'maquinarias'])
             ->when(
                 array_key_exists('articulo_ids', $filtros),
                 fn ($query) => $query->buscarPorArticulos($filtros['articulo_ids'] ?? []),

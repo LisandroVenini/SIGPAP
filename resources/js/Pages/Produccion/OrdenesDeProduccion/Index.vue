@@ -14,6 +14,18 @@ interface Planificacion {
     nombre: string;
 }
 
+interface OperarioDisponible {
+    id: number;
+    nombre: string;
+}
+
+interface MaquinariaDisponible {
+    id: number;
+    nombre: string;
+    estado: string;
+    seleccionable: boolean;
+}
+
 interface Orden {
     id: number;
     producto: Producto | null;
@@ -23,6 +35,11 @@ interface Orden {
     cantidad_producida: number;
     fecha_entrega: string;
     prioridad_actual: number;
+    operarios: string[];
+    operario_ids: number[];
+    maquinarias: string[];
+    maquinaria_ids: number[];
+    etapas: string[];
 }
 
 interface PaginationLink {
@@ -41,7 +58,7 @@ interface PaginatedOrdenes {
 
 type Modo = 'solo_disponibles' | 'todas';
 
-type Drawer = 'cerrado' | 'nueva' | 'modificar' | 'anular';
+type Drawer = 'cerrado' | 'nueva' | 'modificar' | 'anular' | 'asignar';
 
 type SharedProps = {
     flash: { success: string | null };
@@ -59,6 +76,8 @@ const props = defineProps<{
         fecha_desde?: string | null;
         fecha_hasta?: string | null;
     };
+    operariosDisponibles: OperarioDisponible[];
+    maquinariasDisponibles: MaquinariaDisponible[];
 }>();
 
 const page = usePage<SharedProps>();
@@ -85,6 +104,11 @@ const formModificar = useForm({
 
 const formAnular = useForm({
     motivo: '',
+});
+
+const formAsignar = useForm({
+    operarios: [] as number[],
+    maquinarias: [] as number[],
 });
 
 function aplicarFiltros(): void {
@@ -120,6 +144,14 @@ function abrirAnular(orden: Orden): void {
     ordenActiva.value = orden;
     formAnular.clearErrors();
     formAnular.reset();
+}
+
+function abrirAsignar(orden: Orden): void {
+    drawerAbierto.value = 'asignar';
+    ordenActiva.value = orden;
+    formAsignar.clearErrors();
+    formAsignar.operarios = [...orden.operario_ids];
+    formAsignar.maquinarias = [...orden.maquinaria_ids];
 }
 
 function cerrarDrawer(): void {
@@ -172,6 +204,47 @@ function confirmarAnulacion(): void {
             cerrarDrawer();
         },
     });
+}
+
+function guardarAsignacion(): void {
+    if (!ordenActiva.value) {
+        return;
+    }
+
+    formAsignar.put(`/produccion/ordenes-de-produccion/${ordenActiva.value.id}/recursos`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cerrarDrawer();
+        },
+    });
+}
+
+function iniciarOrden(orden: Orden): void {
+    router.post(
+        `/produccion/ordenes-de-produccion/${orden.id}/iniciar`,
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
+}
+
+function puedeAsignar(estado: string): boolean {
+    return ['Pendiente', 'Pendiente por Insumos', 'Asignada'].includes(estado);
+}
+
+function textoRecursos(orden: Orden): string {
+    const partes: string[] = [];
+
+    if (orden.operarios.length > 0) {
+        partes.push(orden.operarios.join(', '));
+    }
+
+    if (orden.maquinarias.length > 0) {
+        partes.push(orden.maquinarias.join(', '));
+    }
+
+    return partes.join(' / ') || '—';
 }
 
 function claseBadge(estado: string): string {
@@ -333,6 +406,11 @@ function labelDePagina(label: string): string {
                                     Entrega
                                 </th>
                                 <th
+                                    class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Recursos
+                                </th>
+                                <th
                                     class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
                                 >
                                     Acciones
@@ -371,6 +449,9 @@ function labelDePagina(label: string): string {
                                 <td class="px-4 py-2.5 font-mono text-xs text-steel">
                                     {{ orden.fecha_entrega }}
                                 </td>
+                                <td class="px-4 py-2.5 text-xs text-steel">
+                                    {{ textoRecursos(orden) }}
+                                </td>
                                 <td class="px-4 py-2.5 text-right text-xs">
                                     <button
                                         type="button"
@@ -386,6 +467,28 @@ function labelDePagina(label: string): string {
                                         @click="abrirAnular(orden)"
                                     >
                                         Anular
+                                    </button>
+                                    <span class="mx-2 text-clay/40">|</span>
+                                    <button
+                                        type="button"
+                                        class="font-medium text-steel hover:text-ink disabled:text-clay/40 disabled:hover:text-clay/40"
+                                        :disabled="!puedeAsignar(orden.estado)"
+                                        @click="abrirAsignar(orden)"
+                                    >
+                                        Asignar recursos
+                                    </button>
+                                    <span
+                                        v-if="orden.estado === 'Asignada'"
+                                        class="mx-2 text-clay/40"
+                                        >|</span
+                                    >
+                                    <button
+                                        v-if="orden.estado === 'Asignada'"
+                                        type="button"
+                                        class="font-medium text-purple-700 hover:text-purple-900"
+                                        @click="iniciarOrden(orden)"
+                                    >
+                                        Iniciar
                                     </button>
                                 </td>
                             </tr>
@@ -442,7 +545,9 @@ function labelDePagina(label: string): string {
                                 ? 'Nueva orden'
                                 : drawerAbierto === 'modificar'
                                   ? 'Modificar orden'
-                                  : 'Anular orden'
+                                  : drawerAbierto === 'anular'
+                                    ? 'Anular orden'
+                                    : 'Asignar recursos'
                         }}
                     </h3>
                     <button
@@ -658,6 +763,85 @@ function labelDePagina(label: string): string {
                             class="rounded-control bg-oxide px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-oxide/90 active:scale-[0.98] disabled:opacity-60"
                         >
                             {{ formAnular.processing ? 'Anulando…' : 'Anular' }}
+                        </button>
+                    </div>
+                </form>
+
+                <form
+                    v-if="drawerAbierto === 'asignar' && ordenActiva"
+                    class="mt-4 flex flex-col gap-4"
+                    data-testid="asignar-recursos-form"
+                    @submit.prevent="guardarAsignacion"
+                >
+                    <div
+                        v-if="ordenActiva.etapas.length > 0"
+                        class="flex flex-col gap-1.5 rounded-control border border-hairline bg-canvas p-3"
+                    >
+                        <span class="text-xs font-medium text-steel"
+                            >Etapas de la hoja de ruta</span
+                        >
+                        <ul class="flex flex-wrap gap-1 text-sm text-ink">
+                            <li
+                                v-for="etapa in ordenActiva.etapas"
+                                :key="etapa"
+                                class="rounded-full bg-workshop px-2 py-0.5 text-xs"
+                            >
+                                {{ etapa }}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="text-xs font-medium text-steel">Operarios</span>
+                        <label
+                            v-for="operario in props.operariosDisponibles"
+                            :key="operario.id"
+                            class="flex items-center gap-2 text-sm text-ink"
+                        >
+                            <input
+                                v-model="formAsignar.operarios"
+                                type="checkbox"
+                                :value="operario.id"
+                                class="text-teja focus:ring-teja"
+                            />
+                            {{ operario.nombre }}
+                        </label>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="text-xs font-medium text-steel">Maquinarias</span>
+                        <label
+                            v-for="maquinaria in props.maquinariasDisponibles"
+                            :key="maquinaria.id"
+                            class="flex items-center gap-2 text-sm"
+                            :class="maquinaria.seleccionable ? 'text-ink' : 'text-clay/70'"
+                        >
+                            <input
+                                v-model="formAsignar.maquinarias"
+                                type="checkbox"
+                                :value="maquinaria.id"
+                                :disabled="!maquinaria.seleccionable"
+                                class="text-teja focus:ring-teja"
+                            />
+                            {{ maquinaria.nombre }}
+                            <span class="text-xs text-steel">({{ maquinaria.estado }})</span>
+                        </label>
+                    </div>
+
+                    <div class="flex justify-end gap-2 border-t border-hairline pt-3">
+                        <button
+                            type="button"
+                            class="rounded-control border border-hairline px-4 py-2 text-sm text-ink transition-colors hover:bg-canvas"
+                            @click="cerrarDrawer"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="formAsignar.processing"
+                            class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98] disabled:opacity-60"
+                        >
+                            {{ formAsignar.processing ? 'Guardando…' : 'Guardar' }}
                         </button>
                     </div>
                 </form>

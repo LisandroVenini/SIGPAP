@@ -6,8 +6,11 @@ use App\Modules\Inventario\Enums\EstadoArticulo;
 use App\Modules\Inventario\Enums\OrigenArticulo;
 use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
+use App\Modules\Produccion\Enums\EstadoMaquinaria;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
+use App\Modules\Produccion\Models\Maquinaria;
+use App\Modules\Produccion\Models\Operario;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
 use App\Modules\Produccion\Models\Receta;
@@ -232,5 +235,85 @@ class OrdenDeProduccionControllerTest extends TestCase
             'id' => $orden->id,
             'estado' => EstadoOrdenProduccion::Anulada->value,
         ]);
+    }
+
+    public function test_a_supervisor_can_assign_resources_to_an_order(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $orden = OrdenDeProduccion::factory()->create([
+            'estado' => EstadoOrdenProduccion::Pendiente->value,
+        ]);
+        $operario = Operario::factory()->create();
+        $maquinaria = Maquinaria::factory()->create([
+            'estado_operativo' => EstadoMaquinaria::Disponible->value,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->from('/produccion/ordenes-de-produccion')
+            ->put("/produccion/ordenes-de-produccion/{$orden->id}/recursos", [
+                'operarios' => [$operario->id],
+                'maquinarias' => [$maquinaria->id],
+            ]);
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('orden_de_produccion_operario', [
+            'orden_de_produccion_id' => $orden->id,
+            'operario_id' => $operario->id,
+        ]);
+        $this->assertDatabaseHas('orden_de_produccion_maquinaria', [
+            'orden_de_produccion_id' => $orden->id,
+            'maquinaria_id' => $maquinaria->id,
+        ]);
+    }
+
+    public function test_a_supervisor_can_start_an_order(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $orden = OrdenDeProduccion::factory()->create([
+            'estado' => EstadoOrdenProduccion::Asignada->value,
+        ]);
+        $operario = Operario::factory()->create();
+        $maquinaria = Maquinaria::factory()->create();
+        $orden->operarios()->attach($operario);
+        $orden->maquinarias()->attach($maquinaria);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->from('/produccion/ordenes-de-produccion')
+            ->post("/produccion/ordenes-de-produccion/{$orden->id}/iniciar");
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('ordenes_de_produccion', [
+            'id' => $orden->id,
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+        ]);
+    }
+
+    public function test_assigning_resources_in_invalid_state_returns_session_error(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $orden = OrdenDeProduccion::factory()->create([
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->from('/produccion/ordenes-de-produccion')
+            ->put("/produccion/ordenes-de-produccion/{$orden->id}/recursos", [
+                'operarios' => [],
+                'maquinarias' => [],
+            ]);
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertSessionHasErrors('estado');
     }
 }

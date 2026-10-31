@@ -8,6 +8,7 @@ use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\OrdenesDeProduccionQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
@@ -22,6 +23,7 @@ class GestionOrdenesDeProduccionService
         private readonly GestionArticulosService $articulos,
         private readonly GestionRecetasService $recetas,
         private readonly GestionReservasService $reservas,
+        private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly OrdenesDeProduccionQuery $query,
         private readonly UsuariosService $usuarios,
     ) {}
@@ -46,6 +48,7 @@ class GestionOrdenesDeProduccionService
 
         $articuloIds = $resultados->pluck('articulo_id')->unique()->filter()->all();
         $resumenes = $this->articulos->resumenesDeArticulos($articuloIds);
+        $etapasPorArticulo = $this->hojaDeRuta->etapasPorArticulo($articuloIds);
 
         return $resultados->through(fn (OrdenDeProduccion $orden): array => [
             'id' => $orden->id,
@@ -56,6 +59,15 @@ class GestionOrdenesDeProduccionService
             'cantidad_producida' => (float) $orden->cantidad_producida,
             'fecha_entrega' => $orden->fecha_entrega?->toDateString(),
             'prioridad_actual' => $orden->prioridad_actual,
+            'operarios' => $orden->operarios
+                ->sortBy(['apellido', 'nombre'])
+                ->map(fn ($operario): string => "{$operario->apellido}, {$operario->nombre}")
+                ->values()
+                ->all(),
+            'operario_ids' => $orden->operarios->pluck('id')->values()->all(),
+            'maquinarias' => $orden->maquinarias->pluck('nombre')->values()->all(),
+            'maquinaria_ids' => $orden->maquinarias->pluck('id')->values()->all(),
+            'etapas' => $etapasPorArticulo[$orden->articulo_id] ?? [],
         ]);
     }
 

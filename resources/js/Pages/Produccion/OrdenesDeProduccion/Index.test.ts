@@ -11,6 +11,7 @@ const hoisted = vi.hoisted(() => {
     const reset = vi.fn();
     const clearErrors = vi.fn();
     const routerGet = vi.fn();
+    const routerPost = vi.fn();
 
     const page = {
         props: {
@@ -19,7 +20,7 @@ const hoisted = vi.hoisted(() => {
         },
     };
 
-    return { post, put, patch, reset, clearErrors, routerGet, page };
+    return { post, put, patch, reset, clearErrors, routerGet, routerPost, page };
 });
 
 vi.mock('@inertiajs/vue3', () => ({
@@ -45,7 +46,7 @@ vi.mock('@inertiajs/vue3', () => ({
         return reactive(form);
     },
     usePage: () => hoisted.page,
-    router: { get: hoisted.routerGet },
+    router: { get: hoisted.routerGet, post: hoisted.routerPost },
 }));
 
 vi.mock('../../../Layouts/AppLayout.vue', () => ({
@@ -57,6 +58,20 @@ import Ordenes from './Index.vue';
 const planificacion = { id: 1, nombre: 'Semana 12' };
 const productoA = { id: 10, codigo_sku: 'PT-A', descripcion: 'Silla' };
 const productoB = { id: 11, codigo_sku: 'PT-B', descripcion: 'Mesa' };
+const operarioA = { id: 1, nombre: 'García, Ana' };
+const operarioB = { id: 2, nombre: 'Fernández, Luis' };
+const maquinariaDisponible = {
+    id: 1,
+    nombre: 'Lijadora orbital',
+    estado: 'Disponible',
+    seleccionable: true,
+};
+const maquinariaMantenimiento = {
+    id: 2,
+    nombre: 'Cepilladora',
+    estado: 'En Mantenimiento',
+    seleccionable: false,
+};
 
 const props = {
     ordenes: {
@@ -70,6 +85,11 @@ const props = {
                 cantidad_producida: 0,
                 fecha_entrega: '2026-11-15',
                 prioridad_actual: 1,
+                operarios: ['García, Ana'],
+                operario_ids: [1],
+                maquinarias: ['Lijadora orbital'],
+                maquinaria_ids: [1],
+                etapas: ['Corte', 'Lijado'],
             },
         ],
         links: [],
@@ -81,6 +101,8 @@ const props = {
     productos: [productoA, productoB],
     estados: ['Pendiente', 'Pendiente por Insumos', 'Asignada', 'En Curso', 'Cerrada', 'Anulada'],
     filtros: {},
+    operariosDisponibles: [operarioA, operarioB],
+    maquinariasDisponibles: [maquinariaDisponible, maquinariaMantenimiento],
 };
 
 describe('Produccion OrdenesDeProduccion page', () => {
@@ -89,6 +111,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         hoisted.put.mockClear();
         hoisted.patch.mockClear();
         hoisted.routerGet.mockClear();
+        hoisted.routerPost.mockClear();
     });
 
     afterEach(() => {
@@ -103,6 +126,15 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(wrapper.text()).toContain('Silla');
         expect(wrapper.text()).toContain('PT-A');
         expect(wrapper.text()).toContain('Pendiente');
+    });
+
+    it('renders assigned resources', () => {
+        // Arrange / Act
+        const wrapper = mount(Ordenes, { props });
+
+        // Assert
+        expect(wrapper.text()).toContain('García, Ana');
+        expect(wrapper.text()).toContain('Lijadora orbital');
     });
 
     it('renders empty state when there are no orders', () => {
@@ -160,6 +192,24 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(payload.fecha_entrega).toBe('2026-11-20');
     });
 
+    it('preselects the assigned resources when opening the assignment drawer', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        const asignar = wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Asignar recursos');
+        await asignar?.trigger('click');
+
+        // Assert
+        const marcados = wrapper
+            .findAll('input[type="checkbox"]')
+            .filter((checkbox) => (checkbox.element as HTMLInputElement).checked);
+
+        expect(marcados).toHaveLength(2);
+    });
+
     it('opens the edit drawer and puts the changes', async () => {
         // Arrange
         const wrapper = mount(Ordenes, { props, attachTo: document.body });
@@ -214,5 +264,73 @@ describe('Produccion OrdenesDeProduccion page', () => {
             expect.any(Object),
             expect.any(Object),
         );
+    });
+
+    it('opens the assignment drawer and puts the payload', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        const asignar = wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Asignar recursos');
+        await asignar?.trigger('click');
+
+        const form = wrapper.find('[data-testid="asignar-recursos-form"]');
+        const checkboxes = form.findAll('input[type="checkbox"]');
+        await checkboxes[0].setValue(true);
+        await checkboxes[2].setValue(true);
+        await form.trigger('submit.prevent');
+
+        // Assert
+        const payload = hoisted.put.mock.calls[0][2];
+        expect(payload.operarios).toContain(operarioA.id);
+        expect(payload.maquinarias).toContain(maquinariaDisponible.id);
+        expect(hoisted.put).toHaveBeenCalledWith(
+            '/produccion/ordenes-de-produccion/1/recursos',
+            expect.objectContaining({ preserveScroll: true }),
+            expect.any(Object),
+        );
+    });
+
+    it('posts iniciar through the router', async () => {
+        // Arrange
+        const asignadaProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [{ ...props.ordenes.data[0], estado: 'Asignada' }],
+            },
+        };
+        const wrapper = mount(Ordenes, { props: asignadaProps, attachTo: document.body });
+
+        // Act
+        const iniciar = wrapper.findAll('button').find((button) => button.text() === 'Iniciar');
+        await iniciar?.trigger('click');
+
+        // Assert
+        expect(hoisted.routerPost).toHaveBeenCalledWith(
+            '/produccion/ordenes-de-produccion/1/iniciar',
+            {},
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('disables unavailable machinery in the assignment drawer', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        const asignar = wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Asignar recursos');
+        await asignar?.trigger('click');
+
+        const form = wrapper.find('[data-testid="asignar-recursos-form"]');
+        const checkboxes = form.findAll('input[type="checkbox"]');
+
+        // Assert
+        expect((checkboxes[2].element as HTMLInputElement).disabled).toBe(false);
+        expect((checkboxes[3].element as HTMLInputElement).disabled).toBe(true);
     });
 });

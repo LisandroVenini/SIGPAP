@@ -5,6 +5,7 @@ namespace Tests\Feature\Modules\Inventario;
 use App\Modules\Inventario\Enums\EstadoReserva;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\Reserva;
+use App\Modules\Inventario\Queries\ReservasQuery;
 use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -188,5 +189,77 @@ class GestionReservasServiceTest extends TestCase
         $this->expectException(ValidationException::class);
 
         $this->service()->reservar($orden->id, [$articulo->id => 0.0]);
+    }
+
+    public function test_comprometido_de_orden_sums_vigente_reservations_per_article(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articuloA = $this->articulo(10);
+        $articuloB = $this->articulo(10);
+        Reserva::factory()->create([
+            'articulo_id' => $articuloA->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 3,
+        ]);
+        Reserva::factory()->create([
+            'articulo_id' => $articuloA->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 2,
+        ]);
+        Reserva::factory()->create([
+            'articulo_id' => $articuloB->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 4,
+        ]);
+        Reserva::factory()->create([
+            'articulo_id' => $articuloA->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 1,
+            'estado' => EstadoReserva::Liberada->value,
+        ]);
+
+        // Act
+        $comprometido = app(ReservasQuery::class)->comprometidoDeOrden($orden->id);
+
+        // Assert
+        $this->assertSame(5.0, $comprometido[$articuloA->id]);
+        $this->assertSame(4.0, $comprometido[$articuloB->id]);
+    }
+
+    public function test_cubierta_returns_true_when_all_needs_are_covered(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articulo = $this->articulo(10);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 5,
+        ]);
+
+        // Act
+        $cubierta = $this->service()->cubierta($orden->id, [$articulo->id => 5.0]);
+
+        // Assert
+        $this->assertTrue($cubierta);
+    }
+
+    public function test_cubierta_returns_false_when_any_need_is_not_covered(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articulo = $this->articulo(10);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 3,
+        ]);
+
+        // Act
+        $cubierta = $this->service()->cubierta($orden->id, [$articulo->id => 5.0]);
+
+        // Assert
+        $this->assertFalse($cubierta);
     }
 }

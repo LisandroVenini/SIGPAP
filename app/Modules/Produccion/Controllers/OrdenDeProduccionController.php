@@ -7,11 +7,14 @@ use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Requests\AnularOrdenDeProduccionRequest;
+use App\Modules\Produccion\Requests\AsignarRecursosRequest;
+use App\Modules\Produccion\Requests\IniciarOrdenRequest;
 use App\Modules\Produccion\Requests\ListarOrdenesDeProduccionRequest;
 use App\Modules\Produccion\Requests\StoreOrdenDeProduccionRequest;
 use App\Modules\Produccion\Requests\UpdateOrdenDeProduccionRequest;
 use App\Modules\Produccion\Services\GestionOrdenesDeProduccionService;
 use App\Modules\Produccion\Services\GestionPlanificacionesService;
+use App\Modules\Produccion\Services\GestionRecursosDeOrdenService;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -23,11 +26,13 @@ class OrdenDeProduccionController
         private readonly GestionOrdenesDeProduccionService $ordenes,
         private readonly GestionPlanificacionesService $planificaciones,
         private readonly GestionArticulosService $articulos,
+        private readonly GestionRecursosDeOrdenService $recursos,
     ) {}
 
     public function index(ListarOrdenesDeProduccionRequest $request): Response
     {
         $filtros = $request->validated();
+        $recursosDisponibles = $this->recursos->recursosDisponibles();
 
         return Inertia::render('Produccion/OrdenesDeProduccion/Index', [
             'ordenes' => $this->ordenes->listar($filtros),
@@ -35,6 +40,8 @@ class OrdenDeProduccionController
             'productos' => $this->articulos->productosTerminadosFabricados()->values()->all(),
             'estados' => EstadoOrdenProduccion::values(),
             'filtros' => $filtros,
+            'operariosDisponibles' => $recursosDisponibles['operarios'],
+            'maquinariasDisponibles' => $recursosDisponibles['maquinarias'],
         ]);
     }
 
@@ -93,5 +100,33 @@ class OrdenDeProduccionController
         );
 
         return redirect()->route('produccion.ordenes-de-produccion.index')->with('success', 'Orden anulada.');
+    }
+
+    public function asignar(AsignarRecursosRequest $request, OrdenDeProduccion $orden): RedirectResponse
+    {
+        /** @var Usuario $actor */
+        $actor = $request->user();
+
+        $datos = $request->validated();
+
+        $this->recursos->asignar(
+            $actor,
+            $orden,
+            $datos['operarios'] ?? [],
+            $datos['maquinarias'] ?? [],
+            $request->ip(),
+        );
+
+        return redirect()->route('produccion.ordenes-de-produccion.index')->with('success', 'Recursos asignados.');
+    }
+
+    public function iniciar(IniciarOrdenRequest $request, OrdenDeProduccion $orden): RedirectResponse
+    {
+        /** @var Usuario $actor */
+        $actor = $request->user();
+
+        $this->recursos->iniciar($actor, $orden, $request->ip());
+
+        return redirect()->route('produccion.ordenes-de-produccion.index')->with('success', 'Orden iniciada.');
     }
 }

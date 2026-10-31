@@ -11,6 +11,8 @@ use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
+use App\Modules\Produccion\Models\Maquinaria;
+use App\Modules\Produccion\Models\Operario;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
 use App\Modules\Produccion\Models\Receta;
@@ -272,6 +274,30 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
             'accion' => 'modificar_orden_produccion',
             'usuario_id' => $actor->id,
         ]);
+    }
+
+    public function test_lists_assigned_resources_with_their_ids(): void
+    {
+        // Arrange
+        $planificacion = $this->planificacion();
+        $producto = $this->productoFabricado();
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+        ]);
+        $operario = Operario::factory()->create(['nombre' => 'Ana', 'apellido' => 'García']);
+        $maquinaria = Maquinaria::factory()->create(['nombre' => 'Lijadora orbital']);
+        $orden->operarios()->attach($operario->id);
+        $orden->maquinarias()->attach($maquinaria->id);
+
+        // Act
+        $fila = $this->service()->listar([])->items()[0];
+
+        // Assert
+        $this->assertSame([$operario->id], $fila['operario_ids']);
+        $this->assertSame([$maquinaria->id], $fila['maquinaria_ids']);
+        $this->assertSame(['García, Ana'], $fila['operarios']);
+        $this->assertSame(['Lijadora orbital'], $fila['maquinarias']);
     }
 
     public function test_lists_orders_with_filters_and_ordering(): void

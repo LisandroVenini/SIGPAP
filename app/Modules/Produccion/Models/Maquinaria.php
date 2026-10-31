@@ -2,16 +2,32 @@
 
 namespace App\Modules\Produccion\Models;
 
+use App\Modules\Produccion\Enums\EstadoMaquinaria;
+use Database\Factories\MaquinariaFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Maquinaria extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): MaquinariaFactory
+    {
+        return MaquinariaFactory::new();
+    }
+
     /**
      * @var string
      */
     protected $table = 'maquinarias';
+
+    public function scopeDisponible(Builder $query): void
+    {
+        $query->where('estado_operativo', EstadoMaquinaria::Disponible->value);
+    }
 
     /**
      * @var array<int, string>
