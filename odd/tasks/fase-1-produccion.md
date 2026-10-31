@@ -8,7 +8,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 
 - S1: Catálogo de Etapas (CU-PROD-16..20): ABM + búsqueda. Nombre único (case-insensitive). Sin tiempo en el catálogo.
 - S2: Catálogo de Operarios (CU-PROD-24..28): ABM + búsqueda por nombre/apellido/especialidad. Baja bloqueada si el operario está asignado a una OP "En Curso".
-- S3: Hoja de ruta (CU-PROD-21/22): asignar/desasignar etapa↔producto con `tiempo_por_unidad > 0`; solo productos terminados de origen "Fabricado"; etapa única por producto; desasignar bloqueado si hay OP "En Curso" con esa hoja de ruta.
+- S3: Hoja de ruta (CU-PROD-21/22): asignar/desasignar etapa↔producto con `tiempo_por_unidad > 0`; solo productos terminados de origen "Fabricado"; etapa única por producto; desasignar bloqueado si hay OP "En Curso" con esa hoja de ruta. La hoja de ruta tiene secuencia (`orden`) con unique por producto.
 - S4: Planificaciones (CU-PROD-01..05): ABM + búsqueda; `fecha_fin >= fecha_inicio`; baja bloqueada si tiene OP asociadas.
 - S5: Órdenes de Producción (CU-PROD-06..10): alta vinculada a planificación, estado inicial "Pendiente" o "Pendiente por Insumos" según stock, reserva lógica; anulación solo si no está "En Curso"; modificación solo si está "Pendiente".
 - S6: Recursos e inicio (CU-PROD-11/12): asignar operarios/maquinaria por etapa; máquina bloqueada por mantenimiento no seleccionable; `Asignada → En Curso`.
@@ -22,6 +22,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T1 — Etapas: migración soft deletes, modelo + scope, Service, Requests, Policy, Controller, rutas, página Vue, tests. Commit `487b279`.
 - [x] T2 — Operarios: soft deletes, modelo + scope, Service, Requests, Policy, Controller, rutas, página Vue, tests. Commit `c492216`.
 - [x] T3 — Hoja de ruta (asignar/desasignar etapa a producto). Commit `9985fed`; soporte en Inventario `ffd4a6d`.
+- [x] T3.1 — Secuencia de etapas en la hoja de ruta: columna `orden` con backfill, unique `(articulo_id, orden)`, asignar con `max+1`, reindexado al desasignar, mover subir/bajar y `primeraEtapaPorArticulo`/consumo usando la secuencia real. Commit `02cc7c0`.
 - [x] T4 — Planificaciones: ABM + búsqueda, período validado (`fecha_fin >= fecha_inicio`), baja bloqueada con órdenes. Commit `212bca6`.
 - [x] T4.1 — Receta (BOM) del producto: migración, modelos, Service, Requests, Controller, rutas, sección Receta en la Hoja de Ruta, contrato nuevo en Inventario (`insumosDisponibles`, `resumenesDeArticulos`), docs de dominio. Commit `f57fca9`.
 - [x] T5 — Órdenes de Producción + reservas lógicas: contrato de reservas en Inventario (`GestionReservasService`, `ReservasQuery`), alta por lote con modos, listado/búsqueda, anulación y modificación. Commits `a4939b7` y `c2c7a4e`.
@@ -55,3 +56,6 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L21: T7.1 delegado a `gentle-ai-worker`. Corrección del padre: el avance sumaba las unidades de todas las etapas (una unidad contada tres veces); ahora usa el mínimo conformado entre las etapas de la ruta, que es independiente del orden. gga PASSED.
 - L22: Evidencia T7.1 — PHPUnit Producción + Inventario: 173 tests, 575 assertions. Vitest Producción: 43 tests.
 - L23: Gap detectado — `asignaciones_de_etapa` no tiene secuencia, así que "primera/última etapa" es arbitrario. T7.1 usa el menor `etapa_id` como primera (provisional) y el avance no depende de eso. El cierre de T7.2 necesita la secuencia real: agregar `orden` a la hoja de ruta.
+- L24: "agreguemos las secuencias si" — se agrega `orden` a la hoja de ruta para que la primera y la última etapa sean datos reales y no una convención por id.
+- L25: Correcciones del padre sobre el output del worker: se eliminó `ultimaEtapaPorArticulo` (código muerto hasta T7.2), se sacó `etapa_id` de `MoverEtapaRequest` porque el controller usa el `{etapa}` de la ruta y el front no lo enviaba —sin ese fix el mover fallaba siempre con error de validación— y se reforzó la aserción del orden en Vitest con un `data-testid`.
+- L26: Evidencia — PHPUnit Producción + Inventario: 183 tests, 599 assertions. Vitest Producción: 47 tests. gga PASSED (con un timeout transitorio del proveedor en el primer intento).
