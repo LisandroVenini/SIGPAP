@@ -28,7 +28,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T5 — Órdenes de Producción + reservas lógicas: contrato de reservas en Inventario (`GestionReservasService`, `ReservasQuery`), alta por lote con modos, listado/búsqueda, anulación y modificación. Commits `a4939b7` y `c2c7a4e`.
 - [x] T6 — Recursos e inicio: asignación a nivel orden (operarios y maquinarias), enum `EstadoMaquinaria`, solo máquinas `Disponible` seleccionables, reversión del estado al desasignar todo según cobertura de reservas, inicio explícito `Asignada → En Curso` con `fecha_inicio`. Commit `5f47550`.
 - [x] T7.1 — Parte Diario: registro por etapa y fecha (acumulativo), consumo de insumos solo en la primera etapa con el delta, desgaste por etapa, avance real (mínimo conformado entre etapas de la ruta). Commit `d14258e`.
-- [ ] T7.2 — Calidad (por parte o por orden), cierre estricto (solo con la cantidad requerida completa) y posposición con pausa y opción de liberar o retener reservas.
+- [x] T7.2 — Calidad dual (por parte o por orden), cierre estricto (solo con la cantidad requerida aprobada) y posposición con pausa, opción de liberar o retener reservas y reanudación con re-reserva de lo restante. Commits `dc5af6b` y `4759c0d`.
 - [ ] T8 — Cronograma y Mantenimiento.
 
 ## Log
@@ -59,3 +59,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L24: "agreguemos las secuencias si" — se agrega `orden` a la hoja de ruta para que la primera y la última etapa sean datos reales y no una convención por id.
 - L25: Correcciones del padre sobre el output del worker: se eliminó `ultimaEtapaPorArticulo` (código muerto hasta T7.2), se sacó `etapa_id` de `MoverEtapaRequest` porque el controller usa el `{etapa}` de la ruta y el front no lo enviaba —sin ese fix el mover fallaba siempre con error de validación— y se reforzó la aserción del orden en Vitest con un `data-testid`.
 - L26: Evidencia — PHPUnit Producción + Inventario: 183 tests, 599 assertions. Vitest Producción: 47 tests. gga PASSED (con un timeout transitorio del proveedor en el primer intento).
+- L27: "arranquemos con eso" — T7.2 delegado a `gentle-ai-worker`.
+- L28: Bug detectado al revisar el cierre: con varios partes en la última etapa, las aprobadas se tomaban del último control (3 en vez de 10) y la orden nunca cerraba. Se corrigió: control de orden prevalece; si no hay, `conformado de la última etapa − suma de rechazadas de sus partes`; mismo número en el listado y en el cierre.
+- L29: gga no pudo con el changeset completo (`Argument list too long` del proveedor); se dividió en dos commits revisables (backend y UI), ambos PASSED.
+- L30: Evidencia T7.2 — PHPUnit Producción + Inventario: 217 tests, 678 assertions. Vitest Producción: 57 tests. `vue-tsc` y pint sin errores.
