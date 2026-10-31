@@ -33,6 +33,7 @@ interface EtapaOpcion {
 
 interface Parte {
     id: number;
+    etapa_id: number;
     etapa: string;
     fecha: string;
     cantidad: number;
@@ -48,6 +49,8 @@ interface Orden {
     cantidad_requerida: number;
     cantidad_producida: number;
     fecha_entrega: string;
+    fecha_inicio: string | null;
+    fecha_prevista_inicio: string | null;
     prioridad_actual: number;
     operarios: string[];
     operario_ids: number[];
@@ -57,6 +60,9 @@ interface Orden {
     etapas_con_ids: EtapaOpcion[];
     partes: Parte[];
     conformado_primera_etapa: number;
+    conformado_ultima_etapa: number;
+    aprobadas_ultima_etapa: number | null;
+    tiene_control_calidad: boolean;
     avance: number;
 }
 
@@ -76,7 +82,17 @@ interface PaginatedOrdenes {
 
 type Modo = 'solo_disponibles' | 'todas';
 
-type Drawer = 'cerrado' | 'nueva' | 'modificar' | 'anular' | 'asignar' | 'parte';
+type Drawer =
+    | 'cerrado'
+    | 'nueva'
+    | 'modificar'
+    | 'anular'
+    | 'asignar'
+    | 'parte'
+    | 'calidad'
+    | 'cerrar'
+    | 'posponer'
+    | 'reanudar';
 
 type SharedProps = {
     flash: { success: string | null };
@@ -137,6 +153,22 @@ const formParte = useForm({
     observaciones: '',
 });
 
+const formCalidad = useForm({
+    parte_diario_id: '' as string | number,
+    cantidad_rechazada: '' as string | number,
+    motivo: '',
+});
+
+const formCerrar = useForm({
+    unidades_finales: '' as string | number,
+});
+
+const formPosponer = useForm({
+    fecha_prevista_inicio: '',
+    liberar_reservas: false,
+    motivo: '',
+});
+
 function aplicarFiltros(): void {
     router.get(
         '/produccion/ordenes-de-produccion',
@@ -189,6 +221,36 @@ function abrirCargarParte(orden: Orden): void {
     formParte.fecha = new Date().toISOString().split('T')[0];
     formParte.cantidad = '';
     formParte.observaciones = '';
+}
+
+function abrirCalidad(orden: Orden): void {
+    drawerAbierto.value = 'calidad';
+    ordenActiva.value = orden;
+    formCalidad.clearErrors();
+    formCalidad.parte_diario_id = '';
+    formCalidad.cantidad_rechazada = '';
+    formCalidad.motivo = '';
+}
+
+function abrirCerrar(orden: Orden): void {
+    drawerAbierto.value = 'cerrar';
+    ordenActiva.value = orden;
+    formCerrar.clearErrors();
+    formCerrar.unidades_finales = orden.cantidad_requerida;
+}
+
+function abrirPosponer(orden: Orden): void {
+    drawerAbierto.value = 'posponer';
+    ordenActiva.value = orden;
+    formPosponer.clearErrors();
+    formPosponer.fecha_prevista_inicio = orden.fecha_prevista_inicio ?? '';
+    formPosponer.liberar_reservas = false;
+    formPosponer.motivo = '';
+}
+
+function abrirReanudar(orden: Orden): void {
+    drawerAbierto.value = 'reanudar';
+    ordenActiva.value = orden;
 }
 
 function cerrarDrawer(): void {
@@ -266,6 +328,59 @@ function iniciarOrden(orden: Orden): void {
     );
 }
 
+function guardarCalidad(): void {
+    if (!ordenActiva.value) {
+        return;
+    }
+
+    formCalidad.post(`/produccion/ordenes-de-produccion/${ordenActiva.value.id}/calidad`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cerrarDrawer();
+        },
+    });
+}
+
+function guardarCierre(): void {
+    if (!ordenActiva.value) {
+        return;
+    }
+
+    formCerrar.post(`/produccion/ordenes-de-produccion/${ordenActiva.value.id}/cerrar`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cerrarDrawer();
+        },
+    });
+}
+
+function guardarPosposicion(): void {
+    if (!ordenActiva.value) {
+        return;
+    }
+
+    formPosponer.post(`/produccion/ordenes-de-produccion/${ordenActiva.value.id}/posponer`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cerrarDrawer();
+        },
+    });
+}
+
+function guardarReanudacion(): void {
+    if (!ordenActiva.value) {
+        return;
+    }
+
+    router.post(
+        `/produccion/ordenes-de-produccion/${ordenActiva.value.id}/reanudar`,
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
+}
+
 function guardarParte(): void {
     if (!ordenActiva.value) {
         return;
@@ -285,6 +400,116 @@ function puedeAsignar(estado: string): boolean {
 
 function puedeCargarParte(estado: string): boolean {
     return estado === 'En Curso';
+}
+
+function puedeRegistrarCalidad(estado: string): boolean {
+    return estado === 'En Curso';
+}
+
+function puedeCerrar(estado: string): boolean {
+    return estado === 'En Curso';
+}
+
+function puedePosponer(estado: string): boolean {
+    return ['Pendiente', 'Pendiente por Insumos', 'Asignada', 'En Curso'].includes(estado);
+}
+
+function puedeReanudar(estado: string): boolean {
+    return estado === 'Pospuesta';
+}
+
+function puedeAnular(orden: Orden): boolean {
+    return orden.fecha_inicio === null && orden.partes.length === 0;
+}
+
+interface Accion {
+    key: string;
+    label: string;
+    class?: string;
+    disabled?: boolean;
+    onClick: () => void;
+}
+
+function accionesDeOrden(orden: Orden): Accion[] {
+    const acciones: Accion[] = [];
+
+    acciones.push({
+        key: 'modificar',
+        label: 'Modificar',
+        onClick: (): void => abrirModificar(orden),
+    });
+
+    if (puedeAnular(orden)) {
+        acciones.push({
+            key: 'anular',
+            label: 'Anular',
+            class: 'text-steel hover:text-oxide',
+            onClick: (): void => abrirAnular(orden),
+        });
+    }
+
+    acciones.push({
+        key: 'asignar',
+        label: 'Asignar recursos',
+        disabled: !puedeAsignar(orden.estado),
+        onClick: (): void => abrirAsignar(orden),
+    });
+
+    if (orden.estado === 'Asignada') {
+        acciones.push({
+            key: 'iniciar',
+            label: 'Iniciar',
+            class: 'text-purple-700 hover:text-purple-900',
+            onClick: (): void => iniciarOrden(orden),
+        });
+    }
+
+    if (puedeCargarParte(orden.estado)) {
+        acciones.push({
+            key: 'parte',
+            label: 'Cargar parte',
+            class: 'text-purple-700 hover:text-purple-900',
+            onClick: (): void => abrirCargarParte(orden),
+        });
+    }
+
+    if (puedeRegistrarCalidad(orden.estado)) {
+        acciones.push({
+            key: 'calidad',
+            label: 'Registrar calidad',
+            class: 'text-purple-700 hover:text-purple-900',
+            onClick: (): void => abrirCalidad(orden),
+        });
+    }
+
+    if (puedeCerrar(orden.estado)) {
+        acciones.push({
+            key: 'cerrar',
+            label: 'Cerrar orden',
+            class: 'text-teja hover:text-teja-deep',
+            onClick: (): void => abrirCerrar(orden),
+        });
+    }
+
+    if (puedePosponer(orden.estado)) {
+        acciones.push({
+            key: 'posponer',
+            label: 'Posponer',
+            class: 'text-steel hover:text-ink',
+            onClick: (): void => abrirPosponer(orden),
+        });
+    }
+
+    if (puedeReanudar(orden.estado)) {
+        acciones.push({
+            key: 'reanudar',
+            label: 'Reanudar',
+            class: 'text-teja hover:text-teja-deep',
+            onClick: (): void => abrirReanudar(orden),
+        });
+    }
+
+    return acciones;
 }
 
 function maquinariasAsignadas(orden: Orden): MaquinariaDisponible[] {
@@ -317,6 +542,7 @@ function claseBadge(estado: string): string {
         'Pendiente por Insumos': 'bg-amber-100 text-amber-800',
         Asignada: 'bg-blue-100 text-blue-800',
         'En Curso': 'bg-purple-100 text-purple-800',
+        Pospuesta: 'bg-stone-100 text-stone-700',
         Cerrada: 'bg-workshop text-steel',
         Anulada: 'bg-oxide/10 text-oxide',
     };
@@ -372,6 +598,13 @@ function labelDePagina(label: string): string {
                 class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
             >
                 {{ page.props.errors.estado }}
+            </div>
+
+            <div
+                v-if="page.props.errors.insumos"
+                class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
+            >
+                {{ page.props.errors.insumos }}
             </div>
 
             <div class="rounded-panel border border-hairline bg-surface p-4 shadow-diffused">
@@ -539,56 +772,21 @@ function labelDePagina(label: string): string {
                                     {{ textoRecursos(orden) }}
                                 </td>
                                 <td class="px-4 py-2.5 text-right text-xs">
-                                    <button
-                                        type="button"
-                                        class="font-medium text-teja hover:underline"
-                                        @click="abrirModificar(orden)"
+                                    <template
+                                        v-for="(accion, indice) in accionesDeOrden(orden)"
+                                        :key="accion.key"
                                     >
-                                        Modificar
-                                    </button>
-                                    <span class="mx-2 text-clay/40">|</span>
-                                    <button
-                                        type="button"
-                                        class="font-medium text-steel hover:text-oxide"
-                                        @click="abrirAnular(orden)"
-                                    >
-                                        Anular
-                                    </button>
-                                    <span class="mx-2 text-clay/40">|</span>
-                                    <button
-                                        type="button"
-                                        class="font-medium text-steel hover:text-ink disabled:text-clay/40 disabled:hover:text-clay/40"
-                                        :disabled="!puedeAsignar(orden.estado)"
-                                        @click="abrirAsignar(orden)"
-                                    >
-                                        Asignar recursos
-                                    </button>
-                                    <span
-                                        v-if="orden.estado === 'Asignada'"
-                                        class="mx-2 text-clay/40"
-                                        >|</span
-                                    >
-                                    <button
-                                        v-if="orden.estado === 'Asignada'"
-                                        type="button"
-                                        class="font-medium text-purple-700 hover:text-purple-900"
-                                        @click="iniciarOrden(orden)"
-                                    >
-                                        Iniciar
-                                    </button>
-                                    <span
-                                        v-if="puedeCargarParte(orden.estado)"
-                                        class="mx-2 text-clay/40"
-                                        >|</span
-                                    >
-                                    <button
-                                        v-if="puedeCargarParte(orden.estado)"
-                                        type="button"
-                                        class="font-medium text-purple-700 hover:text-purple-900"
-                                        @click="abrirCargarParte(orden)"
-                                    >
-                                        Cargar parte
-                                    </button>
+                                        <span v-if="indice > 0" class="mx-2 text-clay/40">|</span>
+                                        <button
+                                            type="button"
+                                            class="font-medium disabled:text-clay/40 disabled:hover:text-clay/40"
+                                            :class="accion.class ?? 'text-teja hover:underline'"
+                                            :disabled="accion.disabled"
+                                            @click="accion.onClick"
+                                        >
+                                            {{ accion.label }}
+                                        </button>
+                                    </template>
                                 </td>
                             </tr>
                         </tbody>
@@ -648,7 +846,15 @@ function labelDePagina(label: string): string {
                                     ? 'Anular orden'
                                     : drawerAbierto === 'asignar'
                                       ? 'Asignar recursos'
-                                      : 'Cargar parte diario'
+                                      : drawerAbierto === 'parte'
+                                        ? 'Cargar parte diario'
+                                        : drawerAbierto === 'calidad'
+                                          ? 'Registrar control de calidad'
+                                          : drawerAbierto === 'cerrar'
+                                            ? 'Cerrar orden'
+                                            : drawerAbierto === 'posponer'
+                                              ? 'Posponer orden'
+                                              : 'Reanudar orden'
                         }}
                     </h3>
                     <button
@@ -1104,6 +1310,249 @@ function labelDePagina(label: string): string {
                         </button>
                     </div>
                 </form>
+
+                <form
+                    v-if="drawerAbierto === 'calidad' && ordenActiva"
+                    class="mt-4 flex flex-col gap-4"
+                    data-testid="calidad-form"
+                    @submit.prevent="guardarCalidad"
+                >
+                    <div class="flex flex-col gap-1.5">
+                        <label for="parte_diario_id" class="text-xs font-medium text-steel"
+                            >Parte</label
+                        >
+                        <select
+                            id="parte_diario_id"
+                            v-model="formCalidad.parte_diario_id"
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        >
+                            <option value="">Orden completa</option>
+                            <option
+                                v-for="parte in ordenActiva.partes"
+                                :key="parte.id"
+                                :value="parte.id"
+                            >
+                                {{ parte.etapa }} — {{ parte.cantidad }}
+                            </option>
+                        </select>
+                        <div v-if="formCalidad.errors.parte_diario_id" class="text-xs text-oxide">
+                            {{ formCalidad.errors.parte_diario_id }}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="cantidad_rechazada" class="text-xs font-medium text-steel"
+                            >Cantidad rechazada</label
+                        >
+                        <input
+                            id="cantidad_rechazada"
+                            v-model="formCalidad.cantidad_rechazada"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            required
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        />
+                        <div
+                            v-if="formCalidad.errors.cantidad_rechazada"
+                            class="text-xs text-oxide"
+                        >
+                            {{ formCalidad.errors.cantidad_rechazada }}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="motivo_calidad" class="text-xs font-medium text-steel"
+                            >Motivo del rechazo</label
+                        >
+                        <textarea
+                            id="motivo_calidad"
+                            v-model="formCalidad.motivo"
+                            rows="3"
+                            maxlength="255"
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        ></textarea>
+                        <div v-if="formCalidad.errors.motivo" class="text-xs text-oxide">
+                            {{ formCalidad.errors.motivo }}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 border-t border-hairline pt-3">
+                        <button
+                            type="button"
+                            class="rounded-control border border-hairline px-4 py-2 text-sm text-ink transition-colors hover:bg-canvas"
+                            @click="cerrarDrawer"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="formCalidad.processing"
+                            class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98] disabled:opacity-60"
+                        >
+                            {{ formCalidad.processing ? 'Guardando…' : 'Guardar' }}
+                        </button>
+                    </div>
+                </form>
+
+                <form
+                    v-if="drawerAbierto === 'cerrar' && ordenActiva"
+                    class="mt-4 flex flex-col gap-4"
+                    data-testid="cerrar-orden-form"
+                    @submit.prevent="guardarCierre"
+                >
+                    <div
+                        class="flex flex-col gap-2 rounded-control border border-hairline bg-canvas p-3 text-sm text-ink"
+                    >
+                        <div class="flex justify-between">
+                            <span class="text-steel">Requerido</span>
+                            <span class="font-mono">{{ ordenActiva.cantidad_requerida }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-steel">Conformado última etapa</span>
+                            <span class="font-mono">{{ ordenActiva.conformado_ultima_etapa }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-steel">Aprobadas</span>
+                            <span class="font-mono">{{
+                                ordenActiva.aprobadas_ultima_etapa ?? '—'
+                            }}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="unidades_finales" class="text-xs font-medium text-steel"
+                            >Unidades finales</label
+                        >
+                        <input
+                            id="unidades_finales"
+                            v-model="formCerrar.unidades_finales"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            required
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        />
+                        <div v-if="formCerrar.errors.unidades_finales" class="text-xs text-oxide">
+                            {{ formCerrar.errors.unidades_finales }}
+                        </div>
+                        <div v-if="page.props.errors.calidad" class="text-xs text-oxide">
+                            {{ page.props.errors.calidad }}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 border-t border-hairline pt-3">
+                        <button
+                            type="button"
+                            class="rounded-control border border-hairline px-4 py-2 text-sm text-ink transition-colors hover:bg-canvas"
+                            @click="cerrarDrawer"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="formCerrar.processing"
+                            class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98] disabled:opacity-60"
+                        >
+                            {{ formCerrar.processing ? 'Cerrando…' : 'Cerrar orden' }}
+                        </button>
+                    </div>
+                </form>
+
+                <form
+                    v-if="drawerAbierto === 'posponer' && ordenActiva"
+                    class="mt-4 flex flex-col gap-4"
+                    data-testid="posponer-orden-form"
+                    @submit.prevent="guardarPosposicion"
+                >
+                    <div class="flex flex-col gap-1.5">
+                        <label for="fecha_prevista_inicio" class="text-xs font-medium text-steel"
+                            >Nueva fecha prevista de inicio</label
+                        >
+                        <input
+                            id="fecha_prevista_inicio"
+                            v-model="formPosponer.fecha_prevista_inicio"
+                            type="date"
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        />
+                        <div
+                            v-if="formPosponer.errors.fecha_prevista_inicio"
+                            class="text-xs text-oxide"
+                        >
+                            {{ formPosponer.errors.fecha_prevista_inicio }}
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-sm text-ink">
+                        <input
+                            v-model="formPosponer.liberar_reservas"
+                            type="checkbox"
+                            class="rounded border-hairline text-teja focus:ring-teja"
+                        />
+                        Devolver reservas vigentes al stock
+                    </label>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="motivo_posponer" class="text-xs font-medium text-steel"
+                            >Motivo</label
+                        >
+                        <textarea
+                            id="motivo_posponer"
+                            v-model="formPosponer.motivo"
+                            rows="3"
+                            maxlength="255"
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        ></textarea>
+                        <div v-if="formPosponer.errors.motivo" class="text-xs text-oxide">
+                            {{ formPosponer.errors.motivo }}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 border-t border-hairline pt-3">
+                        <button
+                            type="button"
+                            class="rounded-control border border-hairline px-4 py-2 text-sm text-ink transition-colors hover:bg-canvas"
+                            @click="cerrarDrawer"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="formPosponer.processing"
+                            class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98] disabled:opacity-60"
+                        >
+                            {{ formPosponer.processing ? 'Guardando…' : 'Posponer' }}
+                        </button>
+                    </div>
+                </form>
+
+                <div
+                    v-if="drawerAbierto === 'reanudar' && ordenActiva"
+                    class="mt-4 flex flex-col gap-4"
+                    data-testid="reanudar-orden-form"
+                >
+                    <p class="text-sm text-ink">
+                        ¿Reanudar la orden <span class="font-medium">#{{ ordenActiva.id }}</span
+                        >? Se recalcularán las reservas necesarias para la cantidad restante.
+                    </p>
+
+                    <div class="flex justify-end gap-2 border-t border-hairline pt-3">
+                        <button
+                            type="button"
+                            class="rounded-control border border-hairline px-4 py-2 text-sm text-ink transition-colors hover:bg-canvas"
+                            @click="cerrarDrawer"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98]"
+                            @click="guardarReanudacion"
+                        >
+                            Reanudar
+                        </button>
+                    </div>
+                </div>
             </aside>
         </div>
     </AppLayout>

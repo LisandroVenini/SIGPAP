@@ -81,6 +81,8 @@ const ordenBase = {
     cantidad_requerida: 10,
     cantidad_producida: 0,
     fecha_entrega: '2026-11-15',
+    fecha_inicio: null,
+    fecha_prevista_inicio: null,
     prioridad_actual: 1,
     operarios: ['García, Ana'],
     operario_ids: [1],
@@ -93,6 +95,9 @@ const ordenBase = {
     ],
     partes: [],
     conformado_primera_etapa: 0,
+    conformado_ultima_etapa: 0,
+    aprobadas_ultima_etapa: null,
+    tiene_control_calidad: false,
     avance: 0,
 };
 
@@ -106,7 +111,15 @@ const props = {
     },
     planificaciones: [planificacion],
     productos: [productoA, productoB],
-    estados: ['Pendiente', 'Pendiente por Insumos', 'Asignada', 'En Curso', 'Cerrada', 'Anulada'],
+    estados: [
+        'Pendiente',
+        'Pendiente por Insumos',
+        'Asignada',
+        'En Curso',
+        'Pospuesta',
+        'Cerrada',
+        'Anulada',
+    ],
     filtros: {},
     operariosDisponibles: [operarioA, operarioB],
     maquinariasDisponibles: [maquinariaDisponible, maquinariaMantenimiento],
@@ -354,6 +367,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
                         partes: [
                             {
                                 id: 1,
+                                etapa_id: 10,
                                 etapa: 'Corte',
                                 fecha: '2026-10-30',
                                 cantidad: 4,
@@ -450,6 +464,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
                         partes: [
                             {
                                 id: 1,
+                                etapa_id: 10,
                                 etapa: 'Corte',
                                 fecha: '2026-10-30',
                                 cantidad: 4,
@@ -472,5 +487,258 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(wrapper.text()).toContain('Corte');
         expect(wrapper.text()).toContain('2026-10-30');
         expect(wrapper.text()).toContain('4');
+    });
+
+    it('renders the pospuesta badge', () => {
+        // Arrange / Act
+        const pospuestaProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [{ ...ordenBase, estado: 'Pospuesta' }],
+            },
+        };
+        const wrapper = mount(Ordenes, { props: pospuestaProps });
+
+        // Assert
+        expect(wrapper.text()).toContain('Pospuesta');
+    });
+
+    it('shows registrar calidad and cerrar orden only for en curso orders', () => {
+        // Arrange
+        const enCursoProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [{ ...ordenBase, estado: 'En Curso' }],
+            },
+        };
+
+        // Act
+        const wrapper = mount(Ordenes, { props: enCursoProps });
+
+        // Assert
+        expect(wrapper.text()).toContain('Registrar calidad');
+        expect(wrapper.text()).toContain('Cerrar orden');
+    });
+
+    it('shows posponer for allowed states', () => {
+        // Arrange / Act
+        const wrapper = mount(Ordenes, { props });
+
+        // Assert
+        expect(wrapper.text()).toContain('Posponer');
+    });
+
+    it('shows reanudar for pospuesta orders', () => {
+        // Arrange
+        const pospuestaProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [{ ...ordenBase, estado: 'Pospuesta' }],
+            },
+        };
+
+        // Act
+        const wrapper = mount(Ordenes, { props: pospuestaProps });
+
+        // Assert
+        expect(wrapper.text()).toContain('Reanudar');
+    });
+
+    it('hides anular for started orders', () => {
+        // Arrange
+        const iniciadaProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [{ ...ordenBase, fecha_inicio: '2026-11-01' }],
+            },
+        };
+
+        // Act
+        const wrapper = mount(Ordenes, { props: iniciadaProps });
+
+        // Assert
+        expect(wrapper.text()).not.toContain('Anular');
+    });
+
+    it('hides anular for orders with partes', () => {
+        // Arrange
+        const conPartesProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [
+                    {
+                        ...ordenBase,
+                        partes: [
+                            {
+                                id: 1,
+                                etapa_id: 10,
+                                etapa: 'Corte',
+                                fecha: '2026-10-30',
+                                cantidad: 4,
+                                maquinaria: null,
+                                observaciones: null,
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+
+        // Act
+        const wrapper = mount(Ordenes, { props: conPartesProps });
+
+        // Assert
+        expect(wrapper.text()).not.toContain('Anular');
+    });
+
+    it('opens the calidad drawer and posts the payload', async () => {
+        // Arrange
+        const enCursoProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [
+                    {
+                        ...ordenBase,
+                        estado: 'En Curso',
+                        partes: [
+                            {
+                                id: 1,
+                                etapa_id: 10,
+                                etapa: 'Corte',
+                                fecha: '2026-10-30',
+                                cantidad: 4,
+                                maquinaria: null,
+                                observaciones: null,
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+        const wrapper = mount(Ordenes, { props: enCursoProps, attachTo: document.body });
+
+        // Act
+        const calidad = wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Registrar calidad');
+        await calidad?.trigger('click');
+
+        const form = wrapper.find('[data-testid="calidad-form"]');
+        await form.find('#parte_diario_id').setValue('1');
+        await form.find('#cantidad_rechazada').setValue('1');
+        await form.find('#motivo_calidad').setValue('Defecto leve');
+        await form.trigger('submit.prevent');
+
+        // Assert
+        expect(hoisted.post).toHaveBeenCalledWith(
+            '/produccion/ordenes-de-produccion/1/calidad',
+            expect.objectContaining({ preserveScroll: true }),
+            expect.any(Object),
+        );
+
+        const payload = hoisted.post.mock.calls[0][2];
+        expect(Number(payload.parte_diario_id)).toBe(1);
+        expect(Number(payload.cantidad_rechazada)).toBe(1);
+        expect(payload.motivo).toBe('Defecto leve');
+    });
+
+    it('opens the cerrar drawer and posts unidades finales', async () => {
+        // Arrange
+        const enCursoProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [
+                    {
+                        ...ordenBase,
+                        estado: 'En Curso',
+                        conformado_ultima_etapa: 10,
+                        aprobadas_ultima_etapa: 10,
+                        tiene_control_calidad: true,
+                    },
+                ],
+            },
+        };
+        const wrapper = mount(Ordenes, { props: enCursoProps, attachTo: document.body });
+
+        // Act
+        const cerrar = wrapper.findAll('button').find((button) => button.text() === 'Cerrar orden');
+        await cerrar?.trigger('click');
+
+        const form = wrapper.find('[data-testid="cerrar-orden-form"]');
+        expect(form.text()).toContain('10');
+        await form.trigger('submit.prevent');
+
+        // Assert
+        expect(hoisted.post).toHaveBeenCalledWith(
+            '/produccion/ordenes-de-produccion/1/cerrar',
+            expect.objectContaining({ preserveScroll: true }),
+            expect.any(Object),
+        );
+
+        const payload = hoisted.post.mock.calls[0][2];
+        expect(Number(payload.unidades_finales)).toBe(10);
+    });
+
+    it('opens the posponer drawer and posts the payload', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        const posponer = wrapper.findAll('button').find((button) => button.text() === 'Posponer');
+        await posponer?.trigger('click');
+
+        const form = wrapper.find('[data-testid="posponer-orden-form"]');
+        await form.find('#fecha_prevista_inicio').setValue('2026-12-01');
+        const checkbox = form.find('input[type="checkbox"]');
+        await checkbox.setValue(true);
+        await form.find('#motivo_posponer').setValue('Falta personal');
+        await form.trigger('submit.prevent');
+
+        // Assert
+        expect(hoisted.post).toHaveBeenCalledWith(
+            '/produccion/ordenes-de-produccion/1/posponer',
+            expect.objectContaining({ preserveScroll: true }),
+            expect.any(Object),
+        );
+
+        const payload = hoisted.post.mock.calls[0][2];
+        expect(payload.fecha_prevista_inicio).toBe('2026-12-01');
+        expect(payload.liberar_reservas).toBe(true);
+        expect(payload.motivo).toBe('Falta personal');
+    });
+
+    it('posts reanudar through the router for pospuesta orders', async () => {
+        // Arrange
+        const pospuestaProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [{ ...ordenBase, estado: 'Pospuesta' }],
+            },
+        };
+        const wrapper = mount(Ordenes, { props: pospuestaProps, attachTo: document.body });
+
+        // Act
+        const reanudar = wrapper.findAll('button').find((button) => button.text() === 'Reanudar');
+        await reanudar?.trigger('click');
+        const confirmar = wrapper
+            .find('[data-testid="reanudar-orden-form"]')
+            .findAll('button')
+            .find((button) => button.text() === 'Reanudar');
+        await confirmar?.trigger('click');
+
+        // Assert
+        expect(hoisted.routerPost).toHaveBeenCalledWith(
+            '/produccion/ordenes-de-produccion/1/reanudar',
+            {},
+            expect.objectContaining({ preserveScroll: true }),
+        );
     });
 });
