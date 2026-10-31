@@ -25,7 +25,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T4 — Planificaciones: ABM + búsqueda, período validado (`fecha_fin >= fecha_inicio`), baja bloqueada con órdenes. Commit `212bca6`.
 - [x] T4.1 — Receta (BOM) del producto: migración, modelos, Service, Requests, Controller, rutas, sección Receta en la Hoja de Ruta, contrato nuevo en Inventario (`insumosDisponibles`, `resumenesDeArticulos`), docs de dominio. Commit `f57fca9`.
 - [x] T5 — Órdenes de Producción + reservas lógicas: contrato de reservas en Inventario (`GestionReservasService`, `ReservasQuery`), alta por lote con modos, listado/búsqueda, anulación y modificación. Commits `a4939b7` y `c2c7a4e`.
-- [ ] T6 — Recursos e inicio.
+- [x] T6 — Recursos e inicio: asignación a nivel orden (operarios y maquinarias), enum `EstadoMaquinaria`, solo máquinas `Disponible` seleccionables, reversión del estado al desasignar todo según cobertura de reservas, inicio explícito `Asignada → En Curso` con `fecha_inicio`. Commit `5f47550`.
 - [ ] T7 — Parte Diario, Calidad y Cierre.
 - [ ] T8 — Cronograma y Mantenimiento.
 
@@ -45,3 +45,6 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L12: "disponible nunca puede ir en negativo. Una cosa es la receta del producto y otra cosa distinta es la orden de produccion..." — la receta es definición pura; el compromiso nace al crear la OP y el disponible se acota en 0.
 - L13: T5 implementado en dos unidades: contrato de reservas inline y Producción delegado a `gentle-ai-worker`. gga bloqueó dos veces: agregación en Service (movida a `ReservasQuery`/`PlanificacionesQuery`), tests con nombres en español, y un bug real de búsqueda (`when([])` descartaba el filtro y devolvía todas las órdenes). Se corrigió con test de regresión RED→GREEN. También se endureció la validación del producto de la línea y el test de Vue que era tautológico.
 - L14: Evidencia T5 — PHPUnit Producción + Inventario: 137 tests, 478 assertions. Vitest Producción: 33 tests. `vue-tsc`, pint y Prettier sin errores.
+- L15: "vamos con la A" — la asignación de recursos es a nivel orden (contrato CU-PROD-11 y esquema de pivotes); las etapas se muestran solo como contexto.
+- L16: T6 delegado a `gentle-ai-worker`. Correcciones del padre: el drawer no precargaba los recursos ya asignados (al guardar borraba la asignación) y el service devolvía mapas keyed-by-id contra un tipo TS de lista. Se agregaron `operario_ids`/`maquinaria_ids` a la fila del listado y tests de precarga. gga PASSED en el primer intento del commit.
+- L17: Evidencia T6 — PHPUnit Producción + Inventario: 153 tests, 519 assertions. Vitest Producción: 38 tests. `vue-tsc`, pint y Prettier sin errores.
