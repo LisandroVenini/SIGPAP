@@ -31,6 +31,18 @@ Route::middleware('web')
             Route::post('ordenes-de-produccion/{orden}/iniciar', [OrdenDeProduccionController::class, 'iniciar'])
                 ->whereNumber('orden')
                 ->name('ordenes-de-produccion.iniciar');
+            Route::post('ordenes-de-produccion/{orden}/calidad', [OrdenDeProduccionController::class, 'registrarCalidad'])
+                ->whereNumber('orden')
+                ->name('ordenes-de-produccion.calidad');
+            Route::post('ordenes-de-produccion/{orden}/cerrar', [OrdenDeProduccionController::class, 'cerrar'])
+                ->whereNumber('orden')
+                ->name('ordenes-de-produccion.cerrar');
+            Route::post('ordenes-de-produccion/{orden}/posponer', [OrdenDeProduccionController::class, 'posponer'])
+                ->whereNumber('orden')
+                ->name('ordenes-de-produccion.posponer');
+            Route::post('ordenes-de-produccion/{orden}/reanudar', [OrdenDeProduccionController::class, 'reanudar'])
+                ->whereNumber('orden')
+                ->name('ordenes-de-produccion.reanudar');
             Route::post('ordenes-de-produccion/{orden}/partes', [ParteDiarioController::class, 'store'])
                 ->whereNumber('orden')
                 ->name('ordenes-de-produccion.partes.store');

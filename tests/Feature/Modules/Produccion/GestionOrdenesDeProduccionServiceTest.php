@@ -12,6 +12,7 @@ use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
+use App\Modules\Produccion\Models\ControlDeCalidad;
 use App\Modules\Produccion\Models\Etapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\Operario;
@@ -214,6 +215,42 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $this->service()->anular($actor, $orden, 'Sin uso', '127.0.0.1');
     }
 
+    public function test_blocks_anulacion_when_order_has_started(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $orden = OrdenDeProduccion::factory()->create([
+            'estado' => EstadoOrdenProduccion::Asignada->value,
+            'fecha_inicio' => '2026-11-01',
+        ]);
+
+        // Act / Assert
+        $this->expectException(ValidationException::class);
+
+        $this->service()->anular($actor, $orden, 'Sin uso', '127.0.0.1');
+    }
+
+    public function test_blocks_anulacion_when_order_has_partes(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $planificacion = $this->planificacion();
+        $producto = $this->productoFabricado();
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'estado' => EstadoOrdenProduccion::Asignada->value,
+        ]);
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+        ]);
+
+        // Act / Assert
+        $this->expectException(ValidationException::class);
+
+        $this->service()->anular($actor, $orden, 'Sin uso', '127.0.0.1');
+    }
+
     public function test_anulacion_releases_reservations(): void
     {
         // Arrange
@@ -388,5 +425,75 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $this->assertSame($productoB->id, $filtradasPorEstado->items()[0]['producto']['id']);
         $this->assertSame(1, $filtradasPorBusqueda->total());
         $this->assertSame($productoA->id, $filtradasPorBusqueda->items()[0]['producto']['id']);
+    }
+
+    public function test_list_approved_quantity_matches_closure_calculation_with_multiple_parts(): void
+    {
+        // Arrange
+        $planificacion = $this->planificacion();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+
+        $corte = Etapa::factory()->create(['nombre' => 'Corte']);
+        $ensamble = Etapa::factory()->create(['nombre' => 'Ensamble']);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $corte->id,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $ensamble->id,
+            'orden' => 2,
+        ]);
+
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'cantidad_requerida' => 10,
+        ]);
+
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'cantidad_conformada' => 10,
+        ]);
+
+        $partePrimera = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $ensamble->id,
+            'fecha' => '2026-10-29',
+            'cantidad_conformada' => 5,
+        ]);
+        $parteSegunda = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $ensamble->id,
+            'fecha' => '2026-10-30',
+            'cantidad_conformada' => 5,
+        ]);
+
+        ControlDeCalidad::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => $partePrimera->id,
+            'fecha' => '2026-10-29',
+            'cantidad_aprobada' => 4,
+            'cantidad_rechazada' => 1,
+        ]);
+        ControlDeCalidad::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => $parteSegunda->id,
+            'fecha' => '2026-10-30',
+            'cantidad_aprobada' => 5,
+            'cantidad_rechazada' => 0,
+        ]);
+
+        // Act
+        $fila = $this->service()->listar([])->items()[0];
+
+        // Assert
+        // Conformado última etapa: 10, rechazadas: 1, approved = 9.
+        $this->assertSame(9.0, $fila['aprobadas_ultima_etapa']);
+        $this->assertTrue($fila['tiene_control_calidad']);
     }
 }

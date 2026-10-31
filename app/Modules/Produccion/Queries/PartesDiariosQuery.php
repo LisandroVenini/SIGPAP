@@ -4,11 +4,12 @@ namespace App\Modules\Produccion\Queries;
 
 use App\Modules\Produccion\Models\ParteDiario;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class PartesDiariosQuery
 {
     /**
-     * @return Collection<int, array{id:int, etapa:string, fecha:string, cantidad:float, maquinaria:string|null, observaciones:string|null}>
+     * @return Collection<int, array{id:int, etapa_id:int, etapa:string, fecha:string, cantidad:float, maquinaria:string|null, observaciones:string|null}>
      */
     public function porOrden(int $ordenId): Collection
     {
@@ -20,6 +21,7 @@ class PartesDiariosQuery
             ->orderBy('partes_diarios.id', 'desc')
             ->select(
                 'partes_diarios.id',
+                'partes_diarios.etapa_id',
                 'etapas.nombre as etapa',
                 'partes_diarios.fecha',
                 'partes_diarios.cantidad_conformada as cantidad',
@@ -29,6 +31,7 @@ class PartesDiariosQuery
             ->get()
             ->map(fn ($fila): array => [
                 'id' => (int) $fila->id,
+                'etapa_id' => (int) $fila->etapa_id,
                 'etapa' => $fila->etapa,
                 'fecha' => $fila->fecha->toDateString(),
                 'cantidad' => (float) $fila->cantidad,
@@ -55,7 +58,7 @@ class PartesDiariosQuery
 
     /**
      * @param  array<int, int>  $ordenIds
-     * @return array<int, Collection<int, array{id:int, etapa:string, fecha:string, cantidad:float, maquinaria:string|null, observaciones:string|null}>>
+     * @return array<int, Collection<int, array{id:int, etapa_id:int, etapa:string, fecha:string, cantidad:float, maquinaria:string|null, observaciones:string|null}>>
      */
     public function porOrdenes(array $ordenIds): array
     {
@@ -72,6 +75,7 @@ class PartesDiariosQuery
             ->select(
                 'partes_diarios.orden_de_produccion_id',
                 'partes_diarios.id',
+                'partes_diarios.etapa_id',
                 'etapas.nombre as etapa',
                 'partes_diarios.fecha',
                 'partes_diarios.cantidad_conformada as cantidad',
@@ -85,6 +89,7 @@ class PartesDiariosQuery
             ->mapWithKeys(fn ($grupo, int|string $ordenId): array => [
                 (int) $ordenId => $grupo->map(fn ($fila): array => [
                     'id' => (int) $fila->id,
+                    'etapa_id' => (int) $fila->etapa_id,
                     'etapa' => $fila->etapa,
                     'fecha' => $fila->fecha->toDateString(),
                     'cantidad' => (float) $fila->cantidad,
@@ -115,6 +120,29 @@ class PartesDiariosQuery
                 (int) $ordenId => $grupo->mapWithKeys(fn ($fila): array => [
                     (int) $fila->etapa_id => (float) $fila->total,
                 ])->all(),
+            ])
+            ->all();
+    }
+
+    /**
+     * Sum rejected quantities per stage for the given order.
+     *
+     * Only parte-level quality controls are considered because order-level
+     * controls happen at closure and do not affect the daily-part ceiling.
+     *
+     * @return array<int, float>
+     */
+    public function rechazadasPorEtapa(int $ordenId): array
+    {
+        return DB::table('controles_de_calidad')
+            ->join('partes_diarios', 'partes_diarios.id', '=', 'controles_de_calidad.parte_diario_id')
+            ->where('controles_de_calidad.orden_de_produccion_id', $ordenId)
+            ->whereNotNull('controles_de_calidad.parte_diario_id')
+            ->selectRaw('partes_diarios.etapa_id, sum(controles_de_calidad.cantidad_rechazada) as total')
+            ->groupBy('partes_diarios.etapa_id')
+            ->pluck('total', 'partes_diarios.etapa_id')
+            ->mapWithKeys(fn (int|string $total, int|string $etapaId): array => [
+                (int) $etapaId => (float) $total,
             ])
             ->all();
     }

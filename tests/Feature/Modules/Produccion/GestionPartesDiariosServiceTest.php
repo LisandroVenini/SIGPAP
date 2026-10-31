@@ -13,6 +13,7 @@ use App\Modules\Produccion\Enums\EstadoMaquinaria;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
+use App\Modules\Produccion\Models\ControlDeCalidad;
 use App\Modules\Produccion\Models\Etapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
@@ -372,6 +373,52 @@ class GestionPartesDiariosServiceTest extends TestCase
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('maquinaria', $e->errors());
         }
+    }
+
+    public function test_ceiling_includes_rejected_units_to_replace_them(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+        [$corte] = $this->hojaDeRutaDeDosEtapas($producto);
+        $orden = $this->ordenEnCurso($producto);
+        app(GestionReservasService::class)->reservar($orden->id, [$insumo->id => 24]);
+
+        $parte = $this->service()->registrar(
+            $actor,
+            $orden,
+            $corte->id,
+            null,
+            '2026-11-01',
+            8,
+            null,
+            '127.0.0.1'
+        );
+
+        ControlDeCalidad::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => $parte->id,
+            'cantidad_aprobada' => 6,
+            'cantidad_rechazada' => 2,
+            'motivo_rechazo' => 'Defecto leve',
+        ]);
+
+        // Act
+        $parte = $this->service()->registrar(
+            $actor,
+            $orden,
+            $corte->id,
+            null,
+            '2026-11-02',
+            4,
+            null,
+            '127.0.0.1'
+        );
+
+        // Assert
+        $this->assertSame(4.0, (float) $parte->cantidad_conformada);
     }
 
     public function test_rejects_order_not_in_progress(): void

@@ -8,10 +8,14 @@ use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Produccion\Enums\EstadoMaquinaria;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
+use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
+use App\Modules\Produccion\Models\ControlDeCalidad;
+use App\Modules\Produccion\Models\Etapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\Operario;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
 use App\Modules\Produccion\Models\Receta;
 use App\Modules\Usuarios\Enums\Rol;
@@ -315,5 +319,174 @@ class OrdenDeProduccionControllerTest extends TestCase
         // Assert
         $response->assertRedirect('/produccion/ordenes-de-produccion');
         $response->assertSessionHasErrors('estado');
+    }
+
+    public function test_a_supervisor_can_register_quality_control_by_part(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+        $corte = Etapa::factory()->create();
+        $ensamble = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $corte->id, 'orden' => 1]);
+        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $ensamble->id, 'orden' => 2]);
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+        ]);
+        $parte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'cantidad_conformada' => 8,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->from('/produccion/ordenes-de-produccion')
+            ->post("/produccion/ordenes-de-produccion/{$orden->id}/calidad", [
+                'parte_diario_id' => $parte->id,
+                'cantidad_rechazada' => 2,
+                'motivo' => 'Defecto menor',
+            ]);
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('controles_de_calidad', [
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => $parte->id,
+            'cantidad_aprobada' => 6,
+            'cantidad_rechazada' => 2,
+        ]);
+    }
+
+    public function test_a_supervisor_can_close_an_order(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $producto = $this->productoFabricado();
+        $ensamble = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $ensamble->id, 'orden' => 1]);
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+            'cantidad_requerida' => 10,
+        ]);
+        $parte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $ensamble->id,
+            'cantidad_conformada' => 10,
+        ]);
+        ControlDeCalidad::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => $parte->id,
+            'cantidad_aprobada' => 10,
+            'cantidad_rechazada' => 0,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->from('/produccion/ordenes-de-produccion')
+            ->post("/produccion/ordenes-de-produccion/{$orden->id}/cerrar", [
+                'unidades_finales' => 10,
+            ]);
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('ordenes_de_produccion', [
+            'id' => $orden->id,
+            'estado' => EstadoOrdenProduccion::Cerrada->value,
+            'cantidad_producida' => 10,
+        ]);
+    }
+
+    public function test_a_supervisor_can_postpone_an_order(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $orden = OrdenDeProduccion::factory()->create([
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->from('/produccion/ordenes-de-produccion')
+            ->post("/produccion/ordenes-de-produccion/{$orden->id}/posponer", [
+                'fecha_prevista_inicio' => '2026-12-01',
+                'liberar_reservas' => true,
+                'motivo' => 'Falta personal',
+            ]);
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('ordenes_de_produccion', [
+            'id' => $orden->id,
+            'estado' => EstadoOrdenProduccion::Pospuesta->value,
+            'fecha_prevista_inicio' => '2026-12-01',
+        ]);
+    }
+
+    public function test_a_supervisor_can_resume_an_order(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+        $corte = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $corte->id, 'orden' => 1]);
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'estado' => EstadoOrdenProduccion::Pospuesta->value,
+            'cantidad_requerida' => 10,
+            'fecha_inicio' => '2026-11-01',
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->from('/produccion/ordenes-de-produccion')
+            ->post("/produccion/ordenes-de-produccion/{$orden->id}/reanudar");
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('ordenes_de_produccion', [
+            'id' => $orden->id,
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+        ]);
+    }
+
+    public function test_resume_without_stock_returns_insumos_error(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $insumo = $this->insumo(['stock_fisico' => 0]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+        $corte = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $corte->id, 'orden' => 1]);
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'estado' => EstadoOrdenProduccion::Pospuesta->value,
+            'cantidad_requerida' => 10,
+            'fecha_inicio' => '2026-11-01',
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->from('/produccion/ordenes-de-produccion')
+            ->post("/produccion/ordenes-de-produccion/{$orden->id}/reanudar");
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertSessionHasErrors('insumos');
+        $this->assertDatabaseHas('ordenes_de_produccion', [
+            'id' => $orden->id,
+            'estado' => EstadoOrdenProduccion::PendientePorInsumos->value,
+        ]);
     }
 }

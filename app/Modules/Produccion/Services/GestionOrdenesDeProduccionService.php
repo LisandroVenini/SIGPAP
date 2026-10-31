@@ -8,6 +8,7 @@ use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Queries\CalidadQuery;
 use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\OrdenesDeProduccionQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
@@ -24,6 +25,7 @@ class GestionOrdenesDeProduccionService
         private readonly GestionArticulosService $articulos,
         private readonly GestionRecetasService $recetas,
         private readonly GestionReservasService $reservas,
+        private readonly CalidadQuery $calidad,
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly OrdenesDeProduccionQuery $query,
         private readonly PartesDiariosQuery $partesDiarios,
@@ -53,24 +55,32 @@ class GestionOrdenesDeProduccionService
         $etapasPorArticulo = $this->hojaDeRuta->etapasPorArticulo($articuloIds);
         $etapasConIdPorArticulo = $this->hojaDeRuta->etapasConIdPorArticulo($articuloIds);
         $primerasEtapas = $this->hojaDeRuta->primeraEtapaPorArticulo($articuloIds);
+        $ultimasEtapas = $this->hojaDeRuta->ultimaEtapaPorArticulo($articuloIds);
 
         $ordenIds = $resultados->pluck('id')->unique()->all();
         $partesPorOrden = $this->partesDiarios->porOrdenes($ordenIds);
         $conformadoPorOrden = $this->partesDiarios->conformadoPorOrdenes($ordenIds);
+        $aprobadasParaCierre = $this->calidad->aprobadoParaCierre($ordenIds, $ultimasEtapas);
 
         return $resultados->through(function (OrdenDeProduccion $orden) use (
             $resumenes,
             $etapasPorArticulo,
             $etapasConIdPorArticulo,
             $primerasEtapas,
+            $ultimasEtapas,
             $partesPorOrden,
             $conformadoPorOrden,
+            $aprobadasParaCierre,
         ): array {
             $partes = $partesPorOrden[$orden->id] ?? collect();
             $conformadoPorEtapa = $conformadoPorOrden[$orden->id] ?? [];
             $primeraEtapaId = $primerasEtapas[$orden->articulo_id] ?? null;
+            $ultimaEtapaId = $ultimasEtapas[$orden->articulo_id] ?? null;
             $conformadoPrimeraEtapa = $primeraEtapaId !== null
                 ? ($conformadoPorEtapa[$primeraEtapaId] ?? 0.0)
+                : 0.0;
+            $conformadoUltimaEtapa = $ultimaEtapaId !== null
+                ? ($conformadoPorEtapa[$ultimaEtapaId] ?? 0.0)
                 : 0.0;
 
             // A unit only counts as produced once it passed every etapa, so the
@@ -88,6 +98,8 @@ class GestionOrdenesDeProduccionService
                 ? round(min(100.0, ($conformadoCompleto / $requerida) * 100), 2)
                 : 0.0;
 
+            $resumenCalidad = $aprobadasParaCierre[$orden->id] ?? ['aprobado' => null, 'tiene_control' => false];
+
             return [
                 'id' => $orden->id,
                 'producto' => $resumenes[$orden->articulo_id] ?? null,
@@ -96,6 +108,8 @@ class GestionOrdenesDeProduccionService
                 'cantidad_requerida' => $requerida,
                 'cantidad_producida' => (float) $orden->cantidad_producida,
                 'fecha_entrega' => $orden->fecha_entrega?->toDateString(),
+                'fecha_inicio' => $orden->fecha_inicio?->toDateString(),
+                'fecha_prevista_inicio' => $orden->fecha_prevista_inicio?->toDateString(),
                 'prioridad_actual' => $orden->prioridad_actual,
                 'operarios' => $orden->operarios
                     ->sortBy(['apellido', 'nombre'])
@@ -109,6 +123,9 @@ class GestionOrdenesDeProduccionService
                 'etapas_con_ids' => $etapasConIdPorArticulo[$orden->articulo_id] ?? [],
                 'partes' => $partes->all(),
                 'conformado_primera_etapa' => $conformadoPrimeraEtapa,
+                'conformado_ultima_etapa' => $conformadoUltimaEtapa,
+                'aprobadas_ultima_etapa' => $resumenCalidad['aprobado'],
+                'tiene_control_calidad' => $resumenCalidad['tiene_control'],
                 'avance' => $avance,
             ];
         });
@@ -229,6 +246,18 @@ class GestionOrdenesDeProduccionService
             if (! in_array($orden->estado, $estadosPermitidos, true)) {
                 throw ValidationException::withMessages([
                     'estado' => 'La orden no puede anularse en el estado actual.',
+                ]);
+            }
+
+            if ($orden->fecha_inicio !== null) {
+                throw ValidationException::withMessages([
+                    'estado' => 'La orden ya fue iniciada y no puede anularse.',
+                ]);
+            }
+
+            if ($orden->partesDiarios()->exists()) {
+                throw ValidationException::withMessages([
+                    'estado' => 'La orden tiene partes diarios registrados y no puede anularse.',
                 ]);
             }
 

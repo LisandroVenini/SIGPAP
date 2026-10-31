@@ -81,7 +81,9 @@ class GestionPartesDiariosService
 
             $conformadoPorEtapa = $this->query->conformadoPorEtapa($orden->id);
             $conformadoEnEtapa = $conformadoPorEtapa[$etapaId] ?? 0.0;
-            $restante = round((float) $orden->cantidad_requerida - $conformadoEnEtapa, 2);
+            $rechazadasPorEtapa = $this->query->rechazadasPorEtapa($orden->id);
+            $rechazadasEnEtapa = $rechazadasPorEtapa[$etapaId] ?? 0.0;
+            $restante = round((float) $orden->cantidad_requerida + $rechazadasEnEtapa - $conformadoEnEtapa, 2);
 
             if (round($cantidad - $restante, 2) > 0) {
                 throw ValidationException::withMessages([

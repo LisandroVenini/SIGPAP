@@ -97,4 +97,27 @@ class HojaDeRutaQuery
             ])
             ->all();
     }
+
+    /**
+     * Return the last stage id of each product's route sheet.
+     *
+     * @param  array<int, int>  $articuloIds
+     * @return array<int, int>
+     */
+    public function ultimaEtapaPorArticulo(array $articuloIds): array
+    {
+        if ($articuloIds === []) {
+            return [];
+        }
+
+        return AsignacionDeEtapa::query()
+            ->whereIn('articulo_id', $articuloIds)
+            ->orderByDesc('orden')
+            ->get()
+            ->unique('articulo_id')
+            ->mapWithKeys(fn (AsignacionDeEtapa $asignacion): array => [
+                (int) $asignacion->articulo_id => (int) $asignacion->etapa_id,
+            ])
+            ->all();
+    }
 }

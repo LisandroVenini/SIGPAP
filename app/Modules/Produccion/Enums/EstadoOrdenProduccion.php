@@ -8,6 +8,7 @@ enum EstadoOrdenProduccion: string
     case PendientePorInsumos = 'Pendiente por Insumos';
     case Asignada = 'Asignada';
     case EnCurso = 'En Curso';
+    case Pospuesta = 'Pospuesta';
     case Cerrada = 'Cerrada';
     case Anulada = 'Anulada';
 
