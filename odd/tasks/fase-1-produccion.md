@@ -26,7 +26,8 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T4.1 — Receta (BOM) del producto: migración, modelos, Service, Requests, Controller, rutas, sección Receta en la Hoja de Ruta, contrato nuevo en Inventario (`insumosDisponibles`, `resumenesDeArticulos`), docs de dominio. Commit `f57fca9`.
 - [x] T5 — Órdenes de Producción + reservas lógicas: contrato de reservas en Inventario (`GestionReservasService`, `ReservasQuery`), alta por lote con modos, listado/búsqueda, anulación y modificación. Commits `a4939b7` y `c2c7a4e`.
 - [x] T6 — Recursos e inicio: asignación a nivel orden (operarios y maquinarias), enum `EstadoMaquinaria`, solo máquinas `Disponible` seleccionables, reversión del estado al desasignar todo según cobertura de reservas, inicio explícito `Asignada → En Curso` con `fecha_inicio`. Commit `5f47550`.
-- [ ] T7 — Parte Diario, Calidad y Cierre.
+- [x] T7.1 — Parte Diario: registro por etapa y fecha (acumulativo), consumo de insumos solo en la primera etapa con el delta, desgaste por etapa, avance real (mínimo conformado entre etapas de la ruta). Commit `d14258e`.
+- [ ] T7.2 — Calidad (por parte o por orden), cierre estricto (solo con la cantidad requerida completa) y posposición con pausa y opción de liberar o retener reservas.
 - [ ] T8 — Cronograma y Mantenimiento.
 
 ## Log
@@ -48,3 +49,9 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L15: "vamos con la A" — la asignación de recursos es a nivel orden (contrato CU-PROD-11 y esquema de pivotes); las etapas se muestran solo como contexto.
 - L16: T6 delegado a `gentle-ai-worker`. Correcciones del padre: el drawer no precargaba los recursos ya asignados (al guardar borraba la asignación) y el service devolvía mapas keyed-by-id contra un tipo TS de lista. Se agregaron `operario_ids`/`maquinaria_ids` a la fila del listado y tests de precarga. gga PASSED en el primer intento del commit.
 - L17: Evidencia T6 — PHPUnit Producción + Inventario: 153 tests, 519 assertions. Vitest Producción: 38 tests. `vue-tsc`, pint y Prettier sin errores.
+- L18: "dale, sigamos con la T7. Cuando la produccion real no cincide con lo planificado se consume el stock de la produccion real y el resto sigue quedando como reserva logica"
+- L19: "1. Podriamos implentar la posibilidad de hacer las dos... controles de calidad por etapa... o un control de calidad para la orden entera... 2. explicame bien tu propuesta... 3. nunca se puede cerrar una orden de produccion sin fabricar todos los productos definidos... se tiene que poder posponer... La op no se tiene que poder eliminar si ya se comenzo con una de sus etapas" — se define: calidad dual (parte u orden, con `parte_diario_id` nullable), cierre solo con cantidad completa, posposición con pausa (opción A) y anulación solo si nunca se inició.
+- L20: "vamos con la A, si se puede posponer una orden ya iniciada... Al seleccionar posponer... podemos desplegar un modal preguntando si se desea devolver esos productos al stock... o si la reserva sigue quedando plasmada" — posponer ofrece liberar o retener las reservas vigentes.
+- L21: T7.1 delegado a `gentle-ai-worker`. Corrección del padre: el avance sumaba las unidades de todas las etapas (una unidad contada tres veces); ahora usa el mínimo conformado entre las etapas de la ruta, que es independiente del orden. gga PASSED.
+- L22: Evidencia T7.1 — PHPUnit Producción + Inventario: 173 tests, 575 assertions. Vitest Producción: 43 tests.
+- L23: Gap detectado — `asignaciones_de_etapa` no tiene secuencia, así que "primera/última etapa" es arbitrario. T7.1 usa el menor `etapa_id` como primera (provisional) y el avance no depende de eso. El cierre de T7.2 necesita la secuencia real: agregar `orden` a la hoja de ruta.
