@@ -10,10 +10,13 @@ use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
+use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
+use App\Modules\Produccion\Models\Etapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\Operario;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
 use App\Modules\Produccion\Models\Receta;
 use App\Modules\Produccion\Services\GestionOrdenesDeProduccionService;
@@ -298,6 +301,49 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $this->assertSame([$maquinaria->id], $fila['maquinaria_ids']);
         $this->assertSame(['García, Ana'], $fila['operarios']);
         $this->assertSame(['Lijadora orbital'], $fila['maquinarias']);
+    }
+
+    public function test_list_includes_partes_advance_and_first_stage_progress(): void
+    {
+        // Arrange
+        $planificacion = $this->planificacion();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+
+        $corte = Etapa::factory()->create(['nombre' => 'Corte']);
+        $lijado = Etapa::factory()->create(['nombre' => 'Lijado']);
+        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $corte->id]);
+        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $lijado->id]);
+
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'cantidad_requerida' => 10,
+        ]);
+
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'fecha' => '2026-10-30',
+            'cantidad_conformada' => 4,
+        ]);
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $lijado->id,
+            'fecha' => '2026-10-31',
+            'cantidad_conformada' => 3,
+        ]);
+
+        // Act
+        $fila = $this->service()->listar([])->items()[0];
+
+        // Assert
+        $this->assertCount(2, $fila['partes']);
+        $this->assertSame(4.0, $fila['conformado_primera_etapa']);
+        $this->assertSame(30.0, $fila['avance']);
+        $this->assertSame('Lijado', $fila['partes'][0]['etapa']);
+        $this->assertSame('Corte', $fila['partes'][1]['etapa']);
     }
 
     public function test_lists_orders_with_filters_and_ordering(): void

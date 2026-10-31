@@ -262,4 +262,172 @@ class GestionReservasServiceTest extends TestCase
         // Assert
         $this->assertFalse($cubierta);
     }
+
+    public function test_consuming_full_reservation_marks_it_as_consumed(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articulo = $this->articulo(10);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 5,
+        ]);
+
+        // Act
+        $consumido = $this->service()->consumir($orden->id, [$articulo->id => 5.0]);
+
+        // Assert
+        $this->assertSame([$articulo->id => 5.0], $consumido);
+        $this->assertDatabaseHas('reservas', [
+            'orden_de_produccion_id' => $orden->id,
+            'articulo_id' => $articulo->id,
+            'cantidad' => 5,
+            'estado' => EstadoReserva::Consumida->value,
+        ]);
+        $this->assertDatabaseMissing('reservas', [
+            'orden_de_produccion_id' => $orden->id,
+            'articulo_id' => $articulo->id,
+            'estado' => EstadoReserva::Vigente->value,
+        ]);
+        $this->assertSame(5.0, (float) $articulo->refresh()->stock_fisico);
+    }
+
+    public function test_consuming_partial_reservation_reduces_vigente_and_creates_consumed_row(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articulo = $this->articulo(10);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 8,
+        ]);
+
+        // Act
+        $consumido = $this->service()->consumir($orden->id, [$articulo->id => 3.0]);
+
+        // Assert
+        $this->assertSame([$articulo->id => 3.0], $consumido);
+        $this->assertDatabaseHas('reservas', [
+            'orden_de_produccion_id' => $orden->id,
+            'articulo_id' => $articulo->id,
+            'cantidad' => 5,
+            'estado' => EstadoReserva::Vigente->value,
+        ]);
+        $this->assertDatabaseHas('reservas', [
+            'orden_de_produccion_id' => $orden->id,
+            'articulo_id' => $articulo->id,
+            'cantidad' => 3,
+            'estado' => EstadoReserva::Consumida->value,
+        ]);
+        $this->assertSame(7.0, (float) $articulo->refresh()->stock_fisico);
+    }
+
+    public function test_consuming_without_enough_reservation_fails_and_leaves_stock_intact(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articulo = $this->articulo(10);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 4,
+        ]);
+
+        // Act / Assert
+        try {
+            $this->service()->consumir($orden->id, [$articulo->id => 5.0]);
+            $this->fail('Expected ValidationException was not thrown.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('insumos', $e->errors());
+            $this->assertSame(
+                'No hay reserva suficiente para consumir los insumos de la orden.',
+                $e->errors()['insumos'][0]
+            );
+        }
+
+        $this->assertSame(10.0, (float) $articulo->refresh()->stock_fisico);
+        $this->assertDatabaseCount('reservas', 1);
+        $this->assertDatabaseHas('reservas', [
+            'orden_de_produccion_id' => $orden->id,
+            'articulo_id' => $articulo->id,
+            'cantidad' => 4,
+            'estado' => EstadoReserva::Vigente->value,
+        ]);
+    }
+
+    public function test_consuming_creates_negative_stock_movement(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articulo = $this->articulo(10);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 4,
+        ]);
+
+        // Act
+        $this->service()->consumir($orden->id, [$articulo->id => 4.0]);
+
+        // Assert
+        $this->assertDatabaseHas('movimientos_de_stock', [
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'tipo' => 'Consumo',
+            'cantidad' => -4.0,
+            'motivo' => 'Consumo por parte diario',
+        ]);
+    }
+
+    public function test_consuming_respects_reservations_from_other_orders(): void
+    {
+        // Arrange
+        $articulo = $this->articulo(10);
+        $otraOrden = $this->orden();
+        $orden = $this->orden();
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $otraOrden->id,
+            'cantidad' => 8,
+        ]);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 2,
+        ]);
+
+        // Act
+        $consumido = $this->service()->consumir($orden->id, [$articulo->id => 2.0]);
+
+        // Assert
+        $this->assertSame([$articulo->id => 2.0], $consumido);
+        $this->assertSame(8.0, (float) Reserva::query()
+            ->where('orden_de_produccion_id', $otraOrden->id)
+            ->where('estado', EstadoReserva::Vigente->value)
+            ->value('cantidad'));
+    }
+
+    public function test_consuming_fails_when_stock_would_go_negative(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articulo = $this->articulo(2);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 5,
+        ]);
+
+        // Act / Assert
+        try {
+            $this->service()->consumir($orden->id, [$articulo->id => 5.0]);
+            $this->fail('Expected ValidationException was not thrown.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('stock', $e->errors());
+        }
+
+        $this->assertSame(2.0, (float) $articulo->refresh()->stock_fisico);
+    }
 }

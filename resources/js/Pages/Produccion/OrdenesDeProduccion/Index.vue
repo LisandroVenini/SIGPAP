@@ -26,6 +26,20 @@ interface MaquinariaDisponible {
     seleccionable: boolean;
 }
 
+interface EtapaOpcion {
+    id: number;
+    nombre: string;
+}
+
+interface Parte {
+    id: number;
+    etapa: string;
+    fecha: string;
+    cantidad: number;
+    maquinaria: string | null;
+    observaciones: string | null;
+}
+
 interface Orden {
     id: number;
     producto: Producto | null;
@@ -40,6 +54,10 @@ interface Orden {
     maquinarias: string[];
     maquinaria_ids: number[];
     etapas: string[];
+    etapas_con_ids: EtapaOpcion[];
+    partes: Parte[];
+    conformado_primera_etapa: number;
+    avance: number;
 }
 
 interface PaginationLink {
@@ -58,7 +76,7 @@ interface PaginatedOrdenes {
 
 type Modo = 'solo_disponibles' | 'todas';
 
-type Drawer = 'cerrado' | 'nueva' | 'modificar' | 'anular' | 'asignar';
+type Drawer = 'cerrado' | 'nueva' | 'modificar' | 'anular' | 'asignar' | 'parte';
 
 type SharedProps = {
     flash: { success: string | null };
@@ -111,6 +129,14 @@ const formAsignar = useForm({
     maquinarias: [] as number[],
 });
 
+const formParte = useForm({
+    etapa_id: '' as string | number,
+    maquinaria_id: '' as string | number,
+    fecha: new Date().toISOString().split('T')[0],
+    cantidad: '' as string | number,
+    observaciones: '',
+});
+
 function aplicarFiltros(): void {
     router.get(
         '/produccion/ordenes-de-produccion',
@@ -152,6 +178,17 @@ function abrirAsignar(orden: Orden): void {
     formAsignar.clearErrors();
     formAsignar.operarios = [...orden.operario_ids];
     formAsignar.maquinarias = [...orden.maquinaria_ids];
+}
+
+function abrirCargarParte(orden: Orden): void {
+    drawerAbierto.value = 'parte';
+    ordenActiva.value = orden;
+    formParte.clearErrors();
+    formParte.etapa_id = orden.etapas_con_ids[0]?.id ?? '';
+    formParte.maquinaria_id = '';
+    formParte.fecha = new Date().toISOString().split('T')[0];
+    formParte.cantidad = '';
+    formParte.observaciones = '';
 }
 
 function cerrarDrawer(): void {
@@ -229,8 +266,35 @@ function iniciarOrden(orden: Orden): void {
     );
 }
 
+function guardarParte(): void {
+    if (!ordenActiva.value) {
+        return;
+    }
+
+    formParte.post(`/produccion/ordenes-de-produccion/${ordenActiva.value.id}/partes`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cerrarDrawer();
+        },
+    });
+}
+
 function puedeAsignar(estado: string): boolean {
     return ['Pendiente', 'Pendiente por Insumos', 'Asignada'].includes(estado);
+}
+
+function puedeCargarParte(estado: string): boolean {
+    return estado === 'En Curso';
+}
+
+function maquinariasAsignadas(orden: Orden): MaquinariaDisponible[] {
+    return props.maquinariasDisponibles.filter((m) => orden.maquinaria_ids.includes(m.id));
+}
+
+function textoAvance(orden: Orden): string {
+    const conformado = orden.partes.reduce((total, parte) => total + parte.cantidad, 0);
+
+    return `${conformado.toFixed(0)} / ${orden.cantidad_requerida}`;
 }
 
 function textoRecursos(orden: Orden): string {
@@ -403,6 +467,11 @@ function labelDePagina(label: string): string {
                                 <th
                                     class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
                                 >
+                                    Avance
+                                </th>
+                                <th
+                                    class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
                                     Entrega
                                 </th>
                                 <th
@@ -445,6 +514,23 @@ function labelDePagina(label: string): string {
                                 </td>
                                 <td class="px-4 py-2.5 text-right font-mono text-xs text-steel">
                                     {{ orden.cantidad_producida }}
+                                </td>
+                                <td class="px-4 py-2.5 text-xs text-steel">
+                                    <div class="flex items-center gap-2">
+                                        <div
+                                            class="h-2 w-16 overflow-hidden rounded-full bg-workshop"
+                                        >
+                                            <div
+                                                class="h-full bg-teja"
+                                                :style="{
+                                                    width: `${Math.min(100, orden.avance)}%`,
+                                                }"
+                                            ></div>
+                                        </div>
+                                        <span class="font-mono text-xs">{{
+                                            textoAvance(orden)
+                                        }}</span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-2.5 font-mono text-xs text-steel">
                                     {{ orden.fecha_entrega }}
@@ -489,6 +575,19 @@ function labelDePagina(label: string): string {
                                         @click="iniciarOrden(orden)"
                                     >
                                         Iniciar
+                                    </button>
+                                    <span
+                                        v-if="puedeCargarParte(orden.estado)"
+                                        class="mx-2 text-clay/40"
+                                        >|</span
+                                    >
+                                    <button
+                                        v-if="puedeCargarParte(orden.estado)"
+                                        type="button"
+                                        class="font-medium text-purple-700 hover:text-purple-900"
+                                        @click="abrirCargarParte(orden)"
+                                    >
+                                        Cargar parte
                                     </button>
                                 </td>
                             </tr>
@@ -547,7 +646,9 @@ function labelDePagina(label: string): string {
                                   ? 'Modificar orden'
                                   : drawerAbierto === 'anular'
                                     ? 'Anular orden'
-                                    : 'Asignar recursos'
+                                    : drawerAbierto === 'asignar'
+                                      ? 'Asignar recursos'
+                                      : 'Cargar parte diario'
                         }}
                     </h3>
                     <button
@@ -842,6 +943,164 @@ function labelDePagina(label: string): string {
                             class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98] disabled:opacity-60"
                         >
                             {{ formAsignar.processing ? 'Guardando…' : 'Guardar' }}
+                        </button>
+                    </div>
+                </form>
+
+                <form
+                    v-if="drawerAbierto === 'parte' && ordenActiva"
+                    class="mt-4 flex flex-col gap-4"
+                    data-testid="parte-form"
+                    @submit.prevent="guardarParte"
+                >
+                    <div class="flex flex-col gap-1.5">
+                        <label for="etapa_id" class="text-xs font-medium text-steel">Etapa</label>
+                        <select
+                            id="etapa_id"
+                            v-model="formParte.etapa_id"
+                            required
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        >
+                            <option
+                                v-for="etapa in ordenActiva.etapas_con_ids"
+                                :key="etapa.id"
+                                :value="etapa.id"
+                            >
+                                {{ etapa.nombre }}
+                            </option>
+                        </select>
+                        <div v-if="formParte.errors.etapa_id" class="text-xs text-oxide">
+                            {{ formParte.errors.etapa_id }}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="maquinaria_id" class="text-xs font-medium text-steel"
+                            >Maquinaria (opcional)</label
+                        >
+                        <select
+                            id="maquinaria_id"
+                            v-model="formParte.maquinaria_id"
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        >
+                            <option value="">Sin máquina</option>
+                            <option
+                                v-for="maquinaria in maquinariasAsignadas(ordenActiva)"
+                                :key="maquinaria.id"
+                                :value="maquinaria.id"
+                            >
+                                {{ maquinaria.nombre }}
+                            </option>
+                        </select>
+                        <div v-if="formParte.errors.maquinaria_id" class="text-xs text-oxide">
+                            {{ formParte.errors.maquinaria_id }}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="fecha" class="text-xs font-medium text-steel">Fecha</label>
+                        <input
+                            id="fecha"
+                            v-model="formParte.fecha"
+                            type="date"
+                            required
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        />
+                        <div v-if="formParte.errors.fecha" class="text-xs text-oxide">
+                            {{ formParte.errors.fecha }}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="cantidad" class="text-xs font-medium text-steel"
+                            >Cantidad</label
+                        >
+                        <input
+                            id="cantidad"
+                            v-model="formParte.cantidad"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            required
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        />
+                        <div v-if="formParte.errors.cantidad" class="text-xs text-oxide">
+                            {{ formParte.errors.cantidad }}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="observaciones" class="text-xs font-medium text-steel"
+                            >Observaciones</label
+                        >
+                        <textarea
+                            id="observaciones"
+                            v-model="formParte.observaciones"
+                            rows="3"
+                            maxlength="500"
+                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        ></textarea>
+                        <div v-if="formParte.errors.observaciones" class="text-xs text-oxide">
+                            {{ formParte.errors.observaciones }}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="text-xs font-medium text-steel">Partes registrados</span>
+                        <div
+                            v-if="ordenActiva.partes.length === 0"
+                            class="rounded-control border border-hairline bg-canvas p-3 text-sm text-steel"
+                        >
+                            No hay partes registrados para esta orden.
+                        </div>
+                        <table v-else class="w-full text-left text-sm">
+                            <thead class="border-b border-hairline bg-workshop">
+                                <tr>
+                                    <th
+                                        class="px-2 py-1.5 text-[0.625rem] font-semibold text-steel uppercase"
+                                    >
+                                        Etapa
+                                    </th>
+                                    <th
+                                        class="px-2 py-1.5 text-[0.625rem] font-semibold text-steel uppercase"
+                                    >
+                                        Fecha
+                                    </th>
+                                    <th
+                                        class="px-2 py-1.5 text-right text-[0.625rem] font-semibold text-steel uppercase"
+                                    >
+                                        Cantidad
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-hairline">
+                                <tr v-for="parte in ordenActiva.partes" :key="parte.id">
+                                    <td class="px-2 py-1.5 text-ink">{{ parte.etapa }}</td>
+                                    <td class="px-2 py-1.5 font-mono text-xs text-steel">
+                                        {{ parte.fecha }}
+                                    </td>
+                                    <td class="px-2 py-1.5 text-right font-mono text-xs text-steel">
+                                        {{ parte.cantidad }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-end gap-2 border-t border-hairline pt-3">
+                        <button
+                            type="button"
+                            class="rounded-control border border-hairline px-4 py-2 text-sm text-ink transition-colors hover:bg-canvas"
+                            @click="cerrarDrawer"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="formParte.processing"
+                            class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98] disabled:opacity-60"
+                        >
+                            {{ formParte.processing ? 'Guardando…' : 'Guardar' }}
                         </button>
                     </div>
                 </form>

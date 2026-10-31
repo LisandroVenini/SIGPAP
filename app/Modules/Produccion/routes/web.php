@@ -4,6 +4,7 @@ use App\Modules\Produccion\Controllers\EtapaController;
 use App\Modules\Produccion\Controllers\HojaDeRutaController;
 use App\Modules\Produccion\Controllers\OperarioController;
 use App\Modules\Produccion\Controllers\OrdenDeProduccionController;
+use App\Modules\Produccion\Controllers\ParteDiarioController;
 use App\Modules\Produccion\Controllers\PlanificacionController;
 use App\Modules\Produccion\Controllers\RecetaController;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +31,9 @@ Route::middleware('web')
             Route::post('ordenes-de-produccion/{orden}/iniciar', [OrdenDeProduccionController::class, 'iniciar'])
                 ->whereNumber('orden')
                 ->name('ordenes-de-produccion.iniciar');
+            Route::post('ordenes-de-produccion/{orden}/partes', [ParteDiarioController::class, 'store'])
+                ->whereNumber('orden')
+                ->name('ordenes-de-produccion.partes.store');
 
             Route::get('etapas', [EtapaController::class, 'index'])->name('etapas.index');
             Route::post('etapas', [EtapaController::class, 'store'])->name('etapas.store');

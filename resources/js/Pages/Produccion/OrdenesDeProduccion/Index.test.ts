@@ -73,25 +73,32 @@ const maquinariaMantenimiento = {
     seleccionable: false,
 };
 
+const ordenBase = {
+    id: 1,
+    producto: { id: 10, codigo_sku: 'PT-A', descripcion: 'Silla' },
+    planificacion: 'Semana 12',
+    estado: 'Pendiente',
+    cantidad_requerida: 10,
+    cantidad_producida: 0,
+    fecha_entrega: '2026-11-15',
+    prioridad_actual: 1,
+    operarios: ['García, Ana'],
+    operario_ids: [1],
+    maquinarias: ['Lijadora orbital'],
+    maquinaria_ids: [1],
+    etapas: ['Corte', 'Lijado'],
+    etapas_con_ids: [
+        { id: 10, nombre: 'Corte' },
+        { id: 11, nombre: 'Lijado' },
+    ],
+    partes: [],
+    conformado_primera_etapa: 0,
+    avance: 0,
+};
+
 const props = {
     ordenes: {
-        data: [
-            {
-                id: 1,
-                producto: { id: 10, codigo_sku: 'PT-A', descripcion: 'Silla' },
-                planificacion: 'Semana 12',
-                estado: 'Pendiente',
-                cantidad_requerida: 10,
-                cantidad_producida: 0,
-                fecha_entrega: '2026-11-15',
-                prioridad_actual: 1,
-                operarios: ['García, Ana'],
-                operario_ids: [1],
-                maquinarias: ['Lijadora orbital'],
-                maquinaria_ids: [1],
-                etapas: ['Corte', 'Lijado'],
-            },
-        ],
+        data: [ordenBase],
         links: [],
         from: 1,
         to: 1,
@@ -332,5 +339,138 @@ describe('Produccion OrdenesDeProduccion page', () => {
         // Assert
         expect((checkboxes[2].element as HTMLInputElement).disabled).toBe(false);
         expect((checkboxes[3].element as HTMLInputElement).disabled).toBe(true);
+    });
+
+    it('renders the progress column with the advance text', () => {
+        // Arrange
+        const enCursoProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [
+                    {
+                        ...ordenBase,
+                        estado: 'En Curso',
+                        partes: [
+                            {
+                                id: 1,
+                                etapa: 'Corte',
+                                fecha: '2026-10-30',
+                                cantidad: 4,
+                                maquinaria: null,
+                                observaciones: null,
+                            },
+                        ],
+                        avance: 40,
+                    },
+                ],
+            },
+        };
+
+        // Act
+        const wrapper = mount(Ordenes, { props: enCursoProps });
+
+        // Assert
+        expect(wrapper.text()).toContain('4 / 10');
+    });
+
+    it('shows the cargar parte action only for en curso orders', () => {
+        // Arrange
+        const enCursoProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [{ ...ordenBase, estado: 'En Curso' }],
+            },
+        };
+
+        // Act
+        const wrapper = mount(Ordenes, { props: enCursoProps });
+
+        // Assert
+        expect(wrapper.text()).toContain('Cargar parte');
+    });
+
+    it('hides the cargar parte action for non en curso orders', () => {
+        // Arrange / Act
+        const wrapper = mount(Ordenes, { props });
+
+        // Assert
+        expect(wrapper.text()).not.toContain('Cargar parte');
+    });
+
+    it('opens the parte drawer and posts the payload', async () => {
+        // Arrange
+        const enCursoProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [{ ...ordenBase, estado: 'En Curso' }],
+            },
+        };
+        const wrapper = mount(Ordenes, { props: enCursoProps, attachTo: document.body });
+
+        // Act
+        const cargar = wrapper.findAll('button').find((button) => button.text() === 'Cargar parte');
+        await cargar?.trigger('click');
+
+        const form = wrapper.find('[data-testid="parte-form"]');
+        await form.find('#etapa_id').setValue('11');
+        await form.find('#maquinaria_id').setValue('1');
+        await form.find('#fecha').setValue('2026-10-31');
+        await form.find('#cantidad').setValue('5');
+        await form.find('#observaciones').setValue('Observación de prueba');
+        await form.trigger('submit.prevent');
+
+        // Assert
+        expect(hoisted.post).toHaveBeenCalledWith(
+            '/produccion/ordenes-de-produccion/1/partes',
+            expect.objectContaining({ preserveScroll: true }),
+            expect.any(Object),
+        );
+
+        const payload = hoisted.post.mock.calls[0][2];
+        expect(Number(payload.etapa_id)).toBe(11);
+        expect(Number(payload.maquinaria_id)).toBe(1);
+        expect(payload.fecha).toBe('2026-10-31');
+        expect(Number(payload.cantidad)).toBe(5);
+        expect(payload.observaciones).toBe('Observación de prueba');
+    });
+
+    it('lists the order partes inside the drawer', async () => {
+        // Arrange
+        const enCursoProps = {
+            ...props,
+            ordenes: {
+                ...props.ordenes,
+                data: [
+                    {
+                        ...ordenBase,
+                        estado: 'En Curso',
+                        partes: [
+                            {
+                                id: 1,
+                                etapa: 'Corte',
+                                fecha: '2026-10-30',
+                                cantidad: 4,
+                                maquinaria: null,
+                                observaciones: null,
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+        const wrapper = mount(Ordenes, { props: enCursoProps, attachTo: document.body });
+
+        // Act
+        const cargar = wrapper.findAll('button').find((button) => button.text() === 'Cargar parte');
+        await cargar?.trigger('click');
+
+        // Assert
+        expect(wrapper.text()).toContain('Partes registrados');
+        expect(wrapper.text()).toContain('Corte');
+        expect(wrapper.text()).toContain('2026-10-30');
+        expect(wrapper.text()).toContain('4');
     });
 });

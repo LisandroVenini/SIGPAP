@@ -3,7 +3,9 @@
 namespace App\Modules\Inventario\Services;
 
 use App\Modules\Inventario\Enums\EstadoReserva;
+use App\Modules\Inventario\Enums\TipoMovimientoStock;
 use App\Modules\Inventario\Models\Articulo;
+use App\Modules\Inventario\Models\MovimientoDeStock;
 use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Inventario\Queries\ReservasQuery;
 use Illuminate\Support\Collection;
@@ -152,6 +154,108 @@ class GestionReservasService
         }
 
         return true;
+    }
+
+    /**
+     * @param  array<int, float>  $cantidades  articuloId => quantity to consume
+     * @return array<int, float>
+     */
+    public function consumir(int $ordenDeProduccionId, array $cantidades): array
+    {
+        $this->asegurarCantidadesPositivas($cantidades);
+
+        return DB::transaction(function () use ($ordenDeProduccionId, $cantidades): array {
+            $articuloIds = array_keys($cantidades);
+
+            // Lock article rows to serialize concurrent reservations and consumptions.
+            $articulos = Articulo::query()
+                ->whereKey($articuloIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $consumido = [];
+
+            foreach ($cantidades as $articuloId => $cantidad) {
+                $articulo = $articulos->get($articuloId);
+
+                if ($articulo === null) {
+                    throw ValidationException::withMessages([
+                        'insumos' => 'No hay reserva suficiente para consumir los insumos de la orden.',
+                    ]);
+                }
+
+                $reservas = Reserva::query()
+                    ->where('orden_de_produccion_id', $ordenDeProduccionId)
+                    ->where('articulo_id', $articuloId)
+                    ->where('estado', EstadoReserva::Vigente->value)
+                    ->orderBy('id')
+                    ->get();
+
+                $reservado = (float) $reservas->sum('cantidad');
+
+                if (round($cantidad - $reservado, 2) > 0) {
+                    throw ValidationException::withMessages([
+                        'insumos' => 'No hay reserva suficiente para consumir los insumos de la orden.',
+                    ]);
+                }
+
+                $pendiente = $cantidad;
+
+                foreach ($reservas as $reserva) {
+                    $disponibleDeReserva = (float) $reserva->cantidad;
+
+                    if ($pendiente >= $disponibleDeReserva - 0.0001) {
+                        // Consume the whole reservation.
+                        $reserva->estado = EstadoReserva::Consumida->value;
+                        $reserva->save();
+
+                        $pendiente = round($pendiente - $disponibleDeReserva, 2);
+                    } else {
+                        // Partial: reduce the current reservation and create a consumed row for the history.
+                        $reserva->cantidad = round($disponibleDeReserva - $pendiente, 2);
+                        $reserva->save();
+
+                        Reserva::query()->create([
+                            'articulo_id' => $articuloId,
+                            'orden_de_produccion_id' => $ordenDeProduccionId,
+                            'cantidad' => $pendiente,
+                            'estado' => EstadoReserva::Consumida->value,
+                        ]);
+
+                        $pendiente = 0;
+                    }
+
+                    if ($pendiente <= 0.0001) {
+                        break;
+                    }
+                }
+
+                $nuevoStock = round((float) $articulo->stock_fisico - $cantidad, 2);
+
+                if ($nuevoStock < -0.0001) {
+                    throw ValidationException::withMessages([
+                        'stock' => 'El stock no puede quedar negativo.',
+                    ]);
+                }
+
+                $articulo->stock_fisico = $nuevoStock;
+                $articulo->save();
+
+                MovimientoDeStock::create([
+                    'articulo_id' => $articuloId,
+                    'orden_de_produccion_id' => $ordenDeProduccionId,
+                    'tipo' => TipoMovimientoStock::Consumo->value,
+                    'cantidad' => -$cantidad,
+                    'fecha' => now()->toDateString(),
+                    'motivo' => 'Consumo por parte diario',
+                ]);
+
+                $consumido[$articuloId] = $cantidad;
+            }
+
+            return $consumido;
+        });
     }
 
     /**

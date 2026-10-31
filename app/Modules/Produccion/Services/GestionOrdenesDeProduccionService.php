@@ -10,6 +10,7 @@ use App\Modules\Produccion\Enums\ModoDeAltaOrden;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\OrdenesDeProduccionQuery;
+use App\Modules\Produccion\Queries\PartesDiariosQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -25,6 +26,7 @@ class GestionOrdenesDeProduccionService
         private readonly GestionReservasService $reservas,
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly OrdenesDeProduccionQuery $query,
+        private readonly PartesDiariosQuery $partesDiarios,
         private readonly UsuariosService $usuarios,
     ) {}
 
@@ -49,26 +51,67 @@ class GestionOrdenesDeProduccionService
         $articuloIds = $resultados->pluck('articulo_id')->unique()->filter()->all();
         $resumenes = $this->articulos->resumenesDeArticulos($articuloIds);
         $etapasPorArticulo = $this->hojaDeRuta->etapasPorArticulo($articuloIds);
+        $etapasConIdPorArticulo = $this->hojaDeRuta->etapasConIdPorArticulo($articuloIds);
+        $primerasEtapas = $this->hojaDeRuta->primeraEtapaPorArticulo($articuloIds);
 
-        return $resultados->through(fn (OrdenDeProduccion $orden): array => [
-            'id' => $orden->id,
-            'producto' => $resumenes[$orden->articulo_id] ?? null,
-            'planificacion' => $orden->planificacionDeProduccion?->nombre,
-            'estado' => $orden->estado,
-            'cantidad_requerida' => (float) $orden->cantidad_requerida,
-            'cantidad_producida' => (float) $orden->cantidad_producida,
-            'fecha_entrega' => $orden->fecha_entrega?->toDateString(),
-            'prioridad_actual' => $orden->prioridad_actual,
-            'operarios' => $orden->operarios
-                ->sortBy(['apellido', 'nombre'])
-                ->map(fn ($operario): string => "{$operario->apellido}, {$operario->nombre}")
-                ->values()
-                ->all(),
-            'operario_ids' => $orden->operarios->pluck('id')->values()->all(),
-            'maquinarias' => $orden->maquinarias->pluck('nombre')->values()->all(),
-            'maquinaria_ids' => $orden->maquinarias->pluck('id')->values()->all(),
-            'etapas' => $etapasPorArticulo[$orden->articulo_id] ?? [],
-        ]);
+        $ordenIds = $resultados->pluck('id')->unique()->all();
+        $partesPorOrden = $this->partesDiarios->porOrdenes($ordenIds);
+        $conformadoPorOrden = $this->partesDiarios->conformadoPorOrdenes($ordenIds);
+
+        return $resultados->through(function (OrdenDeProduccion $orden) use (
+            $resumenes,
+            $etapasPorArticulo,
+            $etapasConIdPorArticulo,
+            $primerasEtapas,
+            $partesPorOrden,
+            $conformadoPorOrden,
+        ): array {
+            $partes = $partesPorOrden[$orden->id] ?? collect();
+            $conformadoPorEtapa = $conformadoPorOrden[$orden->id] ?? [];
+            $primeraEtapaId = $primerasEtapas[$orden->articulo_id] ?? null;
+            $conformadoPrimeraEtapa = $primeraEtapaId !== null
+                ? ($conformadoPorEtapa[$primeraEtapaId] ?? 0.0)
+                : 0.0;
+
+            // A unit only counts as produced once it passed every etapa, so the
+            // progress is the minimum conformed across the product's route.
+            $etapasDeLaRuta = $etapasConIdPorArticulo[$orden->articulo_id] ?? [];
+            $conformadoCompleto = $etapasDeLaRuta === []
+                ? 0.0
+                : (float) min(array_map(
+                    fn (array $etapa): float => $conformadoPorEtapa[$etapa['id']] ?? 0.0,
+                    $etapasDeLaRuta,
+                ));
+
+            $requerida = (float) $orden->cantidad_requerida;
+            $avance = $requerida > 0
+                ? round(min(100.0, ($conformadoCompleto / $requerida) * 100), 2)
+                : 0.0;
+
+            return [
+                'id' => $orden->id,
+                'producto' => $resumenes[$orden->articulo_id] ?? null,
+                'planificacion' => $orden->planificacionDeProduccion?->nombre,
+                'estado' => $orden->estado,
+                'cantidad_requerida' => $requerida,
+                'cantidad_producida' => (float) $orden->cantidad_producida,
+                'fecha_entrega' => $orden->fecha_entrega?->toDateString(),
+                'prioridad_actual' => $orden->prioridad_actual,
+                'operarios' => $orden->operarios
+                    ->sortBy(['apellido', 'nombre'])
+                    ->map(fn ($operario): string => "{$operario->apellido}, {$operario->nombre}")
+                    ->values()
+                    ->all(),
+                'operario_ids' => $orden->operarios->pluck('id')->values()->all(),
+                'maquinarias' => $orden->maquinarias->pluck('nombre')->values()->all(),
+                'maquinaria_ids' => $orden->maquinarias->pluck('id')->values()->all(),
+                'etapas' => $etapasPorArticulo[$orden->articulo_id] ?? [],
+                'etapas_con_ids' => $etapasConIdPorArticulo[$orden->articulo_id] ?? [],
+                'partes' => $partes->all(),
+                'conformado_primera_etapa' => $conformadoPrimeraEtapa,
+                'avance' => $avance,
+            ];
+        });
     }
 
     /**
