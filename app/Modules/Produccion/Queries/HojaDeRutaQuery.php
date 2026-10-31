@@ -25,7 +25,7 @@ class HojaDeRutaQuery
     }
 
     /**
-     * Return the stage names of each product's route sheet, ordered by name.
+     * Return the stage names of each product's route sheet, ordered by route order.
      *
      * @param  array<int, int>  $articuloIds
      * @return array<int, array<int, string>>
@@ -40,7 +40,7 @@ class HojaDeRutaQuery
             ->join('etapas', 'etapas.id', '=', 'asignaciones_de_etapa.etapa_id')
             ->whereIn('asignaciones_de_etapa.articulo_id', $articuloIds)
             ->whereNull('etapas.deleted_at')
-            ->orderBy('etapas.nombre')
+            ->orderBy('asignaciones_de_etapa.orden')
             ->select('asignaciones_de_etapa.articulo_id', 'etapas.nombre')
             ->get()
             ->groupBy('articulo_id')
@@ -49,7 +49,7 @@ class HojaDeRutaQuery
     }
 
     /**
-     * Return the stages of each product's route sheet with their ids, ordered by name.
+     * Return the stages of each product's route sheet with their ids, ordered by route order.
      *
      * @param  array<int, int>  $articuloIds
      * @return array<int, array<int, array{id:int, nombre:string}>>
@@ -64,7 +64,7 @@ class HojaDeRutaQuery
             ->join('etapas', 'etapas.id', '=', 'asignaciones_de_etapa.etapa_id')
             ->whereIn('asignaciones_de_etapa.articulo_id', $articuloIds)
             ->whereNull('etapas.deleted_at')
-            ->orderBy('etapas.nombre')
+            ->orderBy('asignaciones_de_etapa.orden')
             ->select('asignaciones_de_etapa.articulo_id', 'asignaciones_de_etapa.etapa_id as id', 'etapas.nombre')
             ->get()
             ->groupBy('articulo_id')
@@ -89,8 +89,7 @@ class HojaDeRutaQuery
 
         return AsignacionDeEtapa::query()
             ->whereIn('articulo_id', $articuloIds)
-            ->orderBy('id')
-            ->orderBy('etapa_id')
+            ->orderBy('orden')
             ->get()
             ->unique('articulo_id')
             ->mapWithKeys(fn (AsignacionDeEtapa $asignacion): array => [

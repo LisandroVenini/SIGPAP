@@ -93,8 +93,179 @@ class GestionHojaDeRutaServiceTest extends TestCase
             'articulo_id' => $producto->id,
             'etapa_id' => $etapa->id,
             'tiempo_por_unidad' => 12.5,
+            'orden' => 1,
         ]);
         $this->assertDatabaseHas('eventos_de_auditoria', ['accion' => 'asignar_etapa_producto']);
+    }
+
+    public function test_assigning_three_etapas_assigns_increasing_order(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapaUno = Etapa::factory()->create();
+        $etapaDos = Etapa::factory()->create();
+        $etapaTres = Etapa::factory()->create();
+
+        // Act
+        $service = app(GestionHojaDeRutaService::class);
+        $service->asignar($actor, $producto->id, $etapaUno->id, 10, '127.0.0.1');
+        $service->asignar($actor, $producto->id, $etapaDos->id, 20, '127.0.0.1');
+        $service->asignar($actor, $producto->id, $etapaTres->id, 30, '127.0.0.1');
+
+        // Assert
+        $this->assertSame(1, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaUno->id)->value('orden'));
+        $this->assertSame(2, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaDos->id)->value('orden'));
+        $this->assertSame(3, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaTres->id)->value('orden'));
+    }
+
+    public function test_desassigning_the_middle_etapa_reindexes_remaining_to_one_and_two(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapaUno = Etapa::factory()->create();
+        $etapaDos = Etapa::factory()->create();
+        $etapaTres = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaUno->id,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaDos->id,
+            'orden' => 2,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaTres->id,
+            'orden' => 3,
+        ]);
+
+        // Act
+        app(GestionHojaDeRutaService::class)->desasignar($actor, $producto->id, $etapaDos->id, '127.0.0.1');
+
+        // Assert
+        $this->assertDatabaseMissing('asignaciones_de_etapa', [
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaDos->id,
+        ]);
+        $this->assertDatabaseHas('asignaciones_de_etapa', [
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaUno->id,
+            'orden' => 1,
+        ]);
+        $this->assertDatabaseHas('asignaciones_de_etapa', [
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaTres->id,
+            'orden' => 2,
+        ]);
+    }
+
+    public function test_moving_an_etapa_down_swaps_order_with_neighbor(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapaUno = Etapa::factory()->create();
+        $etapaDos = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaUno->id,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaDos->id,
+            'orden' => 2,
+        ]);
+
+        // Act
+        app(GestionHojaDeRutaService::class)->mover($actor, $producto->id, $etapaUno->id, 'bajar', '127.0.0.1');
+
+        // Assert
+        $this->assertSame(2, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaUno->id)->value('orden'));
+        $this->assertSame(1, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaDos->id)->value('orden'));
+        $this->assertDatabaseHas('eventos_de_auditoria', ['accion' => 'mover_etapa_hoja_de_ruta']);
+    }
+
+    public function test_moving_an_etapa_up_swaps_order_with_neighbor(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapaUno = Etapa::factory()->create();
+        $etapaDos = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaUno->id,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaDos->id,
+            'orden' => 2,
+        ]);
+
+        // Act
+        app(GestionHojaDeRutaService::class)->mover($actor, $producto->id, $etapaDos->id, 'subir', '127.0.0.1');
+
+        // Assert
+        $this->assertSame(2, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaUno->id)->value('orden'));
+        $this->assertSame(1, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaDos->id)->value('orden'));
+    }
+
+    public function test_moving_the_first_etapa_up_is_idempotent(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapaUno = Etapa::factory()->create();
+        $etapaDos = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaUno->id,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaDos->id,
+            'orden' => 2,
+        ]);
+
+        // Act
+        app(GestionHojaDeRutaService::class)->mover($actor, $producto->id, $etapaUno->id, 'subir', '127.0.0.1');
+
+        // Assert
+        $this->assertSame(1, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaUno->id)->value('orden'));
+        $this->assertSame(2, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaDos->id)->value('orden'));
+    }
+
+    public function test_moving_the_last_etapa_down_is_idempotent(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapaUno = Etapa::factory()->create();
+        $etapaDos = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaUno->id,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaDos->id,
+            'orden' => 2,
+        ]);
+
+        // Act
+        app(GestionHojaDeRutaService::class)->mover($actor, $producto->id, $etapaDos->id, 'bajar', '127.0.0.1');
+
+        // Assert
+        $this->assertSame(1, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaUno->id)->value('orden'));
+        $this->assertSame(2, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaDos->id)->value('orden'));
     }
 
     public function test_blocks_assigning_an_etapa_twice(): void

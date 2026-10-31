@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => {
     const reset = vi.fn();
     const clearErrors = vi.fn();
     const routerDelete = vi.fn();
+    const routerPut = vi.fn();
 
     const page = {
         props: {
@@ -17,7 +18,7 @@ const hoisted = vi.hoisted(() => {
         },
     };
 
-    return { post, reset, clearErrors, routerDelete, page };
+    return { post, reset, clearErrors, routerDelete, routerPut, page };
 });
 
 vi.mock('@inertiajs/vue3', () => ({
@@ -33,7 +34,7 @@ vi.mock('@inertiajs/vue3', () => ({
             clearErrors: hoisted.clearErrors,
         }),
     usePage: () => hoisted.page,
-    router: { delete: hoisted.routerDelete },
+    router: { delete: hoisted.routerDelete, put: hoisted.routerPut },
 }));
 
 vi.mock('../../../Layouts/AppLayout.vue', () => ({
@@ -44,7 +45,7 @@ import Detalle from './Detalle.vue';
 
 const props = {
     producto: { id: 1, codigo_sku: 'PT-001', descripcion: 'Silla de pino', unidad: 'Unidad' },
-    asignadas: [{ etapa_id: 10, etapa: 'Lijado', tiempo_por_unidad: 5 }],
+    asignadas: [{ etapa_id: 10, etapa: 'Lijado', tiempo_por_unidad: 5, orden: 1 }],
     disponibles: [{ id: 11, nombre: 'Pintado' }],
     receta: {
         componentes: [
@@ -72,6 +73,7 @@ describe('Produccion Hoja de Ruta detail page', () => {
     beforeEach(() => {
         hoisted.post.mockClear();
         hoisted.routerDelete.mockClear();
+        hoisted.routerPut.mockClear();
     });
 
     afterEach(() => {
@@ -122,6 +124,65 @@ describe('Produccion Hoja de Ruta detail page', () => {
         expect(hoisted.routerDelete).toHaveBeenCalledWith('/produccion/hoja-de-ruta/1/etapas/10', {
             preserveScroll: true,
         });
+    });
+
+    it('renders the order of each assigned etapa', () => {
+        // Arrange / Act
+        const wrapper = mount(Detalle, { props });
+
+        // Assert
+        const ordenes = wrapper.findAll('[data-testid="orden-etapa"]').map((celda) => celda.text());
+
+        expect(ordenes).toEqual(['1']);
+    });
+
+    it('moves an etapa up when the up button is clicked', async () => {
+        // Arrange
+        const wrapper = mount(Detalle, {
+            props: {
+                ...props,
+                asignadas: [
+                    { etapa_id: 10, etapa: 'Lijado', tiempo_por_unidad: 5, orden: 1 },
+                    { etapa_id: 11, etapa: 'Pintado', tiempo_por_unidad: 8, orden: 2 },
+                ],
+            },
+        });
+        const subir = wrapper
+            .findAll('button')
+            .find(
+                (button) =>
+                    button.text() === 'Subir' && button.attributes('disabled') === undefined,
+            );
+
+        expect(subir).toBeDefined();
+
+        // Act
+        await subir!.trigger('click');
+
+        // Assert
+        expect(hoisted.routerPut).toHaveBeenCalledWith(
+            '/produccion/hoja-de-ruta/1/etapas/11/mover',
+            { etapa_id: 11, direccion: 'subir' },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('disables the up button on the first etapa', () => {
+        // Arrange / Act
+        const wrapper = mount(Detalle, { props });
+        const subir = wrapper.findAll('button').find((button) => button.text() === 'Subir');
+
+        // Assert
+        expect(subir!.attributes('disabled')).toBeDefined();
+    });
+
+    it('disables the down button on the last etapa', () => {
+        // Arrange / Act
+        const wrapper = mount(Detalle, { props });
+        const bajar = wrapper.findAll('button').find((button) => button.text() === 'Bajar');
+
+        // Assert
+        expect(bajar!.attributes('disabled')).toBeDefined();
     });
 
     it('renders the recipe section with components and available supplies', () => {

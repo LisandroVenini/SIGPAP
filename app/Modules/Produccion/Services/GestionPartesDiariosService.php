@@ -51,8 +51,7 @@ class GestionPartesDiariosService
 
             $asignaciones = AsignacionDeEtapa::query()
                 ->where('articulo_id', $orden->articulo_id)
-                ->orderBy('id')
-                ->orderBy('etapa_id')
+                ->ordenadas()
                 ->get()
                 ->keyBy('etapa_id');
 

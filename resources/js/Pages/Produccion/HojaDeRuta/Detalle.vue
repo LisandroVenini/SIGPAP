@@ -14,6 +14,7 @@ interface Asignada {
     etapa_id: number;
     etapa: string | null;
     tiempo_por_unidad: number;
+    orden: number;
 }
 
 interface Disponible {
@@ -93,6 +94,19 @@ function desasignar(asignada: Asignada): void {
     });
 }
 
+function mover(asignada: Asignada, direccion: 'subir' | 'bajar'): void {
+    router.put(
+        `/produccion/hoja-de-ruta/${props.producto.id}/etapas/${asignada.etapa_id}/mover`,
+        {
+            etapa_id: asignada.etapa_id,
+            direccion,
+        },
+        {
+            preserveScroll: true,
+        },
+    );
+}
+
 function agregarComponente(): void {
     recetaForm.post(`/produccion/hoja-de-ruta/${props.producto.id}/receta/componentes`, {
         preserveScroll: true,
@@ -165,6 +179,11 @@ function quitarComponente(componente: ComponenteDeReceta): void {
                         <thead class="border-b border-hairline">
                             <tr>
                                 <th
+                                    class="px-4 py-2.5 text-center text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Orden
+                                </th>
+                                <th
                                     class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
                                 >
                                     Etapa
@@ -183,10 +202,16 @@ function quitarComponente(componente: ComponenteDeReceta): void {
                         </thead>
                         <tbody class="divide-y divide-hairline">
                             <tr
-                                v-for="asignada in props.asignadas"
+                                v-for="(asignada, indice) in props.asignadas"
                                 :key="asignada.etapa_id"
                                 class="hover:bg-teja-wash/30"
                             >
+                                <td
+                                    class="px-4 py-2.5 text-center font-mono text-xs text-ink"
+                                    data-testid="orden-etapa"
+                                >
+                                    {{ asignada.orden }}
+                                </td>
                                 <td class="px-4 py-2.5 text-sm font-medium text-ink">
                                     {{ asignada.etapa }}
                                 </td>
@@ -194,13 +219,31 @@ function quitarComponente(componente: ComponenteDeReceta): void {
                                     {{ asignada.tiempo_por_unidad }}
                                 </td>
                                 <td class="px-4 py-2.5 text-right text-xs">
-                                    <button
-                                        type="button"
-                                        class="font-medium text-steel hover:text-oxide"
-                                        @click="desasignar(asignada)"
-                                    >
-                                        Desasignar
-                                    </button>
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            class="font-medium text-steel hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                                            :disabled="indice === 0"
+                                            @click="mover(asignada, 'subir')"
+                                        >
+                                            Subir
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="font-medium text-steel hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                                            :disabled="indice === props.asignadas.length - 1"
+                                            @click="mover(asignada, 'bajar')"
+                                        >
+                                            Bajar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="font-medium text-steel hover:text-oxide"
+                                            @click="desasignar(asignada)"
+                                        >
+                                            Desasignar
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>

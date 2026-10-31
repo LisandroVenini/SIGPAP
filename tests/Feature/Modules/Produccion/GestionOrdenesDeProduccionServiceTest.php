@@ -313,8 +313,16 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
 
         $corte = Etapa::factory()->create(['nombre' => 'Corte']);
         $lijado = Etapa::factory()->create(['nombre' => 'Lijado']);
-        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $corte->id]);
-        AsignacionDeEtapa::factory()->create(['articulo_id' => $producto->id, 'etapa_id' => $lijado->id]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $corte->id,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $lijado->id,
+            'orden' => 2,
+        ]);
 
         $orden = OrdenDeProduccion::factory()->create([
             'articulo_id' => $producto->id,

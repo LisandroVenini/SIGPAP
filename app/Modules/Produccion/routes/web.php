@@ -56,6 +56,10 @@ Route::middleware('web')
                 ->whereNumber('articulo')
                 ->whereNumber('etapa')
                 ->name('hoja-de-ruta.etapas.destroy');
+            Route::put('hoja-de-ruta/{articulo}/etapas/{etapa}/mover', [HojaDeRutaController::class, 'mover'])
+                ->whereNumber('articulo')
+                ->whereNumber('etapa')
+                ->name('hoja-de-ruta.etapas.mover');
 
             Route::post('hoja-de-ruta/{articulo}/receta/componentes', [RecetaController::class, 'store'])
                 ->whereNumber('articulo')

@@ -91,11 +91,13 @@ class GestionPartesDiariosServiceTest extends TestCase
             'articulo_id' => $producto->id,
             'etapa_id' => $corte->id,
             'tiempo_por_unidad' => 10,
+            'orden' => 1,
         ]);
         AsignacionDeEtapa::factory()->create([
             'articulo_id' => $producto->id,
             'etapa_id' => $ensamble->id,
             'tiempo_por_unidad' => 20,
+            'orden' => 2,
         ]);
 
         return [$corte, $ensamble];
@@ -412,5 +414,53 @@ class GestionPartesDiariosServiceTest extends TestCase
 
         // Act / Assert
         $this->assertTrue($this->service()->puedeGestionar($actor));
+    }
+
+    public function test_consumption_happens_on_the_stage_with_order_one(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+
+        $primera = Etapa::factory()->create();
+        $segunda = Etapa::factory()->create();
+        // The first stage is intentionally created with a higher id but order 1.
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $primera->id,
+            'tiempo_por_unidad' => 10,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $segunda->id,
+            'tiempo_por_unidad' => 20,
+            'orden' => 2,
+        ]);
+
+        $orden = $this->ordenEnCurso($producto);
+        app(GestionReservasService::class)->reservar($orden->id, [$insumo->id => 20]);
+
+        // Act
+        $this->service()->registrar(
+            $actor,
+            $orden,
+            $primera->id,
+            null,
+            '2026-11-01',
+            6,
+            null,
+            '127.0.0.1'
+        );
+
+        // Assert
+        $this->assertDatabaseHas('reservas', [
+            'orden_de_produccion_id' => $orden->id,
+            'articulo_id' => $insumo->id,
+            'cantidad' => 12,
+            'estado' => EstadoReserva::Consumida->value,
+        ]);
     }
 }

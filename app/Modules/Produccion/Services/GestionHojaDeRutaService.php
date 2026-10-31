@@ -38,7 +38,7 @@ class GestionHojaDeRutaService
     }
 
     /**
-     * @return array{producto: array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}, asignadas: array<int, array{etapa_id: int, etapa: string|null, tiempo_por_unidad: float}>, disponibles: array<int, array{id: int, nombre: string}>}|null
+     * @return array{producto: array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}, asignadas: array<int, array{etapa_id: int, etapa: string|null, tiempo_por_unidad: float, orden: int}>, disponibles: array<int, array{id: int, nombre: string}>}|null
      */
     public function detalle(int $articuloId): ?array
     {
@@ -51,13 +51,14 @@ class GestionHojaDeRutaService
         $asignadas = AsignacionDeEtapa::query()
             ->with('etapa')
             ->where('articulo_id', $articuloId)
+            ->ordenadas()
             ->get()
             ->map(fn (AsignacionDeEtapa $asignacion): array => [
                 'etapa_id' => $asignacion->etapa_id,
                 'etapa' => $asignacion->etapa?->nombre,
                 'tiempo_por_unidad' => (float) $asignacion->tiempo_por_unidad,
+                'orden' => (int) $asignacion->orden,
             ])
-            ->sortBy('etapa')
             ->values();
 
         $disponibles = Etapa::query()
@@ -93,10 +94,15 @@ class GestionHojaDeRutaService
         }
 
         DB::transaction(function () use ($actor, $articuloId, $etapaId, $tiempoPorUnidad, $direccionIp): void {
+            $nuevoOrden = (int) AsignacionDeEtapa::query()
+                ->where('articulo_id', $articuloId)
+                ->max('orden') + 1;
+
             $asignacion = AsignacionDeEtapa::create([
                 'articulo_id' => $articuloId,
                 'etapa_id' => $etapaId,
                 'tiempo_por_unidad' => $tiempoPorUnidad,
+                'orden' => $nuevoOrden,
             ]);
 
             $this->auditoria->registrarEvento(
@@ -147,6 +153,96 @@ class GestionHojaDeRutaService
             );
 
             $asignacion->delete();
+
+            $this->reindexarOrdenes($articuloId);
         });
+    }
+
+    public function mover(
+        Usuario $actor,
+        int $articuloId,
+        int $etapaId,
+        string $direccion,
+        ?string $direccionIp = null,
+    ): void {
+        $asignaciones = AsignacionDeEtapa::query()
+            ->where('articulo_id', $articuloId)
+            ->ordenadas()
+            ->get()
+            ->keyBy('etapa_id');
+
+        if (! $asignaciones->has($etapaId)) {
+            throw ValidationException::withMessages([
+                'etapa_id' => 'La etapa no está asignada a este producto.',
+            ]);
+        }
+
+        $indices = $asignaciones->keys()->values();
+        $posicionActual = $indices->search($etapaId, true);
+
+        if ($posicionActual === false) {
+            return;
+        }
+
+        $delta = $direccion === 'subir' ? -1 : 1;
+        $posicionVecino = (int) $posicionActual + $delta;
+
+        if ($posicionVecino < 0 || $posicionVecino >= $indices->count()) {
+            return;
+        }
+
+        $etapaVecina = (int) $indices[$posicionVecino];
+
+        DB::transaction(function () use ($actor, $articuloId, $etapaId, $etapaVecina, $direccion, $direccionIp): void {
+            $actual = AsignacionDeEtapa::query()
+                ->where('articulo_id', $articuloId)
+                ->where('etapa_id', $etapaId)
+                ->firstOrFail();
+            $vecina = AsignacionDeEtapa::query()
+                ->where('articulo_id', $articuloId)
+                ->where('etapa_id', $etapaVecina)
+                ->firstOrFail();
+
+            $ordenActual = (int) $actual->orden;
+            $ordenVecina = (int) $vecina->orden;
+
+            AsignacionDeEtapa::query()
+                ->where('articulo_id', $articuloId)
+                ->where('etapa_id', $etapaId)
+                ->update(['orden' => 0]);
+            AsignacionDeEtapa::query()
+                ->where('articulo_id', $articuloId)
+                ->where('etapa_id', $etapaVecina)
+                ->update(['orden' => $ordenActual]);
+            AsignacionDeEtapa::query()
+                ->where('articulo_id', $articuloId)
+                ->where('etapa_id', $etapaId)
+                ->update(['orden' => $ordenVecina]);
+
+            $this->auditoria->registrarEvento(
+                $actor->id,
+                'mover_etapa_hoja_de_ruta',
+                ['articulo_id' => $articuloId, 'etapa_id' => $etapaId, 'orden_anterior' => $ordenActual],
+                ['articulo_id' => $articuloId, 'etapa_id' => $etapaId, 'direccion' => $direccion, 'orden_nuevo' => $ordenVecina],
+                $direccionIp,
+                AsignacionDeEtapa::class,
+                $actual->id,
+            );
+        });
+    }
+
+    private function reindexarOrdenes(int $articuloId): void
+    {
+        $asignaciones = AsignacionDeEtapa::query()
+            ->where('articulo_id', $articuloId)
+            ->ordenadas()
+            ->get();
+
+        foreach ($asignaciones->values() as $indice => $asignacion) {
+            $ordenEsperado = $indice + 1;
+            if ((int) $asignacion->orden !== $ordenEsperado) {
+                $asignacion->update(['orden' => $ordenEsperado]);
+            }
+        }
     }
 }

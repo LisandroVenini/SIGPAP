@@ -5,6 +5,7 @@ namespace App\Modules\Produccion\Controllers;
 use App\Modules\Produccion\Requests\AsignarEtapaRequest;
 use App\Modules\Produccion\Requests\DesasignarEtapaRequest;
 use App\Modules\Produccion\Requests\GestionarHojaDeRutaRequest;
+use App\Modules\Produccion\Requests\MoverEtapaRequest;
 use App\Modules\Produccion\Services\GestionHojaDeRutaService;
 use App\Modules\Produccion\Services\GestionRecetasService;
 use App\Modules\Usuarios\Models\Usuario;
@@ -74,5 +75,23 @@ class HojaDeRutaController
         return redirect()
             ->route('produccion.hoja-de-ruta.show', $articulo)
             ->with('success', 'Etapa desasignada.');
+    }
+
+    public function mover(MoverEtapaRequest $request, int $articulo, int $etapa): RedirectResponse
+    {
+        /** @var Usuario $actor */
+        $actor = $request->user();
+
+        $this->hoja->mover(
+            $actor,
+            $articulo,
+            $etapa,
+            (string) $request->validated('direccion'),
+            $request->ip(),
+        );
+
+        return redirect()
+            ->route('produccion.hoja-de-ruta.show', $articulo)
+            ->with('success', 'Hoja de ruta actualizada.');
     }
 }

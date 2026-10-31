@@ -155,4 +155,65 @@ class HojaDeRutaControllerTest extends TestCase
             'etapa_id' => $etapa->id,
         ]);
     }
+
+    public function test_a_supervisor_can_move_an_etapa_down(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $producto = $this->productoFabricado();
+        $etapaUno = Etapa::factory()->create();
+        $etapaDos = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaUno->id,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapaDos->id,
+            'orden' => 2,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->put("/produccion/hoja-de-ruta/{$producto->id}/etapas/{$etapaUno->id}/mover", [
+            'direccion' => 'bajar',
+        ]);
+
+        // Assert
+        $response->assertRedirect("/produccion/hoja-de-ruta/{$producto->id}");
+        $response->assertSessionHas('success', 'Hoja de ruta actualizada.');
+        $this->assertSame(2, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaUno->id)->value('orden'));
+        $this->assertSame(1, (int) AsignacionDeEtapa::query()->where('etapa_id', $etapaDos->id)->value('orden'));
+    }
+
+    public function test_guests_cannot_move_etapas(): void
+    {
+        // Arrange
+        $producto = $this->productoFabricado();
+        $etapa = Etapa::factory()->create();
+
+        // Act
+        $response = $this->put("/produccion/hoja-de-ruta/{$producto->id}/etapas/{$etapa->id}/mover", [
+            'direccion' => 'bajar',
+        ]);
+
+        // Assert
+        $response->assertRedirect('/login');
+    }
+
+    public function test_users_without_permission_cannot_move_etapas(): void
+    {
+        // Arrange
+        $usuario = Usuario::factory()->create();
+        $producto = $this->productoFabricado();
+        $etapa = Etapa::factory()->create();
+
+        // Act
+        $response = $this->actingAs($usuario)->put("/produccion/hoja-de-ruta/{$producto->id}/etapas/{$etapa->id}/mover", [
+            'direccion' => 'bajar',
+        ]);
+
+        // Assert
+        $response->assertForbidden();
+    }
 }
