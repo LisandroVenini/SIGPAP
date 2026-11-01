@@ -30,7 +30,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T7.1 — Parte Diario: registro por etapa y fecha (acumulativo), consumo de insumos solo en la primera etapa con el delta, desgaste por etapa, avance real (mínimo conformado entre etapas de la ruta). Commit `d14258e`.
 - [x] T7.2 — Calidad dual (por parte o por orden), cierre estricto (solo con la cantidad requerida aprobada) y posposición con pausa, opción de liberar o retener reservas y reanudación con re-reserva de lo restante. Commits `dc5af6b` y `4759c0d`.
 - [x] T8.1 — Maquinarias: ABM + búsqueda, `estado_operativo` gobernado por mantenimiento, baja bloqueada por orden en curso, planes o intervenciones. Commit `7205a0d`.
-- [ ] T8.2 — Planes de mantenimiento, intervenciones y bloqueo preventivo por umbral de desgaste.
+- [x] T8.2 — Planes de mantenimiento (uno por máquina), intervenciones que reinician desgaste y desbloquean, y bloqueo preventivo automático al alcanzar el umbral de uso. Commits `382f384` y `f16893e`.
 - [ ] T8.3 — Cronograma/Gantt con reordenamiento por prioridad y `RegistroPrioridad`.
 
 ## Log
@@ -67,3 +67,4 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L30: Evidencia T7.2 — PHPUnit Producción + Inventario: 217 tests, 678 assertions. Vitest Producción: 57 tests. `vue-tsc` y pint sin errores.
 - L31: "dale, sigamos con t8" — T8 se parte en tres: maquinarias, planes e intervenciones con bloqueo preventivo, y cronograma.
 - L32: El primer intento de delegación falló con "Upstream request failed: Endpoint is unavailable" pero había alcanzado a crear parte del backend; el reintento completó la unidad. Evidencia T8.1 — 237 tests, 754 assertions, 62 Vitest, gga PASSED.
+- L33: T8.2: gga bloqueó la primera versión por query en el controller, join en el Service y listado pasamanos; se movió el selector a `GestionMaquinariasService::opciones()`, el join a `PlanesDeMantenimientoQuery` y el listado a scopes del modelo. Evidencia: 271 tests, 868 assertions, 68 Vitest.
