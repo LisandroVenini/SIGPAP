@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Produccion\Controllers\CronogramaController;
 use App\Modules\Produccion\Controllers\EtapaController;
 use App\Modules\Produccion\Controllers\HojaDeRutaController;
 use App\Modules\Produccion\Controllers\IntervencionDeMantenimientoController;
@@ -17,6 +18,11 @@ Route::middleware('web')
     ->name('produccion.')
     ->group(function (): void {
         Route::middleware('auth')->group(function (): void {
+            Route::get('cronograma', [CronogramaController::class, 'index'])->name('cronograma.index');
+            Route::put('cronograma/{orden}/prioridad', [CronogramaController::class, 'reordenar'])
+                ->whereNumber('orden')
+                ->name('cronograma.reordenar');
+
             Route::get('planificaciones', [PlanificacionController::class, 'index'])->name('planificaciones.index');
             Route::post('planificaciones', [PlanificacionController::class, 'store'])->name('planificaciones.store');
             Route::put('planificaciones/{planificacion}', [PlanificacionController::class, 'update'])->name('planificaciones.update');
