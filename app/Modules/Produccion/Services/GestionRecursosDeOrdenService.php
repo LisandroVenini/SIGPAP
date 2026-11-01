@@ -57,6 +57,7 @@ class GestionRecursosDeOrdenService
                     'seleccionable' => $maquinaria->estado_operativo === EstadoMaquinaria::Disponible->value,
                 ],
             ])
+            ->values()
             ->all();
 
         return [

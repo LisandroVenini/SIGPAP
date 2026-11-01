@@ -111,6 +111,26 @@ class OrdenDeProduccionControllerTest extends TestCase
             ->where('ordenes.total', 0));
     }
 
+    public function test_the_index_provides_resource_selectors_as_lists(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $operario = Operario::factory()->create();
+        $maquinaria = Maquinaria::factory()->create();
+
+        // Act
+        $response = $this->actingAs($usuario)->get('/produccion/ordenes-de-produccion');
+
+        // Assert
+        $response->assertOk();
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Produccion/OrdenesDeProduccion/Index')
+            ->has('operariosDisponibles', 1)
+            ->has('maquinariasDisponibles', 1)
+            ->where('operariosDisponibles.0.id', $operario->id)
+            ->where('maquinariasDisponibles.0.id', $maquinaria->id));
+    }
+
     public function test_a_supervisor_can_list_ordenes(): void
     {
         // Arrange
