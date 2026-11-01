@@ -22,6 +22,7 @@ use App\Modules\Produccion\Models\Receta;
 use App\Modules\Produccion\Services\GestionPartesDiariosService;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
+use Database\Factories\PlanDeMantenimientoFactory;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -461,6 +462,127 @@ class GestionPartesDiariosServiceTest extends TestCase
 
         // Act / Assert
         $this->assertTrue($this->service()->puedeGestionar($actor));
+    }
+
+    public function test_automatically_blocks_machine_when_wear_reaches_threshold(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        [$corte] = $this->hojaDeRutaDeDosEtapas($producto);
+        $planificacion = PlanificacionDeProduccion::factory()->create();
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+            'cantidad_requerida' => 1000,
+            'cantidad_producida' => 0,
+        ]);
+        $maquinaria = Maquinaria::factory()->create([
+            'estado_operativo' => EstadoMaquinaria::Disponible->value,
+            'desgaste_acumulado' => 400,
+        ]);
+        $orden->maquinarias()->attach($maquinaria->id);
+        PlanDeMantenimientoFactory::new()->create([
+            'maquinaria_id' => $maquinaria->id,
+            'umbral_uso' => 1000,
+        ]);
+
+        // Act
+        $this->service()->registrar(
+            $actor,
+            $orden,
+            $corte->id,
+            $maquinaria->id,
+            '2026-11-01',
+            600,
+            null,
+            '127.0.0.1'
+        );
+
+        // Assert
+        $maquinaria->refresh();
+        $this->assertSame(EstadoMaquinaria::Bloqueada->value, $maquinaria->estado_operativo);
+        $this->assertDatabaseHas('eventos_de_auditoria', [
+            'accion' => 'bloquear_maquinaria_por_uso',
+            'usuario_id' => $actor->id,
+        ]);
+    }
+
+    public function test_does_not_block_machine_when_wear_stays_below_threshold(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        [$corte] = $this->hojaDeRutaDeDosEtapas($producto);
+        $planificacion = PlanificacionDeProduccion::factory()->create();
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+            'cantidad_requerida' => 1000,
+            'cantidad_producida' => 0,
+        ]);
+        $maquinaria = Maquinaria::factory()->create([
+            'estado_operativo' => EstadoMaquinaria::Disponible->value,
+            'desgaste_acumulado' => 100,
+        ]);
+        $orden->maquinarias()->attach($maquinaria->id);
+        PlanDeMantenimientoFactory::new()->create([
+            'maquinaria_id' => $maquinaria->id,
+            'umbral_uso' => 1000,
+        ]);
+
+        // Act
+        $this->service()->registrar(
+            $actor,
+            $orden,
+            $corte->id,
+            $maquinaria->id,
+            '2026-11-01',
+            100,
+            null,
+            '127.0.0.1'
+        );
+
+        // Assert
+        $this->assertSame(EstadoMaquinaria::Disponible->value, $maquinaria->refresh()->estado_operativo);
+    }
+
+    public function test_does_not_block_machine_without_plan(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        [$corte] = $this->hojaDeRutaDeDosEtapas($producto);
+        $planificacion = PlanificacionDeProduccion::factory()->create();
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+            'cantidad_requerida' => 5000,
+            'cantidad_producida' => 0,
+        ]);
+        $maquinaria = Maquinaria::factory()->create([
+            'estado_operativo' => EstadoMaquinaria::Disponible->value,
+            'desgaste_acumulado' => 0,
+        ]);
+        $orden->maquinarias()->attach($maquinaria->id);
+
+        // Act
+        $this->service()->registrar(
+            $actor,
+            $orden,
+            $corte->id,
+            $maquinaria->id,
+            '2026-11-01',
+            5000,
+            null,
+            '127.0.0.1'
+        );
+
+        // Assert
+        $this->assertSame(EstadoMaquinaria::Disponible->value, $maquinaria->refresh()->estado_operativo);
     }
 
     public function test_consumption_happens_on_the_stage_with_order_one(): void

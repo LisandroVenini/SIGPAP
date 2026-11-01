@@ -2,10 +2,12 @@
 
 use App\Modules\Produccion\Controllers\EtapaController;
 use App\Modules\Produccion\Controllers\HojaDeRutaController;
+use App\Modules\Produccion\Controllers\IntervencionDeMantenimientoController;
 use App\Modules\Produccion\Controllers\MaquinariaController;
 use App\Modules\Produccion\Controllers\OperarioController;
 use App\Modules\Produccion\Controllers\OrdenDeProduccionController;
 use App\Modules\Produccion\Controllers\ParteDiarioController;
+use App\Modules\Produccion\Controllers\PlanDeMantenimientoController;
 use App\Modules\Produccion\Controllers\PlanificacionController;
 use App\Modules\Produccion\Controllers\RecetaController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +68,18 @@ Route::middleware('web')
             Route::delete('maquinarias/{maquinaria}', [MaquinariaController::class, 'destroy'])
                 ->whereNumber('maquinaria')
                 ->name('maquinarias.destroy');
+            Route::post('maquinarias/{maquinaria}/mantenimientos', [IntervencionDeMantenimientoController::class, 'store'])
+                ->whereNumber('maquinaria')
+                ->name('maquinarias.mantenimientos.store');
+
+            Route::get('planes-de-mantenimiento', [PlanDeMantenimientoController::class, 'index'])->name('planes.index');
+            Route::post('planes-de-mantenimiento', [PlanDeMantenimientoController::class, 'store'])->name('planes.store');
+            Route::put('planes-de-mantenimiento/{plan}', [PlanDeMantenimientoController::class, 'update'])
+                ->whereNumber('plan')
+                ->name('planes.update');
+            Route::delete('planes-de-mantenimiento/{plan}', [PlanDeMantenimientoController::class, 'destroy'])
+                ->whereNumber('plan')
+                ->name('planes.destroy');
 
             Route::get('hoja-de-ruta', [HojaDeRutaController::class, 'index'])->name('hoja-de-ruta.index');
             Route::get('hoja-de-ruta/{articulo}', [HojaDeRutaController::class, 'show'])

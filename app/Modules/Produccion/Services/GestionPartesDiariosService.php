@@ -19,6 +19,7 @@ class GestionPartesDiariosService
 {
     public function __construct(
         private readonly AuditoriaService $auditoria,
+        private readonly GestionMantenimientosService $mantenimientos,
         private readonly GestionRecetasService $recetas,
         private readonly GestionReservasService $reservas,
         private readonly PartesDiariosQuery $query,
@@ -126,6 +127,8 @@ class GestionPartesDiariosService
                 $maquinaria = Maquinaria::query()->whereKey($maquinariaId)->lockForUpdate()->firstOrFail();
                 $maquinaria->desgaste_acumulado = round((float) $maquinaria->desgaste_acumulado + $cantidad, 2);
                 $maquinaria->save();
+
+                $this->mantenimientos->evaluarBloqueo($actor, $maquinaria, $direccionIp);
             }
 
             $this->auditoria->registrarEvento(

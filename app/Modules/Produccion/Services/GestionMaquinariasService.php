@@ -25,6 +25,21 @@ class GestionMaquinariasService
     }
 
     /**
+     * @return array<int, array{id:int, nombre:string}>
+     */
+    public function opciones(): array
+    {
+        return Maquinaria::query()
+            ->orderBy('nombre')
+            ->get(['id', 'nombre'])
+            ->map(fn (Maquinaria $maquinaria): array => [
+                'id' => (int) $maquinaria->id,
+                'nombre' => $maquinaria->nombre,
+            ])
+            ->all();
+    }
+
+    /**
      * @param  array{buscar?: string|null}  $filtros
      */
     public function listar(array $filtros = []): LengthAwarePaginator
