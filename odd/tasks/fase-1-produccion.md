@@ -31,7 +31,7 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T7.2 — Calidad dual (por parte o por orden), cierre estricto (solo con la cantidad requerida aprobada) y posposición con pausa, opción de liberar o retener reservas y reanudación con re-reserva de lo restante. Commits `dc5af6b` y `4759c0d`.
 - [x] T8.1 — Maquinarias: ABM + búsqueda, `estado_operativo` gobernado por mantenimiento, baja bloqueada por orden en curso, planes o intervenciones. Commit `7205a0d`.
 - [x] T8.2 — Planes de mantenimiento (uno por máquina), intervenciones que reinician desgaste y desbloquean, y bloqueo preventivo automático al alcanzar el umbral de uso. Commits `382f384` y `f16893e`.
-- [ ] T8.3 — Cronograma/Gantt con reordenamiento por prioridad y `RegistroPrioridad`.
+- [x] T8.3 — Cronograma con proyección por etapa, conflictos de entrega y reordenamiento por prioridad con `RegistroPrioridad`. Commit `6f1e798`.
 
 ## Log
 
@@ -68,3 +68,6 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L31: "dale, sigamos con t8" — T8 se parte en tres: maquinarias, planes e intervenciones con bloqueo preventivo, y cronograma.
 - L32: El primer intento de delegación falló con "Upstream request failed: Endpoint is unavailable" pero había alcanzado a crear parte del backend; el reintento completó la unidad. Evidencia T8.1 — 237 tests, 754 assertions, 62 Vitest, gga PASSED.
 - L33: T8.2: gga bloqueó la primera versión por query en el controller, join en el Service y listado pasamanos; se movió el selector a `GestionMaquinariasService::opciones()`, el join a `PlanesDeMantenimientoQuery` y el listado a scopes del modelo. Evidencia: 271 tests, 868 assertions, 68 Vitest.
+- L34: "ya estan bien los creditos, retomemos el trabajo normal. Ejecuta el gga..." — T8.3 se implementó inline (sin worker por falta de créditos) y gga lo revisó al volver.
+- L35: gga bloqueó por dos casos de código muerto: `puedeGestionar()` sin llamador en `GestionCronogramaService` y `dias()` sin uso en la página. Se eliminaron, se agregaron tests para las guardas de prioridad y motivo, y se corrigieron el `key` de los segmentos y las aserciones del test de Vue.
+- L36: Evidencia T8.3 — PHPUnit Producción + Inventario: 286 tests, 912 assertions. Vitest Producción: 71 tests. gga PASSED. **Módulo Producción completo (T1..T8).**
