@@ -52,7 +52,7 @@ const navGroups: NavGroup[] = [
             { label: 'Hoja de Ruta', href: '/produccion/hoja-de-ruta' },
             { label: 'Operarios', href: '/produccion/operarios' },
             { label: 'Maquinarias', href: '/produccion/maquinarias' },
-            { label: 'Mantenimiento' },
+            { label: 'Mantenimiento', href: '/produccion/planes-de-mantenimiento' },
         ],
     },
     {
