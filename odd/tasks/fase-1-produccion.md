@@ -29,7 +29,9 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - [x] T6 — Recursos e inicio: asignación a nivel orden (operarios y maquinarias), enum `EstadoMaquinaria`, solo máquinas `Disponible` seleccionables, reversión del estado al desasignar todo según cobertura de reservas, inicio explícito `Asignada → En Curso` con `fecha_inicio`. Commit `5f47550`.
 - [x] T7.1 — Parte Diario: registro por etapa y fecha (acumulativo), consumo de insumos solo en la primera etapa con el delta, desgaste por etapa, avance real (mínimo conformado entre etapas de la ruta). Commit `d14258e`.
 - [x] T7.2 — Calidad dual (por parte o por orden), cierre estricto (solo con la cantidad requerida aprobada) y posposición con pausa, opción de liberar o retener reservas y reanudación con re-reserva de lo restante. Commits `dc5af6b` y `4759c0d`.
-- [ ] T8 — Cronograma y Mantenimiento.
+- [x] T8.1 — Maquinarias: ABM + búsqueda, `estado_operativo` gobernado por mantenimiento, baja bloqueada por orden en curso, planes o intervenciones. Commit `7205a0d`.
+- [ ] T8.2 — Planes de mantenimiento, intervenciones y bloqueo preventivo por umbral de desgaste.
+- [ ] T8.3 — Cronograma/Gantt con reordenamiento por prioridad y `RegistroPrioridad`.
 
 ## Log
 
@@ -63,3 +65,5 @@ Test runner: PHPUnit (`php artisan test`), Vitest (`npm run test:js`), gga como 
 - L28: Bug detectado al revisar el cierre: con varios partes en la última etapa, las aprobadas se tomaban del último control (3 en vez de 10) y la orden nunca cerraba. Se corrigió: control de orden prevalece; si no hay, `conformado de la última etapa − suma de rechazadas de sus partes`; mismo número en el listado y en el cierre.
 - L29: gga no pudo con el changeset completo (`Argument list too long` del proveedor); se dividió en dos commits revisables (backend y UI), ambos PASSED.
 - L30: Evidencia T7.2 — PHPUnit Producción + Inventario: 217 tests, 678 assertions. Vitest Producción: 57 tests. `vue-tsc` y pint sin errores.
+- L31: "dale, sigamos con t8" — T8 se parte en tres: maquinarias, planes e intervenciones con bloqueo preventivo, y cronograma.
+- L32: El primer intento de delegación falló con "Upstream request failed: Endpoint is unavailable" pero había alcanzado a crear parte del backend; el reintento completó la unidad. Evidencia T8.1 — 237 tests, 754 assertions, 62 Vitest, gga PASSED.
