@@ -2,6 +2,7 @@
 
 use App\Modules\Produccion\Controllers\EtapaController;
 use App\Modules\Produccion\Controllers\HojaDeRutaController;
+use App\Modules\Produccion\Controllers\MaquinariaController;
 use App\Modules\Produccion\Controllers\OperarioController;
 use App\Modules\Produccion\Controllers\OrdenDeProduccionController;
 use App\Modules\Produccion\Controllers\ParteDiarioController;
@@ -56,6 +57,15 @@ Route::middleware('web')
             Route::post('operarios', [OperarioController::class, 'store'])->name('operarios.store');
             Route::put('operarios/{operario}', [OperarioController::class, 'update'])->name('operarios.update');
             Route::delete('operarios/{operario}', [OperarioController::class, 'destroy'])->name('operarios.destroy');
+
+            Route::get('maquinarias', [MaquinariaController::class, 'index'])->name('maquinarias.index');
+            Route::post('maquinarias', [MaquinariaController::class, 'store'])->name('maquinarias.store');
+            Route::put('maquinarias/{maquinaria}', [MaquinariaController::class, 'update'])
+                ->whereNumber('maquinaria')
+                ->name('maquinarias.update');
+            Route::delete('maquinarias/{maquinaria}', [MaquinariaController::class, 'destroy'])
+                ->whereNumber('maquinaria')
+                ->name('maquinarias.destroy');
 
             Route::get('hoja-de-ruta', [HojaDeRutaController::class, 'index'])->name('hoja-de-ruta.index');
             Route::get('hoja-de-ruta/{articulo}', [HojaDeRutaController::class, 'show'])

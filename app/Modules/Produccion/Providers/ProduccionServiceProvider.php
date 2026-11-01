@@ -3,10 +3,12 @@
 namespace App\Modules\Produccion\Providers;
 
 use App\Modules\Produccion\Models\Etapa;
+use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\Operario;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
 use App\Modules\Produccion\Policies\EtapaPolicy;
+use App\Modules\Produccion\Policies\MaquinariaPolicy;
 use App\Modules\Produccion\Policies\OperarioPolicy;
 use App\Modules\Produccion\Policies\OrdenDeProduccionPolicy;
 use App\Modules\Produccion\Policies\PlanificacionPolicy;
@@ -20,6 +22,7 @@ class ProduccionServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         Gate::policy(Etapa::class, EtapaPolicy::class);
+        Gate::policy(Maquinaria::class, MaquinariaPolicy::class);
         Gate::policy(Operario::class, OperarioPolicy::class);
         Gate::policy(PlanificacionDeProduccion::class, PlanificacionPolicy::class);
         Gate::policy(OrdenDeProduccion::class, OrdenDeProduccionPolicy::class);

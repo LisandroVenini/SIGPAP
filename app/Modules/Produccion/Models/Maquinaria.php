@@ -29,6 +29,16 @@ class Maquinaria extends Model
         $query->where('estado_operativo', EstadoMaquinaria::Disponible->value);
     }
 
+    public function scopeBuscar(Builder $query, string $termino): void
+    {
+        $termino = addcslashes($termino, '%_\\');
+
+        $query->where(function (Builder $query) use ($termino): void {
+            $query->where('nombre', 'like', "%{$termino}%")
+                ->orWhere('tipo', 'like', "%{$termino}%");
+        });
+    }
+
     /**
      * @var array<int, string>
      */
