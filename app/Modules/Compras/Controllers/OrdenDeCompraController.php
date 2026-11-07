@@ -2,6 +2,7 @@
 
 namespace App\Modules\Compras\Controllers;
 
+use App\Modules\Compras\Enums\EstadoOrdenDeCompra;
 use App\Modules\Compras\Models\OrdenDeCompra;
 use App\Modules\Compras\Requests\AnularOrdenRequest;
 use App\Modules\Compras\Requests\EmitirOrdenRequest;
@@ -27,6 +28,7 @@ class OrdenDeCompraController
             'ordenes' => $this->ordenes->listar($request->validated()),
             'solicitudesConCotizaciones' => $this->ordenes->solicitudesConCotizaciones(),
             'articulos' => $this->articulos->insumosDisponibles(),
+            'estados' => EstadoOrdenDeCompra::values(),
         ]);
     }
 

@@ -3,6 +3,8 @@
 namespace App\Modules\Compras\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Compras\Enums\EstadoOrdenDeCompra;
+use App\Modules\Compras\Enums\TipoIncidencia;
 use App\Modules\Compras\Models\DesempenoProveedor;
 use App\Modules\Compras\Models\Incidencia;
 use App\Modules\Compras\Models\LineaCotizacion;
@@ -100,7 +102,7 @@ class GestionRecepcionesService
             $anterior = ['estado' => $orden->estado];
 
             $orden->update([
-                'estado' => 'Recibida',
+                'estado' => EstadoOrdenDeCompra::Recibida->value,
                 'entrega_parcial' => $entregaParcial,
             ]);
 
@@ -116,7 +118,7 @@ class GestionRecepcionesService
                 if ($recibida < (float) $linea->cantidad) {
                     $this->registrarIncidencia(
                         $orden,
-                        'Faltante',
+                        TipoIncidencia::Faltante->value,
                         sprintf(
                             'Se recibieron %s de %s unidades de %s.',
                             $recibida,
@@ -131,7 +133,7 @@ class GestionRecepcionesService
                 if ($prometida !== null && today()->startOfDay()->greaterThan($prometida->copy()->startOfDay())) {
                     $this->registrarIncidencia(
                         $orden,
-                        'Retraso',
+                        TipoIncidencia::Retraso->value,
                         sprintf(
                             'La entrega de %s estaba prometida para el %s.',
                             $descripcion,
@@ -145,7 +147,7 @@ class GestionRecepcionesService
                 $actor->id,
                 'registrar_recepcion_orden',
                 $anterior,
-                ['estado' => 'Recibida', 'entrega_parcial' => $entregaParcial],
+                ['estado' => EstadoOrdenDeCompra::Recibida->value, 'entrega_parcial' => $entregaParcial],
                 $direccionIp,
                 OrdenDeCompra::class,
                 $orden->id,

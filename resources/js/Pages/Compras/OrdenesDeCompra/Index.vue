@@ -71,6 +71,7 @@ const props = defineProps<{
     ordenes: PaginatedOrdenes;
     solicitudesConCotizaciones: SolicitudConCotizaciones[];
     articulos: Articulo[];
+    estados: string[];
 }>();
 
 const page = usePage<SharedProps>();
@@ -298,10 +299,9 @@ function labelDePagina(label: string): string {
                         class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                     >
                         <option value="">Todos</option>
-                        <option value="Emitida">Emitida</option>
-                        <option value="Confirmada">Confirmada</option>
-                        <option value="Rechazada">Rechazada</option>
-                        <option value="Anulada">Anulada</option>
+                        <option v-for="estado in props.estados" :key="estado" :value="estado">
+                            {{ estado }}
+                        </option>
                     </select>
                 </div>
                 <div class="flex min-w-[160px] flex-1 flex-col gap-1">

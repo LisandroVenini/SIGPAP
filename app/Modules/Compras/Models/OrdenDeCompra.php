@@ -2,6 +2,7 @@
 
 namespace App\Modules\Compras\Models;
 
+use App\Modules\Compras\Enums\EstadoOrdenDeCompra;
 use Database\Factories\OrdenDeCompraFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,7 +19,10 @@ class OrdenDeCompra extends Model
      *
      * @var array<int, string>
      */
-    public const ESTADOS_RECEPCIONABLES = ['Emitida', 'Confirmada'];
+    public const ESTADOS_RECEPCIONABLES = [
+        EstadoOrdenDeCompra::Emitida->value,
+        EstadoOrdenDeCompra::Confirmada->value,
+    ];
 
     protected static function newFactory(): OrdenDeCompraFactory
     {

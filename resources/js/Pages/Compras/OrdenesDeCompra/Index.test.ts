@@ -95,6 +95,7 @@ const props = {
         },
     ],
     articulos: [{ id: 10, codigo_sku: 'MP-001', descripcion: 'Tabla de pino', unidad: 'Unidad' }],
+    estados: ['Emitida', 'Confirmada', 'Recibida', 'Anulada', 'Rechazada'],
 };
 
 describe('Compras OrdenesDeCompra page', () => {
