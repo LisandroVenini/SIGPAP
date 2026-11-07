@@ -14,8 +14,12 @@ Rama: `feat/inventario-ingreso` (a crear desde `main`). Runner: PHPUnit, Vitest,
 
 ## Tasks
 
-- [ ] I1 — Ingreso de mercancía (CU-INV-06): migración, servicios de Compras e Inventario, Controller, rutas, UI y tests.
+- [x] I1 — Ingreso de mercancía (CU-INV-06): migración de `fecha_confirmacion`, `GestionRecepcionesService` en Compras (cierre, desempeño e incidencias), `GestionIngresosService` en Inventario (stock, movimientos y auditoría), Controller, rutas, UI y tests. Commit `f7a397f`.
 
 ## Log
 
 - L1: "dale, vamos con eso" — cerrar Compras con PR y seguir con Inventario CU-INV-06 para desbloquear el ranking de proveedores.
+- L2: Delegado a `gentle-ai-worker`; corregidas dos violaciones de gga (Query Object para un filtro de una línea y estados de recepción duplicados) y un PHPDoc huérfano.
+- L3: Evidencia I1 — PHPUnit Inventario + Compras: 171 tests, 749 assertions. Vitest Inventario: 11 tests. gga PASSED.
+- L4: Pendientes no bloqueantes detectados por gga: enum `EstadoOrdenDeCompra` (hoy literales duplicados) y enums para los tipos de `Incidencia`.
+- L5: CU-INV-06 desbloquea el ranking de proveedores (CU-COM-18), que ahora tiene datos de `DesempenoProveedor` e `Incidencia`.
