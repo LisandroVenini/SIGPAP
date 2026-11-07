@@ -3,7 +3,9 @@
 namespace App\Modules\Compras\Providers;
 
 use App\Modules\Compras\Models\Proveedor;
+use App\Modules\Compras\Models\SolicitudDeCotizacion;
 use App\Modules\Compras\Policies\ProveedorPolicy;
+use App\Modules\Compras\Policies\SolicitudDeCotizacionPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -14,5 +16,6 @@ class ComprasServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         Gate::policy(Proveedor::class, ProveedorPolicy::class);
+        Gate::policy(SolicitudDeCotizacion::class, SolicitudDeCotizacionPolicy::class);
     }
 }

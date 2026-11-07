@@ -2,12 +2,21 @@
 
 namespace App\Modules\Compras\Models;
 
+use Database\Factories\CotizacionFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cotizacion extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): CotizacionFactory
+    {
+        return CotizacionFactory::new();
+    }
+
     /**
      * @var string
      */
