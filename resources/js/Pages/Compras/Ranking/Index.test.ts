@@ -58,7 +58,7 @@ describe('Compras Ranking page', () => {
     it('renders one row per supplier with its delivery counts and score', () => {
         // Arrange / Act
         const wrapper = mount(Ranking, {
-            props: { parametros, filas, sin_historial: [] },
+            props: { parametros, filas, sinHistorial: [] },
         });
 
         // Assert
@@ -77,7 +77,7 @@ describe('Compras Ranking page', () => {
     it('paints the score badge green, amber, or red depending on the range', () => {
         // Arrange / Act
         const wrapper = mount(Ranking, {
-            props: { parametros, filas, sin_historial: [] },
+            props: { parametros, filas, sinHistorial: [] },
         });
 
         // Assert
@@ -95,11 +95,11 @@ describe('Compras Ranking page', () => {
             props: {
                 parametros,
                 filas,
-                sin_historial: [{ proveedor_id: 9, proveedor: 'Sin movimientos' }],
+                sinHistorial: [{ proveedor_id: 9, proveedor: 'Sin movimientos' }],
             },
         });
         const sinHistorialFaltante = mount(Ranking, {
-            props: { parametros, filas, sin_historial: [] },
+            props: { parametros, filas, sinHistorial: [] },
         });
 
         // Assert
@@ -111,7 +111,7 @@ describe('Compras Ranking page', () => {
     it('shows the active weights and window', () => {
         // Arrange / Act
         const wrapper = mount(Ranking, {
-            props: { parametros, filas, sin_historial: [] },
+            props: { parametros, filas, sinHistorial: [] },
         });
 
         // Assert
@@ -123,7 +123,7 @@ describe('Compras Ranking page', () => {
     it('renders the empty state when there are no deliveries in the window', () => {
         // Arrange / Act
         const wrapper = mount(Ranking, {
-            props: { parametros, filas: [], sin_historial: [] },
+            props: { parametros, filas: [], sinHistorial: [] },
         });
 
         // Assert

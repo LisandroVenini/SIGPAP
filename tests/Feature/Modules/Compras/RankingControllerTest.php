@@ -88,6 +88,6 @@ class RankingControllerTest extends TestCase
             ->has('parametros.ventana_meses')
             ->has('filas', 1)
             ->where('filas.0.proveedor', 'Aceros del Sur')
-            ->has('sin_historial', 0));
+            ->has('sinHistorial', 0));
     }
 }

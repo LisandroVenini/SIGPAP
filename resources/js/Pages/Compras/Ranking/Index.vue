@@ -34,7 +34,7 @@ interface ProveedorSinHistorial {
 const props = defineProps<{
     parametros: ParametrosRanking;
     filas: FilaRanking[];
-    sin_historial: ProveedorSinHistorial[];
+    sinHistorial: ProveedorSinHistorial[];
 }>();
 
 const notaParametros = computed(
@@ -167,7 +167,7 @@ function formatoPuntaje(puntaje: number): string {
             </div>
 
             <section
-                v-if="props.sin_historial.length > 0"
+                v-if="props.sinHistorial.length > 0"
                 class="rounded-panel border border-hairline bg-surface p-4 shadow-diffused"
             >
                 <h3 class="text-sm font-semibold text-ink">Sin historial</h3>
@@ -176,7 +176,7 @@ function formatoPuntaje(puntaje: number): string {
                 </p>
                 <ul class="mt-3 flex flex-wrap gap-2">
                     <li
-                        v-for="proveedor in props.sin_historial"
+                        v-for="proveedor in props.sinHistorial"
                         :key="proveedor.proveedor_id"
                         class="rounded-control border border-hairline bg-workshop px-3 py-1 text-xs text-steel"
                     >

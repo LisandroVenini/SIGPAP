@@ -18,6 +18,12 @@ class RankingController
 
         abort_unless($actor instanceof Usuario && $this->ranking->puedeVer($actor), 403);
 
-        return Inertia::render('Compras/Ranking/Index', $this->ranking->listar());
+        $datos = $this->ranking->listar();
+
+        return Inertia::render('Compras/Ranking/Index', [
+            'parametros' => $datos['parametros'],
+            'filas' => $datos['filas'],
+            'sinHistorial' => $datos['sin_historial'],
+        ]);
     }
 }
