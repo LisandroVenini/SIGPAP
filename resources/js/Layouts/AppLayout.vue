@@ -66,7 +66,7 @@ const navGroups: NavGroup[] = [
     {
         label: 'Compras',
         items: [
-            { label: 'Proveedores' },
+            { label: 'Proveedores', href: '/compras/proveedores' },
             { label: 'Solicitudes de Cotización' },
             { label: 'Órdenes de Compra' },
         ],
