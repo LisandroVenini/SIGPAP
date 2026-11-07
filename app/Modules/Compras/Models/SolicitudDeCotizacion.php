@@ -2,12 +2,21 @@
 
 namespace App\Modules\Compras\Models;
 
+use Database\Factories\SolicitudDeCotizacionFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SolicitudDeCotizacion extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): SolicitudDeCotizacionFactory
+    {
+        return SolicitudDeCotizacionFactory::new();
+    }
+
     /**
      * @var string
      */

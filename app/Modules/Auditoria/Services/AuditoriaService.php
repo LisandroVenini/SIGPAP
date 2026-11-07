@@ -32,4 +32,21 @@ class AuditoriaService
             'estado_nuevo' => $estadoNuevo,
         ]);
     }
+
+    /**
+     * Return the actor id of the latest event for the given auditable and actions.
+     *
+     * @param  array<int, string>  $acciones
+     */
+    public function usuarioResponsableDe(string $auditableType, int $auditableId, array $acciones): ?int
+    {
+        $usuarioId = EventoDeAuditoria::query()
+            ->where('auditable_type', $auditableType)
+            ->where('auditable_id', $auditableId)
+            ->whereIn('accion', $acciones)
+            ->orderByDesc('id')
+            ->value('usuario_id');
+
+        return $usuarioId === null ? null : (int) $usuarioId;
+    }
 }

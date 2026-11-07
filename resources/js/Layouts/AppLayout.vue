@@ -46,7 +46,7 @@ const navGroups: NavGroup[] = [
         items: [
             { label: 'Planificaciones', href: '/produccion/planificaciones' },
             { label: 'Órdenes de Producción', href: '/produccion/ordenes-de-produccion' },
-            { label: 'Parte Diario' },
+            { label: 'Parte Diario', href: '/produccion/ordenes-de-produccion?estado=En Curso' },
             { label: 'Cronograma', href: '/produccion/cronograma' },
             { label: 'Etapas', href: '/produccion/etapas' },
             { label: 'Hoja de Ruta', href: '/produccion/hoja-de-ruta' },
@@ -66,9 +66,13 @@ const navGroups: NavGroup[] = [
     {
         label: 'Compras',
         items: [
-            { label: 'Proveedores' },
-            { label: 'Solicitudes de Cotización' },
-            { label: 'Órdenes de Compra' },
+            { label: 'Proveedores', href: '/compras/proveedores' },
+            {
+                label: 'Solicitudes de Cotización',
+                href: '/compras/solicitudes-de-cotizacion',
+            },
+            { label: 'Órdenes de Compra', href: '/compras/ordenes-de-compra' },
+            { label: 'Ranking de Proveedores', href: '/compras/ranking' },
         ],
     },
     {
@@ -87,7 +91,7 @@ const navGroups: NavGroup[] = [
 ];
 
 function isActive(href?: string): boolean {
-    return href !== undefined && currentUrl.value.split('?')[0] === href;
+    return href !== undefined && currentUrl.value.split('?')[0] === href.split('?')[0];
 }
 </script>
 

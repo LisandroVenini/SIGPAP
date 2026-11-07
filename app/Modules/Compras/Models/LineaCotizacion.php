@@ -2,11 +2,20 @@
 
 namespace App\Modules\Compras\Models;
 
+use Database\Factories\LineaCotizacionFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LineaCotizacion extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): LineaCotizacionFactory
+    {
+        return LineaCotizacionFactory::new();
+    }
+
     /**
      * @var string
      */
