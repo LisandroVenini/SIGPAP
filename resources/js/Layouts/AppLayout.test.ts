@@ -40,6 +40,23 @@ describe('AppLayout', () => {
         expect(wrapper.text()).toContain('contenido de la página');
     });
 
+    it('links the daily report to the in-progress orders and highlights it on that url', () => {
+        // Arrange
+        page.url = '/produccion/ordenes-de-produccion?estado=En Curso';
+        const wrapper = mount(AppLayout, { props: { title: 'Parte Diario' } });
+
+        // Act
+        const parteDiario = wrapper.findAll('a').find((link) => link.text() === 'Parte Diario');
+
+        // Assert
+        expect(parteDiario?.attributes('href')).toBe(
+            '/produccion/ordenes-de-produccion?estado=En Curso',
+        );
+        expect(parteDiario?.classes()).toContain('border-teja');
+
+        page.url = '/dashboard';
+    });
+
     it('renders the logout control', () => {
         // Arrange / Act
         const wrapper = mount(AppLayout, { props: { title: 'Tablero' } });
