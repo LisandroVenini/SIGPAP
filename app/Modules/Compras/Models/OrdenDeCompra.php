@@ -2,12 +2,21 @@
 
 namespace App\Modules\Compras\Models;
 
+use Database\Factories\OrdenDeCompraFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrdenDeCompra extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): OrdenDeCompraFactory
+    {
+        return OrdenDeCompraFactory::new();
+    }
+
     /**
      * @var string
      */
@@ -24,6 +33,7 @@ class OrdenDeCompra extends Model
         'estado',
         'entrega_parcial',
         'fecha_emision',
+        'token',
     ];
 
     /**

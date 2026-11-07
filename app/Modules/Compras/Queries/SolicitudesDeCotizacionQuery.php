@@ -5,6 +5,7 @@ namespace App\Modules\Compras\Queries;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class SolicitudesDeCotizacionQuery
 {
@@ -44,5 +45,21 @@ class SolicitudesDeCotizacionQuery
                 'proveedores' => $solicitud->proveedores_count,
                 'cotizaciones' => $solicitud->cotizaciones_count,
             ]);
+    }
+
+    /**
+     * Sent solicitudes that already received quotes, with the data needed to compare them.
+     *
+     * @return Collection<int, SolicitudDeCotizacion>
+     */
+    public function conCotizaciones(): Collection
+    {
+        return SolicitudDeCotizacion::query()
+            ->where('estado', 'Enviada')
+            ->whereHas('cotizaciones')
+            ->with(['cotizaciones.proveedor', 'cotizaciones.lineas'])
+            ->orderByDesc('fecha')
+            ->orderByDesc('id')
+            ->get();
     }
 }

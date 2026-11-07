@@ -1,6 +1,8 @@
 <?php
 
+use App\Modules\Compras\Controllers\OrdenDeCompraController;
 use App\Modules\Compras\Controllers\PortalCotizacionController;
+use App\Modules\Compras\Controllers\PortalOrdenController;
 use App\Modules\Compras\Controllers\ProveedorController;
 use App\Modules\Compras\Controllers\SolicitudDeCotizacionController;
 use Illuminate\Support\Facades\Route;
@@ -12,6 +14,13 @@ Route::middleware('web')->group(function (): void {
     Route::post('portal/cotizaciones/{token}', [PortalCotizacionController::class, 'store'])
         ->middleware('throttle:20,1')
         ->name('portal.cotizaciones.store');
+
+    Route::get('portal/ordenes/{token}', [PortalOrdenController::class, 'show'])
+        ->middleware('throttle:20,1')
+        ->name('portal.ordenes.show');
+    Route::post('portal/ordenes/{token}', [PortalOrdenController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('portal.ordenes.store');
 
     Route::prefix('compras')
         ->name('compras.')
@@ -36,6 +45,17 @@ Route::middleware('web')->group(function (): void {
                 Route::post('solicitudes-de-cotizacion/{solicitud}/anular', [SolicitudDeCotizacionController::class, 'anular'])
                     ->whereNumber('solicitud')
                     ->name('solicitudes-de-cotizacion.anular');
+
+                Route::get('ordenes-de-compra', [OrdenDeCompraController::class, 'index'])
+                    ->name('ordenes-de-compra.index');
+                Route::post('ordenes-de-compra', [OrdenDeCompraController::class, 'store'])
+                    ->name('ordenes-de-compra.store');
+                Route::put('ordenes-de-compra/{orden}', [OrdenDeCompraController::class, 'update'])
+                    ->whereNumber('orden')
+                    ->name('ordenes-de-compra.update');
+                Route::post('ordenes-de-compra/{orden}/anular', [OrdenDeCompraController::class, 'anular'])
+                    ->whereNumber('orden')
+                    ->name('ordenes-de-compra.anular');
             });
         });
 });
