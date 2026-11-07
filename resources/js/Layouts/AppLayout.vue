@@ -71,7 +71,7 @@ const navGroups: NavGroup[] = [
                 label: 'Solicitudes de Cotización',
                 href: '/compras/solicitudes-de-cotizacion',
             },
-            { label: 'Órdenes de Compra' },
+            { label: 'Órdenes de Compra', href: '/compras/ordenes-de-compra' },
         ],
     },
     {
