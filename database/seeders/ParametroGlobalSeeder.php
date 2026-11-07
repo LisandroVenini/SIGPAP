@@ -35,8 +35,10 @@ class ParametroGlobalSeeder extends Seeder
             ['nombre' => 'seguridad_intentos_fallidos', 'valor' => '5', 'categoria' => 'Seguridad y Sesión'],
         ];
 
+        // firstOrCreate: a re-run must add missing parameters without overwriting
+        // the values an administrator already customised in the configuration screen.
         foreach ($parametros as $parametro) {
-            ParametroGlobal::updateOrCreate(
+            ParametroGlobal::firstOrCreate(
                 ['nombre' => $parametro['nombre']],
                 ['valor' => $parametro['valor'], 'categoria' => $parametro['categoria']],
             );

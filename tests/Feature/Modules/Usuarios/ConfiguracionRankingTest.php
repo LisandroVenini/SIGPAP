@@ -63,6 +63,19 @@ class ConfiguracionRankingTest extends TestCase
         ]);
     }
 
+    public function test_reseeding_keeps_customised_values(): void
+    {
+        // Arrange
+        $this->seed([ParametroGlobalSeeder::class]);
+        ParametroGlobal::where('nombre', 'compras_ranking_peso_retraso')->update(['valor' => '0.45']);
+
+        // Act
+        $this->seed([ParametroGlobalSeeder::class]);
+
+        // Assert
+        $this->assertSame('0.45', $this->valorDe('compras_ranking_peso_retraso'));
+    }
+
     public function test_an_administrador_can_update_the_ranking_parameters(): void
     {
         // Arrange
