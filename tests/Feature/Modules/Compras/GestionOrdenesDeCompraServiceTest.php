@@ -387,6 +387,36 @@ class GestionOrdenesDeCompraServiceTest extends TestCase
         ]);
     }
 
+    public function test_confirming_an_orden_records_the_confirmation_date(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Act
+        $this->service()->confirmar($orden->token, true);
+
+        // Assert
+        $this->assertSame(today()->toDateString(), $orden->refresh()->fecha_confirmacion?->toDateString());
+    }
+
+    public function test_rejecting_an_orden_does_not_record_a_confirmation_date(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Act
+        $this->service()->confirmar($orden->token, false, 'No hay stock suficiente');
+
+        // Assert
+        $this->assertNull($orden->refresh()->fecha_confirmacion);
+    }
+
     public function test_a_token_cannot_be_used_twice(): void
     {
         // Arrange

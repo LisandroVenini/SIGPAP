@@ -59,7 +59,7 @@ const navGroups: NavGroup[] = [
         label: 'Inventario',
         items: [
             { label: 'Artículos', href: '/inventario/articulos' },
-            { label: 'Ingreso de Mercancía' },
+            { label: 'Ingreso de Mercancía', href: '/inventario/ingresos' },
             { label: 'Ajuste de Inventario', href: '/inventario/ajustes' },
         ],
     },

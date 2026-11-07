@@ -117,7 +117,8 @@ class OrdenDeCompraControllerTest extends TestCase
             ->has('ordenes.data', 1)
             ->has('solicitudesConCotizaciones', 1)
             ->has('solicitudesConCotizaciones.0.cotizaciones', 1)
-            ->has('articulos'));
+            ->has('articulos')
+            ->has('estados', 5));
     }
 
     public function test_a_purchasing_manager_can_emit_an_orden(): void

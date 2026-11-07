@@ -2,7 +2,9 @@
 
 namespace App\Modules\Compras\Models;
 
+use App\Modules\Compras\Enums\EstadoOrdenDeCompra;
 use Database\Factories\OrdenDeCompraFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +13,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class OrdenDeCompra extends Model
 {
     use HasFactory;
+
+    /**
+     * Orders whose merchandise can still be received.
+     *
+     * @var array<int, string>
+     */
+    public const ESTADOS_RECEPCIONABLES = [
+        EstadoOrdenDeCompra::Emitida->value,
+        EstadoOrdenDeCompra::Confirmada->value,
+    ];
 
     protected static function newFactory(): OrdenDeCompraFactory
     {
@@ -33,6 +45,7 @@ class OrdenDeCompra extends Model
         'estado',
         'entrega_parcial',
         'fecha_emision',
+        'fecha_confirmacion',
         'token',
     ];
 
@@ -44,7 +57,13 @@ class OrdenDeCompra extends Model
         return [
             'entrega_parcial' => 'boolean',
             'fecha_emision' => 'date',
+            'fecha_confirmacion' => 'date',
         ];
+    }
+
+    public function scopeRecepcionables(Builder $query): void
+    {
+        $query->whereIn('estado', self::ESTADOS_RECEPCIONABLES);
     }
 
     public function proveedor(): BelongsTo

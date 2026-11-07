@@ -2,6 +2,7 @@
 
 use App\Modules\Inventario\Controllers\AjusteInventarioController;
 use App\Modules\Inventario\Controllers\ArticuloController;
+use App\Modules\Inventario\Controllers\IngresoMercanciaController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')
@@ -16,5 +17,8 @@ Route::middleware('web')
 
             Route::get('ajustes', [AjusteInventarioController::class, 'index'])->name('ajustes.index');
             Route::patch('articulos/{articulo}/ajuste', [AjusteInventarioController::class, 'store'])->name('ajustes.store');
+
+            Route::get('ingresos', [IngresoMercanciaController::class, 'index'])->name('ingresos.index');
+            Route::post('ingresos', [IngresoMercanciaController::class, 'store'])->name('ingresos.store');
         });
     });

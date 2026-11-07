@@ -2,6 +2,7 @@
 
 namespace App\Modules\Compras\Queries;
 
+use App\Modules\Compras\Enums\EstadoSolicitudDeCotizacion;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -55,7 +56,7 @@ class SolicitudesDeCotizacionQuery
     public function conCotizaciones(): Collection
     {
         return SolicitudDeCotizacion::query()
-            ->where('estado', 'Enviada')
+            ->where('estado', EstadoSolicitudDeCotizacion::Enviada->value)
             ->whereHas('cotizaciones')
             ->with(['cotizaciones.proveedor', 'cotizaciones.lineas'])
             ->orderByDesc('fecha')

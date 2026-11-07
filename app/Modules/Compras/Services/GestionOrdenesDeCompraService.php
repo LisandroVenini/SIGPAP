@@ -3,8 +3,11 @@
 namespace App\Modules\Compras\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Compras\Enums\EstadoOrdenDeCompra;
+use App\Modules\Compras\Enums\EstadoSolicitudDeCotizacion;
 use App\Modules\Compras\Mail\OrdenDeCompraMail;
 use App\Modules\Compras\Models\Cotizacion;
+use App\Modules\Compras\Models\LineaCotizacion;
 use App\Modules\Compras\Models\LineaOrdenCompra;
 use App\Modules\Compras\Models\OrdenDeCompra;
 use App\Modules\Compras\Models\Proveedor;
@@ -24,18 +27,6 @@ use Illuminate\Validation\ValidationException;
 
 class GestionOrdenesDeCompraService
 {
-    private const ESTADO_ENVIADA = 'Enviada';
-
-    private const ESTADO_ADJUDICADA = 'Adjudicada';
-
-    private const ESTADO_EMITIDA = 'Emitida';
-
-    private const ESTADO_CONFIRMADA = 'Confirmada';
-
-    private const ESTADO_RECHAZADA = 'Rechazada';
-
-    private const ESTADO_ANULADA = 'Anulada';
-
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly UsuariosService $usuarios,
@@ -76,10 +67,10 @@ class GestionOrdenesDeCompraService
                         'id' => $cotizacion->id,
                         'proveedor' => $cotizacion->proveedor->razon_social,
                         'total' => (float) $cotizacion->lineas->sum(
-                            fn ($linea): float => (float) $linea->cantidad_ofertada * (float) $linea->precio_unitario,
+                            fn (LineaCotizacion $linea): float => (float) $linea->cantidad_ofertada * (float) $linea->precio_unitario,
                         ),
                         'ultima_fecha_prometida' => $cotizacion->lineas
-                            ->max(fn ($linea): ?string => $linea->fecha_prometida?->toDateString()),
+                            ->max(fn (LineaCotizacion $linea): ?string => $linea->fecha_prometida?->toDateString()),
                     ])->values()->all(),
                 ];
             })
@@ -103,13 +94,19 @@ class GestionOrdenesDeCompraService
                 ]);
             }
 
-            if ($solicitud->estado === self::ESTADO_ADJUDICADA) {
+            // The adjudication state lives on the solicitud, so that is the row to serialize.
+            $solicitud = SolicitudDeCotizacion::query()
+                ->whereKey($solicitud->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($solicitud->estado === EstadoSolicitudDeCotizacion::Adjudicada->value) {
                 throw ValidationException::withMessages([
                     'solicitud' => 'La solicitud ya fue adjudicada.',
                 ]);
             }
 
-            if ($solicitud->estado !== self::ESTADO_ENVIADA) {
+            if ($solicitud->estado !== EstadoSolicitudDeCotizacion::Enviada->value) {
                 throw ValidationException::withMessages([
                     'solicitud' => 'La solicitud no está en estado Enviada.',
                 ]);
@@ -117,12 +114,15 @@ class GestionOrdenesDeCompraService
 
             $token = (string) Str::uuid();
 
+            // Serialize number generation across concurrent emissions for the same year.
+            DB::select('select pg_advisory_xact_lock(hashtext(?)::bigint)', ['ordenes_de_compra_'.date('Y')]);
+
             $orden = OrdenDeCompra::create([
                 'numero_oc' => $this->siguienteNumeroOc(),
                 'proveedor_id' => $cotizacion->proveedor_id,
                 'cotizacion_id' => $cotizacion->id,
                 'solicitud_de_disponibilidad_id' => null,
-                'estado' => self::ESTADO_EMITIDA,
+                'estado' => EstadoOrdenDeCompra::Emitida->value,
                 'entrega_parcial' => false,
                 'fecha_emision' => today()->toDateString(),
                 'token' => $token,
@@ -138,7 +138,7 @@ class GestionOrdenesDeCompraService
 
             $cotizacion->lineas()->update(['adjudicada' => true]);
 
-            $solicitud->update(['estado' => self::ESTADO_ADJUDICADA]);
+            $solicitud->update(['estado' => EstadoSolicitudDeCotizacion::Adjudicada->value]);
 
             $this->auditoria->registrarEvento(
                 $actor->id,
@@ -175,7 +175,7 @@ class GestionOrdenesDeCompraService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($orden->estado !== self::ESTADO_EMITIDA) {
+            if ($orden->estado !== EstadoOrdenDeCompra::Emitida->value) {
                 throw ValidationException::withMessages([
                     'estado' => 'Solo se puede modificar una orden emitida.',
                 ]);
@@ -215,7 +215,7 @@ class GestionOrdenesDeCompraService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($orden->estado !== self::ESTADO_EMITIDA) {
+            if ($orden->estado !== EstadoOrdenDeCompra::Emitida->value) {
                 throw ValidationException::withMessages([
                     'estado' => 'Solo se puede anular una orden emitida.',
                 ]);
@@ -223,13 +223,13 @@ class GestionOrdenesDeCompraService
 
             $anterior = ['estado' => $orden->estado];
 
-            $orden->update(['estado' => self::ESTADO_ANULADA]);
+            $orden->update(['estado' => EstadoOrdenDeCompra::Anulada->value]);
 
             $this->auditoria->registrarEvento(
                 $actor->id,
                 'anular_orden_compra',
                 $anterior,
-                ['estado' => self::ESTADO_ANULADA, 'motivo' => $motivo],
+                ['estado' => EstadoOrdenDeCompra::Anulada->value, 'motivo' => $motivo],
                 $direccionIp,
                 OrdenDeCompra::class,
                 $orden->id,
@@ -245,7 +245,7 @@ class GestionOrdenesDeCompraService
                 ->lockForUpdate()
                 ->first();
 
-            if ($orden === null || $orden->estado !== self::ESTADO_EMITIDA) {
+            if ($orden === null || $orden->estado !== EstadoOrdenDeCompra::Emitida->value) {
                 throw (new ModelNotFoundException)->setModel(OrdenDeCompra::class);
             }
 
@@ -260,12 +260,18 @@ class GestionOrdenesDeCompraService
             }
 
             $anterior = ['estado' => $orden->estado];
-            $nuevoEstado = $aceptada ? self::ESTADO_CONFIRMADA : self::ESTADO_RECHAZADA;
+            $nuevoEstado = $aceptada ? EstadoOrdenDeCompra::Confirmada->value : EstadoOrdenDeCompra::Rechazada->value;
 
-            $orden->update([
+            $datos = [
                 'estado' => $nuevoEstado,
                 'token' => null,
-            ]);
+            ];
+
+            if ($aceptada) {
+                $datos['fecha_confirmacion'] = today()->toDateString();
+            }
+
+            $orden->update($datos);
 
             $this->auditoria->registrarEvento(
                 $usuarioId,
@@ -291,7 +297,7 @@ class GestionOrdenesDeCompraService
         $orden = OrdenDeCompra::query()
             ->with(['proveedor', 'lineas'])
             ->where('token', $token)
-            ->where('estado', self::ESTADO_EMITIDA)
+            ->where('estado', EstadoOrdenDeCompra::Emitida->value)
             ->first();
 
         if ($orden === null) {

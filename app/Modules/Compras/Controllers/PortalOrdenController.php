@@ -2,6 +2,7 @@
 
 namespace App\Modules\Compras\Controllers;
 
+use App\Modules\Compras\Enums\EstadoOrdenDeCompra;
 use App\Modules\Compras\Requests\ConfirmarOrdenRequest;
 use App\Modules\Compras\Services\GestionOrdenesDeCompraService;
 use Illuminate\Http\RedirectResponse;
@@ -44,6 +45,6 @@ class PortalOrdenController
 
         return redirect()
             ->route('portal.ordenes.show', ['token' => $token])
-            ->with('orden_resuelta', $aceptada ? 'Confirmada' : 'Rechazada');
+            ->with('orden_resuelta', $aceptada ? EstadoOrdenDeCompra::Confirmada->value : EstadoOrdenDeCompra::Rechazada->value);
     }
 }

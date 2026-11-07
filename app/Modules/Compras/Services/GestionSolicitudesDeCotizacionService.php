@@ -3,7 +3,9 @@
 namespace App\Modules\Compras\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Compras\Enums\EstadoSolicitudDeCotizacion;
 use App\Modules\Compras\Mail\SolicitudDeCotizacionMail;
+use App\Modules\Compras\Models\LineaSolicitudCotizacion;
 use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
 use App\Modules\Compras\Queries\SolicitudesDeCotizacionQuery;
@@ -19,12 +21,6 @@ use Illuminate\Validation\ValidationException;
 
 class GestionSolicitudesDeCotizacionService
 {
-    private const ESTADO_ENVIADA = 'Enviada';
-
-    private const ESTADO_ANULADA = 'Anulada';
-
-    private const ESTADO_ADJUDICADA = 'Adjudicada';
-
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly UsuariosService $usuarios,
@@ -71,7 +67,7 @@ class GestionSolicitudesDeCotizacionService
             $solicitud = SolicitudDeCotizacion::create([
                 'fecha' => today()->toDateString(),
                 'fecha_vencimiento' => $datos['fecha_vencimiento'],
-                'estado' => self::ESTADO_ENVIADA,
+                'estado' => EstadoSolicitudDeCotizacion::Enviada->value,
             ]);
 
             $this->reemplazarLineas($solicitud, $datos['lineas']);
@@ -180,7 +176,7 @@ class GestionSolicitudesDeCotizacionService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (in_array($solicitud->estado, [self::ESTADO_ADJUDICADA, self::ESTADO_ANULADA], true)) {
+            if (in_array($solicitud->estado, [EstadoSolicitudDeCotizacion::Adjudicada->value, EstadoSolicitudDeCotizacion::Anulada->value], true)) {
                 throw ValidationException::withMessages([
                     'estado' => 'La solicitud no puede anularse en su estado actual.',
                 ]);
@@ -188,13 +184,13 @@ class GestionSolicitudesDeCotizacionService
 
             $anterior = ['estado' => $solicitud->estado];
 
-            $solicitud->update(['estado' => self::ESTADO_ANULADA]);
+            $solicitud->update(['estado' => EstadoSolicitudDeCotizacion::Anulada->value]);
 
             $this->auditoria->registrarEvento(
                 $actor->id,
                 'anular_solicitud_cotizacion',
                 $anterior,
-                ['estado' => self::ESTADO_ANULADA, 'motivo' => $motivo],
+                ['estado' => EstadoSolicitudDeCotizacion::Anulada->value, 'motivo' => $motivo],
                 $direccionIp,
                 SolicitudDeCotizacion::class,
                 $solicitud->id,
@@ -290,7 +286,7 @@ class GestionSolicitudesDeCotizacionService
         );
 
         $lineas = $solicitud->lineas
-            ->map(fn ($linea): array => [
+            ->map(fn (LineaSolicitudCotizacion $linea): array => [
                 'articulo' => $resumenes[$linea->articulo_id]['descripcion'] ?? 'Artículo #'.$linea->articulo_id,
                 'cantidad_solicitada' => (float) $linea->cantidad_solicitada,
             ])
