@@ -28,6 +28,7 @@ class OrdenDeCompraFactory extends Factory
             'estado' => 'Emitida',
             'entrega_parcial' => false,
             'fecha_emision' => now(),
+            'fecha_confirmacion' => null,
             'token' => null,
         ];
     }

@@ -2,11 +2,20 @@
 
 namespace App\Modules\Compras\Models;
 
+use Database\Factories\DesempenoProveedorFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DesempenoProveedor extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): DesempenoProveedorFactory
+    {
+        return DesempenoProveedorFactory::new();
+    }
+
     /**
      * @var string
      */

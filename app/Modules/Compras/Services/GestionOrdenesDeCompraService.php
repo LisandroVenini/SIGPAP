@@ -262,10 +262,16 @@ class GestionOrdenesDeCompraService
             $anterior = ['estado' => $orden->estado];
             $nuevoEstado = $aceptada ? self::ESTADO_CONFIRMADA : self::ESTADO_RECHAZADA;
 
-            $orden->update([
+            $datos = [
                 'estado' => $nuevoEstado,
                 'token' => null,
-            ]);
+            ];
+
+            if ($aceptada) {
+                $datos['fecha_confirmacion'] = today()->toDateString();
+            }
+
+            $orden->update($datos);
 
             $this->auditoria->registrarEvento(
                 $usuarioId,
