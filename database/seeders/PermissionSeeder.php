@@ -14,12 +14,18 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        $permission = Permission::firstOrCreate([
+        $inventario = Permission::firstOrCreate([
             'name' => 'inventario.gestionar',
             'guard_name' => 'web',
         ]);
 
-        Role::findByName(Rol::Administrador->value, 'web')->givePermissionTo($permission);
-        Role::findByName(Rol::EncargadoStock->value, 'web')->givePermissionTo($permission);
+        $produccion = Permission::firstOrCreate([
+            'name' => 'produccion.gestionar',
+            'guard_name' => 'web',
+        ]);
+
+        Role::findByName(Rol::Administrador->value, 'web')->givePermissionTo([$inventario, $produccion]);
+        Role::findByName(Rol::EncargadoStock->value, 'web')->givePermissionTo($inventario);
+        Role::findByName(Rol::SupervisorProduccion->value, 'web')->givePermissionTo($produccion);
     }
 }

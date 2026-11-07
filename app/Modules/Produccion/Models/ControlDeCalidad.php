@@ -2,11 +2,20 @@
 
 namespace App\Modules\Produccion\Models;
 
+use Database\Factories\ControlDeCalidadFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ControlDeCalidad extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): ControlDeCalidadFactory
+    {
+        return ControlDeCalidadFactory::new();
+    }
+
     /**
      * @var string
      */
@@ -17,6 +26,7 @@ class ControlDeCalidad extends Model
      */
     protected $fillable = [
         'orden_de_produccion_id',
+        'parte_diario_id',
         'fecha',
         'cantidad_aprobada',
         'cantidad_rechazada',
@@ -38,5 +48,10 @@ class ControlDeCalidad extends Model
     public function ordenDeProduccion(): BelongsTo
     {
         return $this->belongsTo(OrdenDeProduccion::class);
+    }
+
+    public function parteDiario(): BelongsTo
+    {
+        return $this->belongsTo(ParteDiario::class);
     }
 }

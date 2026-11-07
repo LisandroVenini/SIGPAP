@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Modules\Usuarios\Enums\EstadoUsuario;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -34,6 +35,16 @@ class UsuarioFactory extends Factory
             'clave_acceso' => 'password',
             'remember_token' => Str::random(10),
         ];
+    }
+
+    /**
+     * The column default is not read back into the model, so set it explicitly.
+     */
+    public function configure(): static
+    {
+        return $this->afterMaking(function (Usuario $usuario): void {
+            $usuario->estado ??= EstadoUsuario::Activo->value;
+        });
     }
 
     /**

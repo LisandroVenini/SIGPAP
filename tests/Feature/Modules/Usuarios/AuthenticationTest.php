@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Modules\Usuarios;
 
+use App\Modules\Usuarios\Enums\EstadoUsuario;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -52,6 +53,41 @@ class AuthenticationTest extends TestCase
         // Assert
         $response->assertRedirect('/login');
         $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_an_inhabilitado_usuario_cannot_authenticate(): void
+    {
+        // Arrange
+        $usuario = Usuario::factory()->create(['clave_acceso' => 'secret-password']);
+        $usuario->estado = EstadoUsuario::Inhabilitado->value;
+        $usuario->save();
+
+        // Act
+        $response = $this->from('/login')->post('/login', [
+            'email' => $usuario->email,
+            'password' => 'secret-password',
+        ]);
+
+        // Assert
+        $response->assertRedirect('/login');
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_an_inhabilitado_usuario_with_an_open_session_is_logged_out(): void
+    {
+        // Arrange
+        $usuario = Usuario::factory()->create();
+        $this->actingAs($usuario);
+        $usuario->estado = EstadoUsuario::Inhabilitado->value;
+        $usuario->save();
+
+        // Act
+        $response = $this->get('/dashboard');
+
+        // Assert
+        $response->assertRedirect('/login');
         $this->assertGuest();
     }
 

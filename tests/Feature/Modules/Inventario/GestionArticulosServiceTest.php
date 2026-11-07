@@ -3,6 +3,7 @@
 namespace Tests\Feature\Modules\Inventario;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Inventario\Enums\EstadoArticulo;
 use App\Modules\Inventario\Enums\OrigenArticulo;
 use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
@@ -161,5 +162,189 @@ class GestionArticulosServiceTest extends TestCase
         $this->assertSame(3, $resumen['total']);
         $this->assertSame(2, $resumen['activos']);
         $this->assertSame(1, $resumen['inactivos']);
+    }
+
+    public function test_productos_terminados_fabricados_filtra_tipo_origen_y_estado(): void
+    {
+        // Arrange
+        $fabricado = Articulo::factory()->create([
+            'descripcion' => 'Silla de pino',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => OrigenArticulo::Fabricado->value,
+        ]);
+        Articulo::factory()->create([
+            'descripcion' => 'Silla de tercero',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => OrigenArticulo::Tercero->value,
+        ]);
+        Articulo::factory()->create([
+            'descripcion' => 'Producto sin origen',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => null,
+        ]);
+        Articulo::factory()->create([
+            'descripcion' => 'Tabla de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+        ]);
+        $inactivo = Articulo::factory()->create([
+            'descripcion' => 'Silla inactiva',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => OrigenArticulo::Fabricado->value,
+        ]);
+        $inactivo->estado = 'Inactivo';
+        $inactivo->save();
+
+        $service = $this->service();
+
+        // Act / Assert
+        $this->assertSame([$fabricado->id], $service->productosTerminadosFabricados()->pluck('id')->all());
+        $this->assertSame([$fabricado->id], $service->productosTerminadosFabricados('pino')->pluck('id')->all());
+        $this->assertSame($fabricado->id, $service->productoTerminadoFabricado($fabricado->id)['id']);
+        $this->assertNull($service->productoTerminadoFabricado($inactivo->id));
+    }
+
+    public function test_insumos_disponibles_filtra_tipo_y_estado(): void
+    {
+        // Arrange
+        $madera = Articulo::factory()->create([
+            'descripcion' => 'Madera de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        $barniz = Articulo::factory()->create([
+            'descripcion' => 'Barniz',
+            'tipo' => TipoArticulo::InsumoConsumible->value,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        Articulo::factory()->create([
+            'descripcion' => 'Silla',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        $inactivo = Articulo::factory()->create([
+            'descripcion' => 'Clavo inactivo',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        $inactivo->estado = EstadoArticulo::Inactivo->value;
+        $inactivo->save();
+
+        $service = $this->service();
+
+        // Act
+        $insumos = $service->insumosDisponibles();
+
+        // Assert
+        $this->assertCount(2, $insumos);
+        $ids = $insumos->pluck('id')->all();
+        $this->assertContains($madera->id, $ids);
+        $this->assertContains($barniz->id, $ids);
+        $this->assertNotContains($inactivo->id, $ids);
+
+        // Ordenados por descripción
+        $this->assertSame($barniz->id, $insumos->first()['id']);
+        $this->assertSame($madera->id, $insumos->last()['id']);
+    }
+
+    public function test_insumos_disponibles_busca_por_texto(): void
+    {
+        // Arrange
+        $madera = Articulo::factory()->create([
+            'descripcion' => 'Madera de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        Articulo::factory()->create([
+            'descripcion' => 'Barniz',
+            'tipo' => TipoArticulo::InsumoConsumible->value,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+
+        $service = $this->service();
+
+        // Act
+        $insumos = $service->insumosDisponibles('pino');
+
+        // Assert
+        $this->assertCount(1, $insumos);
+        $this->assertSame($madera->id, $insumos->first()['id']);
+    }
+
+    public function test_resumenes_de_articulos_resuelve_los_ids_pedidos(): void
+    {
+        // Arrange
+        $madera = Articulo::factory()->create([
+            'descripcion' => 'Madera de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+        ]);
+        $silla = Articulo::factory()->create([
+            'descripcion' => 'Silla',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+        ]);
+
+        $service = $this->service();
+
+        // Act
+        $resumenes = $service->resumenesDeArticulos([$madera->id, $silla->id, 9999]);
+
+        // Assert
+        $this->assertArrayHasKey($madera->id, $resumenes);
+        $this->assertArrayHasKey($silla->id, $resumenes);
+        $this->assertArrayNotHasKey(9999, $resumenes);
+        $this->assertSame('Madera de pino', $resumenes[$madera->id]['descripcion']);
+        $this->assertSame('Silla', $resumenes[$silla->id]['descripcion']);
+    }
+
+    public function test_ids_que_coinciden_busca_por_sku_y_descripcion_sin_filtrar_tipo_ni_estado(): void
+    {
+        // Arrange
+        $madera = Articulo::factory()->create([
+            'codigo_sku' => 'MP-PINO',
+            'descripcion' => 'Madera de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        $silla = Articulo::factory()->create([
+            'codigo_sku' => 'PT-SILLA',
+            'descripcion' => 'Silla de pino',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'estado' => EstadoArticulo::Inactivo->value,
+        ]);
+        Articulo::factory()->create([
+            'codigo_sku' => 'PT-MESA',
+            'descripcion' => 'Mesa de algarrobo',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+        ]);
+
+        $service = $this->service();
+
+        // Act
+        $coincidenciasSku = $service->idsQueCoinciden('SILLA');
+        $coincidenciasDescripcion = $service->idsQueCoinciden('pino');
+
+        // Assert
+        $this->assertSame([$silla->id], $coincidenciasSku);
+        $this->assertSame([$madera->id, $silla->id], $coincidenciasDescripcion);
+    }
+
+    public function test_ids_que_coinciden_trata_comodines_como_literales(): void
+    {
+        // Arrange
+        Articulo::factory()->create([
+            'codigo_sku' => 'MP-PINO',
+            'descripcion' => 'Madera de pino',
+        ]);
+        $conComodin = Articulo::factory()->create([
+            'codigo_sku' => 'PT-%',
+            'descripcion' => 'Producto con porcentaje',
+        ]);
+
+        $service = $this->service();
+
+        // Act
+        $coincidencias = $service->idsQueCoinciden('%');
+
+        // Assert
+        $this->assertSame([$conComodin->id], $coincidencias);
     }
 }

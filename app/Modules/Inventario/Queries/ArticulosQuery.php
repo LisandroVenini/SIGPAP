@@ -19,13 +19,7 @@ class ArticulosQuery
         return Articulo::query()
             ->with('unidadDeMedida')
             ->withSum(['reservas as stock_comprometido' => fn ($query) => $query->where('estado', EstadoReserva::Vigente->value)], 'cantidad')
-            ->when($filtros['buscar'] ?? null, function ($query, string $buscar): void {
-                $query->where(function ($query) use ($buscar): void {
-                    $query->where('codigo_sku', 'like', "%{$buscar}%")
-                        ->orWhere('descripcion', 'like', "%{$buscar}%")
-                        ->orWhere('tipo', 'like', "%{$buscar}%");
-                });
-            })
+            ->when($filtros['buscar'] ?? null, fn ($query, string $buscar) => $query->buscar($buscar))
             ->when($filtros['tipo'] ?? null, fn ($query, string $tipo) => $query->tipo($tipo))
             ->when($filtros['estado'] ?? null, fn ($query, string $estado) => $query->estado($estado))
             ->orderBy('descripcion')

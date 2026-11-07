@@ -44,15 +44,15 @@ const navGroups: NavGroup[] = [
     {
         label: 'Producción',
         items: [
-            { label: 'Planificaciones' },
-            { label: 'Órdenes de Producción' },
+            { label: 'Planificaciones', href: '/produccion/planificaciones' },
+            { label: 'Órdenes de Producción', href: '/produccion/ordenes-de-produccion' },
             { label: 'Parte Diario' },
-            { label: 'Cronograma' },
-            { label: 'Etapas' },
-            { label: 'Hoja de Ruta' },
-            { label: 'Operarios' },
-            { label: 'Maquinarias' },
-            { label: 'Mantenimiento' },
+            { label: 'Cronograma', href: '/produccion/cronograma' },
+            { label: 'Etapas', href: '/produccion/etapas' },
+            { label: 'Hoja de Ruta', href: '/produccion/hoja-de-ruta' },
+            { label: 'Operarios', href: '/produccion/operarios' },
+            { label: 'Maquinarias', href: '/produccion/maquinarias' },
+            { label: 'Mantenimiento', href: '/produccion/planes-de-mantenimiento' },
         ],
     },
     {

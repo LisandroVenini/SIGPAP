@@ -24,6 +24,7 @@ class AsignacionDeEtapaFactory extends Factory
             'articulo_id' => ArticuloFactory::new(),
             'etapa_id' => EtapaFactory::new(),
             'tiempo_por_unidad' => 5,
+            'orden' => 1,
         ];
     }
 }

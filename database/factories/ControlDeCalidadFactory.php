@@ -22,6 +22,7 @@ class ControlDeCalidadFactory extends Factory
     {
         return [
             'orden_de_produccion_id' => OrdenDeProduccionFactory::new(),
+            'parte_diario_id' => null,
             'fecha' => now(),
             'cantidad_aprobada' => 4,
             'cantidad_rechazada' => 1,

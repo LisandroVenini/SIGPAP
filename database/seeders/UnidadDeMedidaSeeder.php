@@ -15,9 +15,11 @@ class UnidadDeMedidaSeeder extends Seeder
         $unidades = [
             ['nombre' => 'Unidad', 'factor_conversion' => 1],
             ['nombre' => 'Kilogramo', 'factor_conversion' => 1],
+            ['nombre' => 'Gramo', 'factor_conversion' => 1],
             ['nombre' => 'Metro', 'factor_conversion' => 1],
             ['nombre' => 'Metro cuadrado', 'factor_conversion' => 1],
             ['nombre' => 'Litro', 'factor_conversion' => 1],
+            ['nombre' => 'Mililitro', 'factor_conversion' => 1],
         ];
 
         foreach ($unidades as $unidad) {

@@ -2,6 +2,9 @@
 
 namespace App\Modules\Produccion\Models;
 
+use Database\Factories\OrdenDeProduccionFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -9,6 +12,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrdenDeProduccion extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): OrdenDeProduccionFactory
+    {
+        return OrdenDeProduccionFactory::new();
+    }
+
     /**
      * @var string
      */
@@ -24,6 +34,7 @@ class OrdenDeProduccion extends Model
         'cantidad_requerida',
         'fecha_entrega',
         'fecha_inicio',
+        'fecha_prevista_inicio',
         'fecha_fin',
         'cantidad_producida',
         'prioridad_actual',
@@ -38,10 +49,24 @@ class OrdenDeProduccion extends Model
             'cantidad_requerida' => 'decimal:2',
             'fecha_entrega' => 'date',
             'fecha_inicio' => 'date',
+            'fecha_prevista_inicio' => 'date',
             'fecha_fin' => 'date',
             'cantidad_producida' => 'decimal:2',
             'prioridad_actual' => 'integer',
         ];
+    }
+
+    /**
+     * @param  array<int, int>  $articuloIds
+     */
+    public function scopeBuscarPorArticulos(Builder $query, array $articuloIds): void
+    {
+        $query->whereIn('articulo_id', $articuloIds);
+    }
+
+    public function scopeConEstado(Builder $query, string $estado): void
+    {
+        $query->where('estado', $estado);
     }
 
     public function planificacionDeProduccion(): BelongsTo

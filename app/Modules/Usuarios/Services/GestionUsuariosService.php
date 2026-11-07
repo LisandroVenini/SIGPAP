@@ -145,7 +145,8 @@ class GestionUsuariosService
     }
 
     /**
-     * An Administrador cannot leave the system without access to user management.
+     * An Administrador cannot leave the system without access to user management,
+     * and nobody can flip their own account state in either direction.
      */
     private function asegurarOperacionPermitida(
         Usuario $actor,
@@ -157,9 +158,9 @@ class GestionUsuariosService
             return;
         }
 
-        if ($nuevoEstado === EstadoUsuario::Inhabilitado->value) {
+        if ($nuevoEstado !== $usuario->estado) {
             throw ValidationException::withMessages([
-                'estado' => 'No podés inhabilitar tu propia cuenta.',
+                'estado' => 'No podés cambiar el estado de tu propia cuenta.',
             ]);
         }
 

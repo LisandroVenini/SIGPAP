@@ -2,6 +2,7 @@
 
 namespace App\Modules\Usuarios\Requests;
 
+use App\Modules\Usuarios\Enums\EstadoUsuario;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +37,7 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'))) {
+        if (! Auth::attempt($this->only('email', 'password') + ['estado' => EstadoUsuario::Activo->value])) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
