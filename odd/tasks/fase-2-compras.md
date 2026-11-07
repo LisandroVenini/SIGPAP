@@ -17,7 +17,9 @@ Rama: `feat/fase-2-compras` (a crear desde `main`). Test runner: PHPUnit (`php a
 - [x] C1 — Proveedores: modelo + scope, Service, Policy, Requests, Controller, rutas, permiso, página Vue, tests. Commit `7b739aa`.
 - [x] C2 — Solicitudes de cotización: alta con líneas y proveedores, token UUID por proveedor, envío real por SMTP (Mailtrap), portal público con token de un solo uso, listado con búsqueda (proveedor, estado, fechas), modificación bloqueada con cotizaciones y anulación. Commits `043dd82` y `93af01c`.
 - [x] C3 — Adjudicación y órdenes de compra: emisión desde una cotización con `numero_oc` secuencial, líneas derivadas, marca de adjudicación, listado con búsqueda, modificación y anulación solo en `Emitida`, y confirmación/rechazo del proveedor por token de un solo uso con correo. Commits `db66743`, `0110609` y `00004d8`.
-- [ ] C4 — Disponibilidad y ranking.
+- [ ] C4.1 — Ranking de proveedores (CU-COM-18): fórmula OTIF ponderada por gravedad y ventana de recencia, con pesos configurables desde Configuración.
+- [ ] C4.2 — Informe multicriterio (precio + lead time + confiabilidad) para la adjudicación.
+- [ ] C4.3 — Disponibilidad y resolución (CU-COM-19/20), bloqueado por el Componente Predictivo y `Alerta`.
 
 ## Log
 
@@ -33,3 +35,5 @@ Rama: `feat/fase-2-compras` (a crear desde `main`). Test runner: PHPUnit (`php a
 - L10: Correcciones del padre: se eliminó un Query Object para un filtro de una línea, se movió la consulta multi-tabla de solicitudes con cotizaciones a `SolicitudesDeCotizacionQuery`, y se limpiaron PHPDoc huérfanos y código muerto detectados por gga.
 - L11: Evidencia C3 — PHPUnit Compras: 103 tests, 521 assertions. Vitest Compras + Portal: 25 tests. gga PASSED en los tres commits.
 - L12: El token de confirmación de OC se agregó con una migración nueva; quedó en un commit aparte por olvido de staging, ya corregido.
+- L13: Decisión de ranking: OTIF ponderado por gravedad (perfecta 1.0, retraso 0.6, faltante 0.3, rotura 0) con ventana de 12 meses y "Sin historial" como categoría aparte. Todos los pesos y la ventana se configuran desde la pantalla de Configuración (`ParametroGlobal`, categoría Compras).
+- L14: El ranking mide confiabilidad; el informe multicriterio combinará esa confiabilidad con precio y lead time prometido como dimensiones separadas, para no contar el tiempo de entrega dos veces.
