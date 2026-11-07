@@ -72,6 +72,7 @@ const navGroups: NavGroup[] = [
                 href: '/compras/solicitudes-de-cotizacion',
             },
             { label: 'Órdenes de Compra', href: '/compras/ordenes-de-compra' },
+            { label: 'Ranking de Proveedores', href: '/compras/ranking' },
         ],
     },
     {

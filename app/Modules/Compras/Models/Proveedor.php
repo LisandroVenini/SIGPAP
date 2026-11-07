@@ -39,6 +39,11 @@ class Proveedor extends Model
         });
     }
 
+    public function scopeActivos(Builder $query): void
+    {
+        $query->where('estado', 'Activo')->orderBy('razon_social');
+    }
+
     public function solicitudesDeDisponibilidad(): HasMany
     {
         return $this->hasMany(SolicitudDeDisponibilidad::class);

@@ -20,6 +20,11 @@ class ActualizarConfiguracionRequest extends FormRequest
         return [
             'parametros' => ['required', 'array'],
             'parametros.*' => ['required', 'string'],
+            'parametros.compras_ranking_peso_perfecta' => ['sometimes', 'numeric', 'min:0', 'max:1'],
+            'parametros.compras_ranking_peso_retraso' => ['sometimes', 'numeric', 'min:0', 'max:1'],
+            'parametros.compras_ranking_peso_faltante' => ['sometimes', 'numeric', 'min:0', 'max:1'],
+            'parametros.compras_ranking_peso_rotura' => ['sometimes', 'numeric', 'min:0', 'max:1'],
+            'parametros.compras_ranking_ventana_meses' => ['sometimes', 'integer', 'min:1', 'max:60'],
         ];
     }
 }

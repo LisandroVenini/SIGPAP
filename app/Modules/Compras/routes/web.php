@@ -4,6 +4,7 @@ use App\Modules\Compras\Controllers\OrdenDeCompraController;
 use App\Modules\Compras\Controllers\PortalCotizacionController;
 use App\Modules\Compras\Controllers\PortalOrdenController;
 use App\Modules\Compras\Controllers\ProveedorController;
+use App\Modules\Compras\Controllers\RankingController;
 use App\Modules\Compras\Controllers\SolicitudDeCotizacionController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,8 @@ Route::middleware('web')->group(function (): void {
                 Route::post('ordenes-de-compra/{orden}/anular', [OrdenDeCompraController::class, 'anular'])
                     ->whereNumber('orden')
                     ->name('ordenes-de-compra.anular');
+
+                Route::get('ranking', [RankingController::class, 'index'])->name('ranking.index');
             });
         });
 });
