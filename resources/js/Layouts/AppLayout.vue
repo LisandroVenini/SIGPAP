@@ -79,7 +79,7 @@ const navGroups: NavGroup[] = [
         label: 'Predictivo',
         items: [{ label: 'Tablero Predictivo' }, { label: 'Simulador' }],
     },
-    { label: 'Reportes', items: [{ label: 'Reportes de Producción' }] },
+    { label: 'Reportes', items: [{ label: 'Generador de Reportes', href: '/reportes' }] },
     { label: 'Auditoría', items: [{ label: 'Registro de Auditoría', href: '/auditoria' }] },
     {
         label: 'Usuarios',
