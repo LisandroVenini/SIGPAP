@@ -9,6 +9,7 @@ use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\UnidadDeMedida;
 use App\Modules\Inventario\Queries\ArticulosQuery;
+use App\Modules\Inventario\Queries\DashboardInventarioQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -21,6 +22,7 @@ class GestionArticulosService
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly ArticulosQuery $query,
+        private readonly DashboardInventarioQuery $dashboard,
         private readonly UsuariosService $usuarios,
     ) {}
 
@@ -43,6 +45,19 @@ class GestionArticulosService
     public function resumen(): array
     {
         return $this->query->resumen();
+    }
+
+    /**
+     * Inventory indicators for the dashboard.
+     *
+     * @return array{activos: int, bajo_minimo: int, comprometido: float}
+     */
+    public function resumenDashboard(): array
+    {
+        return [
+            ...$this->dashboard->articulos(),
+            'comprometido' => $this->dashboard->comprometido(),
+        ];
     }
 
     /**

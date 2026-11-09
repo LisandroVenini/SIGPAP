@@ -12,6 +12,7 @@ use App\Modules\Compras\Models\LineaOrdenCompra;
 use App\Modules\Compras\Models\OrdenDeCompra;
 use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
+use App\Modules\Compras\Queries\DashboardComprasQuery;
 use App\Modules\Compras\Queries\OrdenesDeCompraQuery;
 use App\Modules\Compras\Queries\ReporteComprasQuery;
 use App\Modules\Compras\Queries\SolicitudesDeCotizacionQuery;
@@ -31,6 +32,7 @@ class GestionOrdenesDeCompraService
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly UsuariosService $usuarios,
+        private readonly DashboardComprasQuery $dashboard,
         private readonly OrdenesDeCompraQuery $ordenesQuery,
         private readonly ReporteComprasQuery $reporteCompras,
         private readonly SolicitudesDeCotizacionQuery $solicitudesQuery,
@@ -40,6 +42,16 @@ class GestionOrdenesDeCompraService
     public function puedeGestionar(Usuario $actor): bool
     {
         return $this->usuarios->autorizar($actor, 'compras.gestionar');
+    }
+
+    /**
+     * Purchase indicators for the dashboard.
+     *
+     * @return array{pendientes_recepcion: int, solicitudes_abiertas: int, proveedores_activos: int}
+     */
+    public function resumenDashboard(): array
+    {
+        return $this->dashboard->resumen();
     }
 
     /**
