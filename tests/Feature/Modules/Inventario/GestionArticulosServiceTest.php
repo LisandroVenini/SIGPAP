@@ -9,6 +9,7 @@ use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\UnidadDeMedida;
 use App\Modules\Inventario\Queries\ArticulosQuery;
+use App\Modules\Inventario\Queries\DashboardInventarioQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
@@ -22,7 +23,7 @@ class GestionArticulosServiceTest extends TestCase
 
     private function service(): GestionArticulosService
     {
-        return new GestionArticulosService(new AuditoriaService, new ArticulosQuery, new UsuariosService);
+        return new GestionArticulosService(new AuditoriaService, new ArticulosQuery, new DashboardInventarioQuery, new UsuariosService);
     }
 
     private function actor(): Usuario

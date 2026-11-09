@@ -9,6 +9,7 @@ use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Queries\CalidadQuery;
+use App\Modules\Produccion\Queries\DashboardProduccionQuery;
 use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\OrdenesDeProduccionQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
@@ -27,6 +28,7 @@ class GestionOrdenesDeProduccionService
         private readonly GestionRecetasService $recetas,
         private readonly GestionReservasService $reservas,
         private readonly CalidadQuery $calidad,
+        private readonly DashboardProduccionQuery $dashboard,
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly OrdenesDeProduccionQuery $query,
         private readonly PartesDiariosQuery $partesDiarios,
@@ -37,6 +39,33 @@ class GestionOrdenesDeProduccionService
     public function puedeGestionar(Usuario $actor): bool
     {
         return $this->usuarios->autorizar($actor, 'produccion.gestionar');
+    }
+
+    /**
+     * Production indicators and the next deliveries for the dashboard.
+     *
+     * @return array{activas: int, en_curso: int, pendientes_por_insumos: int, atrasadas: int, proximas_entregas: array<int, array{orden_id: int, producto: string, fecha_entrega: string, estado: string}>}
+     */
+    public function resumenDashboard(): array
+    {
+        $hoy = today()->toDateString();
+        $proximas = $this->dashboard->proximasEntregas(5, $hoy);
+
+        $resumenes = $this->articulos->resumenesDeArticulos(
+            $proximas->pluck('articulo_id')->unique()->values()->all(),
+        );
+
+        return [
+            ...$this->dashboard->agregados($hoy),
+            'proximas_entregas' => $proximas
+                ->map(fn (array $orden): array => [
+                    'orden_id' => $orden['orden_id'],
+                    'producto' => $resumenes[$orden['articulo_id']]['descripcion'] ?? '',
+                    'fecha_entrega' => $orden['fecha_entrega'],
+                    'estado' => $orden['estado'],
+                ])
+                ->all(),
+        ];
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Produccion\Enums\EstadoMaquinaria;
 use App\Modules\Produccion\Models\IntervencionDeMantenimiento;
 use App\Modules\Produccion\Models\Maquinaria;
+use App\Modules\Produccion\Queries\DashboardMantenimientosQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,28 @@ class GestionMantenimientosService
 {
     public function __construct(
         private readonly AuditoriaService $auditoria,
+        private readonly DashboardMantenimientosQuery $dashboard,
     ) {}
+
+    /**
+     * Maintenance indicators for the dashboard.
+     *
+     * @return array{maquinas_bloqueadas: int, planes: int}
+     */
+    public function resumenDashboard(): array
+    {
+        return $this->dashboard->resumen();
+    }
+
+    /**
+     * Blocked machines ordered by accumulated wear, most worn first.
+     *
+     * @return array<int, array{id: int, nombre: string, desgaste: float}>
+     */
+    public function maquinasBloqueadas(int $limite): array
+    {
+        return $this->dashboard->bloqueadas($limite);
+    }
 
     public function registrar(
         Usuario $actor,
