@@ -13,6 +13,7 @@ use App\Modules\Compras\Models\OrdenDeCompra;
 use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
 use App\Modules\Compras\Queries\OrdenesDeCompraQuery;
+use App\Modules\Compras\Queries\ReporteComprasQuery;
 use App\Modules\Compras\Queries\SolicitudesDeCotizacionQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
@@ -31,6 +32,7 @@ class GestionOrdenesDeCompraService
         private readonly AuditoriaService $auditoria,
         private readonly UsuariosService $usuarios,
         private readonly OrdenesDeCompraQuery $ordenesQuery,
+        private readonly ReporteComprasQuery $reporteCompras,
         private readonly SolicitudesDeCotizacionQuery $solicitudesQuery,
         private readonly GestionArticulosService $articulos,
     ) {}
@@ -46,6 +48,16 @@ class GestionOrdenesDeCompraService
     public function listar(array $filtros = []): LengthAwarePaginator
     {
         return $this->ordenesQuery->listar($filtros);
+    }
+
+    /**
+     * Purchase orders inside the issue date range, already formatted for reports.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function reportePorFechaDeEmision(string $desde, string $hasta): array
+    {
+        return $this->reporteCompras->filas($desde, $hasta)->values()->all();
     }
 
     /**
@@ -168,7 +180,6 @@ class GestionOrdenesDeCompraService
      */
     public function actualizar(Usuario $actor, OrdenDeCompra $orden, array $lineas, ?string $direccionIp = null): void
     {
-
         DB::transaction(function () use ($actor, $orden, $lineas, $direccionIp): void {
             $orden = OrdenDeCompra::query()
                 ->whereKey($orden->getKey())

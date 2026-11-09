@@ -12,6 +12,7 @@ use App\Modules\Produccion\Queries\CalidadQuery;
 use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\OrdenesDeProduccionQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
+use App\Modules\Produccion\Queries\ReporteProduccionQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -29,12 +30,41 @@ class GestionOrdenesDeProduccionService
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly OrdenesDeProduccionQuery $query,
         private readonly PartesDiariosQuery $partesDiarios,
+        private readonly ReporteProduccionQuery $reporteProduccion,
         private readonly UsuariosService $usuarios,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
     {
         return $this->usuarios->autorizar($actor, 'produccion.gestionar');
+    }
+
+    /**
+     * Production orders inside the delivery date range, already formatted for reports.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function reportePorFechaDeEntrega(string $desde, string $hasta, ?string $estado): array
+    {
+        $filas = $this->reporteProduccion->filas($desde, $hasta, $estado)->values();
+
+        $resumenes = $this->articulos->resumenesDeArticulos(
+            $filas->pluck('articulo_id')->unique()->values()->all(),
+        );
+
+        return $filas
+            ->map(fn (array $fila): array => [
+                'orden_id' => $fila['orden_id'],
+                'producto' => $resumenes[$fila['articulo_id']]['descripcion'] ?? '',
+                'planificacion' => $fila['planificacion'],
+                'estado' => $fila['estado'],
+                'cantidad_requerida' => $fila['cantidad_requerida'],
+                'cantidad_producida' => $fila['cantidad_producida'],
+                'fecha_entrega' => $fila['fecha_entrega'],
+                'fecha_inicio' => $fila['fecha_inicio'],
+                'fecha_fin' => $fila['fecha_fin'],
+            ])
+            ->all();
     }
 
     /**
