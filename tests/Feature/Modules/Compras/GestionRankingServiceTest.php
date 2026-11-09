@@ -300,6 +300,34 @@ class GestionRankingServiceTest extends TestCase
         $this->assertSame(60, $resultado['parametros']['ventana_meses']);
     }
 
+    public function test_scores_for_the_requested_suppliers_reuse_the_ranking_logic(): void
+    {
+        // Arrange
+        $this->seed(ParametroGlobalSeeder::class);
+
+        $conHistorial = $this->proveedor('Con historial');
+        $this->entrega($conHistorial);
+        $this->entrega($conHistorial);
+
+        $conRetraso = $this->proveedor('Con retraso');
+        $this->entrega($conRetraso, ['Retraso']);
+
+        $sinHistorial = $this->proveedor('Sin historial');
+
+        // Act
+        $puntajes = $this->service()->puntajesPorProveedor([
+            (int) $conHistorial->id,
+            (int) $conRetraso->id,
+            (int) $sinHistorial->id,
+        ]);
+
+        // Assert
+        $this->assertSame([
+            (int) $conHistorial->id => ['puntaje' => 100.0, 'entregas' => 2],
+            (int) $conRetraso->id => ['puntaje' => 60.0, 'entregas' => 1],
+        ], $puntajes);
+    }
+
     public function test_rows_are_ordered_by_score_and_then_by_business_name(): void
     {
         // Arrange

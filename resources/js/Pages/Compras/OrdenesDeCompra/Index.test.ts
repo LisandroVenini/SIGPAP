@@ -91,9 +91,53 @@ const props = {
                     total: 964,
                     ultima_fecha_prometida: '2026-11-15',
                 },
+                {
+                    id: 501,
+                    proveedor: 'Maderas Norte',
+                    total: 880,
+                    ultima_fecha_prometida: '2026-11-15',
+                },
             ],
         },
     ],
+    informes: {
+        '9': {
+            parametros: {
+                pesos: { precio: 0.4, entrega: 0.3, confiabilidad: 0.3 },
+                sin_historial: 50,
+                penalizar_cobertura: true,
+            },
+            cotizaciones: [
+                {
+                    cotizacion_id: 500,
+                    proveedor: 'Aceros del Sur',
+                    precio: 964,
+                    dias: 6,
+                    cobertura: 0.8,
+                    vencida: false,
+                    confiabilidad: 50,
+                    precio_norm: 80,
+                    entrega_norm: 100,
+                    confiabilidad_norm: 50,
+                    puntaje: 73,
+                },
+                {
+                    cotizacion_id: 501,
+                    proveedor: 'Maderas Norte',
+                    precio: 880,
+                    dias: 6,
+                    cobertura: 1,
+                    vencida: false,
+                    confiabilidad: 50,
+                    precio_norm: 100,
+                    entrega_norm: 100,
+                    confiabilidad_norm: 50,
+                    puntaje: 85,
+                },
+            ],
+            recomendada_id: 501,
+        },
+    },
     articulos: [{ id: 10, codigo_sku: 'MP-001', descripcion: 'Tabla de pino', unidad: 'Unidad' }],
     estados: ['Emitida', 'Confirmada', 'Recibida', 'Anulada', 'Rechazada'],
 };
@@ -137,6 +181,76 @@ describe('Compras OrdenesDeCompra page', () => {
         // Assert
         expect(wrapper.text()).toContain('Aceros del Sur');
         expect(wrapper.text()).toContain('2026-11-15');
+        expect(hoisted.post).toHaveBeenCalledWith(
+            '/compras/ordenes-de-compra',
+            expect.objectContaining({ preserveScroll: true }),
+            expect.objectContaining({ cotizacion_id: 500 }),
+        );
+    });
+
+    it('shows the multicriteria report with the recommended quote highlighted', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        const emitir = wrapper.findAll('button').find((button) => button.text() === 'Emitir OC');
+        await emitir?.trigger('click');
+
+        // Assert
+        expect(wrapper.find('[data-testid="informe-tabla"]').exists()).toBe(true);
+        expect(
+            wrapper.find('[data-testid="informe-fila-501"]').attributes('data-recomendada'),
+        ).toBe('true');
+        expect(
+            wrapper.find('[data-testid="informe-fila-500"]').attributes('data-recomendada'),
+        ).toBe('false');
+    });
+
+    it('preselects the recommended quote', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        const emitir = wrapper.findAll('button').find((button) => button.text() === 'Emitir OC');
+        await emitir?.trigger('click');
+
+        // Assert
+        const recomendada = wrapper.find('[data-testid="cotizacion-501"]')
+            .element as HTMLInputElement;
+        const alternativa = wrapper.find('[data-testid="cotizacion-500"]')
+            .element as HTMLInputElement;
+
+        expect(recomendada.checked).toBe(true);
+        expect(alternativa.checked).toBe(false);
+    });
+
+    it('shows the active weights used by the report', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        const emitir = wrapper.findAll('button').find((button) => button.text() === 'Emitir OC');
+        await emitir?.trigger('click');
+
+        // Assert
+        const nota = wrapper.find('[data-testid="informe-pesos"]');
+        expect(nota.exists()).toBe(true);
+        expect(nota.text()).toContain('Precio 40%');
+        expect(nota.text()).toContain('Entrega 30%');
+        expect(nota.text()).toContain('Confiabilidad 30%');
+    });
+
+    it('allows choosing a quote other than the recommended one', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        const emitir = wrapper.findAll('button').find((button) => button.text() === 'Emitir OC');
+        await emitir?.trigger('click');
+        await wrapper.find('[data-testid="cotizacion-500"]').setValue();
+        await wrapper.find('[data-testid="emitir-form"]').trigger('submit.prevent');
+
+        // Assert
         expect(hoisted.post).toHaveBeenCalledWith(
             '/compras/ordenes-de-compra',
             expect.objectContaining({ preserveScroll: true }),
