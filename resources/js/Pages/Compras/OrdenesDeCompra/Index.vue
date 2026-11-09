@@ -34,6 +34,30 @@ interface SolicitudConCotizaciones {
     cotizaciones: CotizacionOpcion[];
 }
 
+interface InformeCotizacion {
+    cotizacion_id: number;
+    proveedor: string;
+    precio: number;
+    dias: number;
+    cobertura: number;
+    vencida: boolean;
+    confiabilidad: number;
+    precio_norm: number;
+    entrega_norm: number;
+    confiabilidad_norm: number;
+    puntaje: number;
+}
+
+interface InformeMulticriterio {
+    parametros: {
+        pesos: { precio: number; entrega: number; confiabilidad: number };
+        sin_historial: number;
+        penalizar_cobertura: boolean;
+    };
+    cotizaciones: InformeCotizacion[];
+    recomendada_id: number | null;
+}
+
 interface PaginationLink {
     url: string | null;
     label: string;
@@ -70,6 +94,7 @@ interface FiltrosOrdenes {
 const props = defineProps<{
     ordenes: PaginatedOrdenes;
     solicitudesConCotizaciones: SolicitudConCotizaciones[];
+    informes: Record<string, InformeMulticriterio>;
     articulos: Articulo[];
     estados: string[];
 }>();
@@ -87,10 +112,42 @@ const filtros = ref<FiltrosOrdenes>({
 const hayFiltros = computed(() => Object.values(filtros.value).some((valor) => valor !== ''));
 
 const drawerEmitirOpen = ref(false);
+const solicitudSeleccionada = ref<number | ''>('');
 const cotizacionSeleccionada = ref<number | ''>('');
 
 const emitirForm = useForm<{ cotizacion_id: number | '' }>({
     cotizacion_id: '',
+});
+
+const solicitudActiva = computed(
+    () =>
+        props.solicitudesConCotizaciones.find(
+            (solicitud) => solicitud.id === solicitudSeleccionada.value,
+        ) ?? null,
+);
+
+const informeActivo = computed<InformeMulticriterio | null>(() => {
+    if (solicitudActiva.value === null) {
+        return null;
+    }
+
+    return props.informes[String(solicitudActiva.value.id)] ?? null;
+});
+
+const cotizacionesActivas = computed(() => solicitudActiva.value?.cotizaciones ?? []);
+
+const pesosActivos = computed(() => {
+    const pesos = informeActivo.value?.parametros.pesos;
+
+    if (!pesos) {
+        return null;
+    }
+
+    return {
+        precio: Math.round(pesos.precio * 100),
+        entrega: Math.round(pesos.entrega * 100),
+        confiabilidad: Math.round(pesos.confiabilidad * 100),
+    };
 });
 
 const drawerModificarOpen = ref(false);
@@ -125,15 +182,33 @@ function limpiarFiltros(): void {
     buscar();
 }
 
+function seleccionarSolicitud(): void {
+    cotizacionSeleccionada.value = informeActivo.value?.recomendada_id ?? '';
+}
+
 function abrirEmitir(): void {
+    solicitudSeleccionada.value = props.solicitudesConCotizaciones[0]?.id ?? '';
     cotizacionSeleccionada.value = '';
     emitirForm.clearErrors();
     emitirForm.cotizacion_id = '';
+    seleccionarSolicitud();
     drawerEmitirOpen.value = true;
 }
 
 function cerrarEmitir(): void {
     drawerEmitirOpen.value = false;
+}
+
+function esRecomendada(cotizacionId: number): boolean {
+    return informeActivo.value?.recomendada_id === cotizacionId;
+}
+
+function formatearPorcentaje(valor: number): string {
+    return `${formatearMoneda(valor * 100)}%`;
+}
+
+function formatearPuntaje(valor: number): string {
+    return formatearMoneda(valor);
 }
 
 function emitir(): void {
@@ -525,42 +600,148 @@ function labelDePagina(label: string): string {
                         No hay solicitudes enviadas con cotizaciones recibidas.
                     </div>
 
-                    <div
-                        v-for="solicitud in props.solicitudesConCotizaciones"
-                        :key="solicitud.id"
-                        class="flex flex-col gap-2 rounded-control border border-hairline p-3"
-                    >
-                        <div class="flex items-baseline justify-between gap-2">
-                            <span class="text-sm font-medium text-ink">
-                                Solicitud del {{ solicitud.fecha }}
-                            </span>
-                            <span class="text-xs text-steel">
-                                Vence el {{ solicitud.fecha_vencimiento }}
-                            </span>
+                    <template v-else>
+                        <div class="flex flex-col gap-1">
+                            <label for="solicitud-select" class="text-xs font-medium text-steel">
+                                Solicitud
+                            </label>
+                            <select
+                                id="solicitud-select"
+                                v-model.number="solicitudSeleccionada"
+                                data-testid="solicitud-select"
+                                class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                                @change="seleccionarSolicitud"
+                            >
+                                <option
+                                    v-for="solicitud in props.solicitudesConCotizaciones"
+                                    :key="solicitud.id"
+                                    :value="solicitud.id"
+                                >
+                                    Solicitud del {{ solicitud.fecha }} · vence el
+                                    {{ solicitud.fecha_vencimiento }}
+                                </option>
+                            </select>
                         </div>
 
-                        <label
-                            v-for="cotizacion in solicitud.cotizaciones"
-                            :key="cotizacion.id"
-                            class="flex flex-wrap items-center justify-between gap-2 rounded-control bg-workshop/60 px-3 py-2 text-sm text-ink"
+                        <div
+                            v-if="informeActivo && informeActivo.cotizaciones.length > 0"
+                            class="flex flex-col gap-2"
                         >
-                            <span class="flex items-center gap-2">
-                                <input
-                                    v-model="cotizacionSeleccionada"
-                                    :data-testid="`cotizacion-${cotizacion.id}`"
-                                    type="radio"
-                                    name="cotizacion_id"
-                                    :value="cotizacion.id"
-                                    class="text-teja focus:ring-teja"
-                                />
-                                {{ cotizacion.proveedor }}
-                            </span>
-                            <span class="text-xs text-steel">
-                                $ {{ formatearMoneda(cotizacion.total) }} ·
-                                {{ cotizacion.ultima_fecha_prometida ?? 'sin fecha' }}
-                            </span>
-                        </label>
-                    </div>
+                            <div class="flex items-baseline justify-between gap-2">
+                                <span class="text-sm font-medium text-ink"
+                                    >Informe multicriterio</span
+                                >
+                                <span
+                                    v-if="informeActivo.parametros.penalizar_cobertura"
+                                    class="text-[0.6875rem] text-steel"
+                                >
+                                    Cobertura penalizada
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto rounded-control border border-hairline">
+                                <table class="w-full text-left text-xs" data-testid="informe-tabla">
+                                    <thead
+                                        class="border-b border-hairline bg-workshop text-[0.6875rem] tracking-wider text-steel uppercase"
+                                    >
+                                        <tr>
+                                            <th class="px-2 py-2">Proveedor</th>
+                                            <th class="px-2 py-2 text-right">Precio</th>
+                                            <th class="px-2 py-2 text-right">Días</th>
+                                            <th class="px-2 py-2 text-right">Cobertura</th>
+                                            <th class="px-2 py-2 text-right">Confiabilidad</th>
+                                            <th class="px-2 py-2 text-right">Puntaje</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-hairline">
+                                        <tr
+                                            v-for="fila in informeActivo.cotizaciones"
+                                            :key="fila.cotizacion_id"
+                                            :data-testid="`informe-fila-${fila.cotizacion_id}`"
+                                            :data-recomendada="
+                                                esRecomendada(fila.cotizacion_id) ? 'true' : 'false'
+                                            "
+                                            :class="
+                                                esRecomendada(fila.cotizacion_id)
+                                                    ? 'bg-pine/10'
+                                                    : ''
+                                            "
+                                        >
+                                            <td class="px-2 py-2 text-ink">
+                                                {{ fila.proveedor }}
+                                                <span
+                                                    v-if="esRecomendada(fila.cotizacion_id)"
+                                                    class="ml-1 rounded bg-pine/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-pine"
+                                                >
+                                                    Recomendada
+                                                </span>
+                                                <span
+                                                    v-if="fila.vencida"
+                                                    class="ml-1 text-[0.625rem] text-oxide"
+                                                >
+                                                    Vencida
+                                                </span>
+                                            </td>
+                                            <td class="px-2 py-2 text-right font-mono text-ink">
+                                                $ {{ formatearMoneda(fila.precio) }}
+                                            </td>
+                                            <td class="px-2 py-2 text-right font-mono text-steel">
+                                                {{ fila.dias }}
+                                            </td>
+                                            <td class="px-2 py-2 text-right font-mono text-steel">
+                                                {{ formatearPorcentaje(fila.cobertura) }}
+                                            </td>
+                                            <td class="px-2 py-2 text-right font-mono text-steel">
+                                                {{ formatearPuntaje(fila.confiabilidad) }}
+                                            </td>
+                                            <td
+                                                class="px-2 py-2 text-right font-mono font-semibold text-ink"
+                                            >
+                                                {{ formatearPuntaje(fila.puntaje) }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p
+                                v-if="pesosActivos"
+                                data-testid="informe-pesos"
+                                class="rounded-control bg-workshop px-3 py-2 text-xs text-steel"
+                            >
+                                Pesos activos — Precio {{ pesosActivos.precio }}% · Entrega
+                                {{ pesosActivos.entrega }}% · Confiabilidad
+                                {{ pesosActivos.confiabilidad }}%
+                            </p>
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <span class="text-xs font-medium text-steel"
+                                >Cotización a adjudicar</span
+                            >
+                            <label
+                                v-for="cotizacion in cotizacionesActivas"
+                                :key="cotizacion.id"
+                                class="flex flex-wrap items-center justify-between gap-2 rounded-control bg-workshop/60 px-3 py-2 text-sm text-ink"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <input
+                                        v-model="cotizacionSeleccionada"
+                                        :data-testid="`cotizacion-${cotizacion.id}`"
+                                        type="radio"
+                                        name="cotizacion_id"
+                                        :value="cotizacion.id"
+                                        class="text-teja focus:ring-teja"
+                                    />
+                                    {{ cotizacion.proveedor }}
+                                </span>
+                                <span class="text-xs text-steel">
+                                    $ {{ formatearMoneda(cotizacion.total) }} ·
+                                    {{ cotizacion.ultima_fecha_prometida ?? 'sin fecha' }}
+                                </span>
+                            </label>
+                        </div>
+                    </template>
 
                     <p v-if="emitirForm.errors.cotizacion_id" class="text-xs text-oxide">
                         {{ emitirForm.errors.cotizacion_id }}

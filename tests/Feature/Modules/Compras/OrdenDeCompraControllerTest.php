@@ -121,6 +121,37 @@ class OrdenDeCompraControllerTest extends TestCase
             ->has('estados', 5));
     }
 
+    public function test_the_index_includes_the_multicriteria_report_for_solicitudes_with_quotes(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoCompras);
+        $contexto = $this->contexto();
+
+        $proveedorBarato = Proveedor::factory()->create(['razon_social' => 'Maderas Norte']);
+        $cotizacionBarata = CotizacionFactory::new()->create([
+            'solicitud_de_cotizacion_id' => $contexto['solicitud']->id,
+            'solicitud_de_disponibilidad_id' => null,
+            'proveedor_id' => $proveedorBarato->id,
+        ]);
+        LineaCotizacionFactory::new()->create([
+            'cotizacion_id' => $cotizacionBarata->id,
+            'articulo_id' => $contexto['articulo']->id,
+            'precio_unitario' => 100,
+            'cantidad_ofertada' => 10,
+            'fecha_prometida' => today()->addDays(5),
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->get('/compras/ordenes-de-compra');
+
+        // Assert
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Compras/OrdenesDeCompra/Index')
+            ->has("informes.{$contexto['solicitud']->id}.cotizaciones", 2)
+            ->where("informes.{$contexto['solicitud']->id}.recomendada_id", $cotizacionBarata->id)
+            ->where("informes.{$contexto['solicitud']->id}.parametros.penalizar_cobertura", true));
+    }
+
     public function test_a_purchasing_manager_can_emit_an_orden(): void
     {
         // Arrange

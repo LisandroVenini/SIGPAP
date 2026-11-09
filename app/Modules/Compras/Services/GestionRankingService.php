@@ -8,6 +8,7 @@ use App\Modules\Compras\Queries\RankingProveedoresQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\ParametroGlobalService;
 use App\Modules\Usuarios\Services\UsuariosService;
+use Illuminate\Support\Collection;
 
 class GestionRankingService
 {
@@ -75,29 +76,10 @@ class GestionRankingService
                 continue;
             }
 
-            $conteos = ['perfecta' => 0, 'retraso' => 0, 'faltante' => 0, 'rotura' => 0];
-            $pesoAcumulado = 0.0;
-
-            foreach ($desempenos as $desempeno) {
-                $categoria = $this->categoriaDeEntrega(
-                    $desempeno->ordenDeCompra?->incidencias->pluck('tipo')->all() ?? [],
-                );
-
-                $conteos[$categoria]++;
-                $pesoAcumulado += $pesos[$categoria];
-            }
-
-            $cantidad = $desempenos->count();
-
             $filas[] = [
                 'proveedor_id' => (int) $proveedor->id,
                 'proveedor' => $proveedor->razon_social,
-                'entregas' => $cantidad,
-                'perfectas' => $conteos['perfecta'],
-                'retrasos' => $conteos['retraso'],
-                'faltantes' => $conteos['faltante'],
-                'roturas' => $conteos['rotura'],
-                'puntaje' => round(($pesoAcumulado / $cantidad) * 100, 2),
+                ...$this->resumen($desempenos, $pesos),
             ];
         }
 
@@ -114,6 +96,78 @@ class GestionRankingService
             ],
             'filas' => $filas,
             'sin_historial' => $sinHistorial,
+        ];
+    }
+
+    /**
+     * Scores for the requested suppliers, reusing the ranking rules.
+     *
+     * @param  array<int, int>  $proveedorIds
+     * @return array<int, array{puntaje: float, entregas: int}>
+     */
+    public function puntajesPorProveedor(array $proveedorIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $proveedorIds)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $pesos = $this->pesos();
+
+        $entregas = $this->ranking
+            ->entregasEnVentana($this->ventanaMeses())
+            ->whereIn('proveedor_id', $ids)
+            ->groupBy(fn (DesempenoProveedor $entrega): int => (int) $entrega->proveedor_id);
+
+        $resultado = [];
+
+        foreach ($ids as $proveedorId) {
+            $desempenos = $entregas->get($proveedorId);
+
+            if ($desempenos === null || $desempenos->isEmpty()) {
+                continue;
+            }
+
+            $resumen = $this->resumen($desempenos, $pesos);
+
+            $resultado[$proveedorId] = [
+                'puntaje' => $resumen['puntaje'],
+                'entregas' => $resumen['entregas'],
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * @param  Collection<int, DesempenoProveedor>  $desempenos
+     * @param  array<string, float>  $pesos
+     * @return array{entregas: int, perfectas: int, retrasos: int, faltantes: int, roturas: int, puntaje: float}
+     */
+    private function resumen(Collection $desempenos, array $pesos): array
+    {
+        $conteos = ['perfecta' => 0, 'retraso' => 0, 'faltante' => 0, 'rotura' => 0];
+        $pesoAcumulado = 0.0;
+
+        foreach ($desempenos as $desempeno) {
+            $categoria = $this->categoriaDeEntrega(
+                $desempeno->ordenDeCompra?->incidencias->pluck('tipo')->all() ?? [],
+            );
+
+            $conteos[$categoria]++;
+            $pesoAcumulado += $pesos[$categoria];
+        }
+
+        $cantidad = $desempenos->count();
+
+        return [
+            'entregas' => $cantidad,
+            'perfectas' => $conteos['perfecta'],
+            'retrasos' => $conteos['retraso'],
+            'faltantes' => $conteos['faltante'],
+            'roturas' => $conteos['rotura'],
+            'puntaje' => round(($pesoAcumulado / $cantidad) * 100, 2),
         ];
     }
 

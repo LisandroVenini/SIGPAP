@@ -8,6 +8,7 @@ use App\Modules\Compras\Requests\AnularOrdenRequest;
 use App\Modules\Compras\Requests\EmitirOrdenRequest;
 use App\Modules\Compras\Requests\ListarOrdenesRequest;
 use App\Modules\Compras\Requests\UpdateOrdenRequest;
+use App\Modules\Compras\Services\GestionInformeMulticriterioService;
 use App\Modules\Compras\Services\GestionOrdenesDeCompraService;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
@@ -19,14 +20,20 @@ class OrdenDeCompraController
 {
     public function __construct(
         private readonly GestionOrdenesDeCompraService $ordenes,
+        private readonly GestionInformeMulticriterioService $informes,
         private readonly GestionArticulosService $articulos,
     ) {}
 
     public function index(ListarOrdenesRequest $request): Response
     {
+        $solicitudes = $this->ordenes->solicitudesConCotizaciones();
+
         return Inertia::render('Compras/OrdenesDeCompra/Index', [
             'ordenes' => $this->ordenes->listar($request->validated()),
-            'solicitudesConCotizaciones' => $this->ordenes->solicitudesConCotizaciones(),
+            'solicitudesConCotizaciones' => $solicitudes,
+            'informes' => $this->informes->paraSolicitudes(
+                $solicitudes->pluck('id')->map(fn ($id): int => (int) $id)->all(),
+            ),
             'articulos' => $this->articulos->insumosDisponibles(),
             'estados' => EstadoOrdenDeCompra::values(),
         ]);
