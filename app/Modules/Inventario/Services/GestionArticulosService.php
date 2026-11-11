@@ -225,6 +225,28 @@ class GestionArticulosService
     }
 
     /**
+     * Resolve several articles by their SKU.
+     *
+     * @param  array<int, string>  $skus
+     * @return array<string, array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}>
+     */
+    public function porSku(array $skus): array
+    {
+        if ($skus === []) {
+            return [];
+        }
+
+        return Articulo::query()
+            ->whereIn('codigo_sku', $skus)
+            ->with('unidadDeMedida')
+            ->get()
+            ->mapWithKeys(fn (Articulo $articulo): array => [
+                $articulo->codigo_sku => $this->resumenDeArticulo($articulo),
+            ])
+            ->all();
+    }
+
+    /**
      * @param  array<int, int>  $ids
      * @return array<int, array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}>
      */

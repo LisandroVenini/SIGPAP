@@ -15,6 +15,14 @@ class UsuariosService
     }
 
     /**
+     * Resolve a user by its email.
+     */
+    public function buscarPorEmail(string $email): ?Usuario
+    {
+        return Usuario::query()->where('email', $email)->first();
+    }
+
+    /**
      * Resolve several users in a single query.
      *
      * @param  array<int, int>  $ids

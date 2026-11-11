@@ -348,4 +348,37 @@ class GestionArticulosServiceTest extends TestCase
         // Assert
         $this->assertSame([$conComodin->id], $coincidencias);
     }
+
+    public function test_por_sku_returns_the_matching_articles_keyed_by_sku(): void
+    {
+        // Arrange
+        $madera = Articulo::factory()->create([
+            'codigo_sku' => 'MP-001',
+            'descripcion' => 'Madera de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+        ]);
+        Articulo::factory()->create([
+            'codigo_sku' => 'PT-001',
+            'descripcion' => 'Silla',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+        ]);
+        $service = $this->service();
+
+        // Act
+        $articulos = $service->porSku(['MP-001', 'NO-EXISTE']);
+
+        // Assert
+        $this->assertSame(['MP-001'], array_keys($articulos));
+        $this->assertSame($madera->id, $articulos['MP-001']['id']);
+        $this->assertSame('Madera de pino', $articulos['MP-001']['descripcion']);
+    }
+
+    public function test_por_sku_returns_an_empty_array_without_skus(): void
+    {
+        // Arrange
+        $service = $this->service();
+
+        // Act / Assert
+        $this->assertSame([], $service->porSku([]));
+    }
 }
