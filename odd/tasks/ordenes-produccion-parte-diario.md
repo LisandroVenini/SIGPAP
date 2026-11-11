@@ -49,6 +49,13 @@ Decisión del usuario (pregunta respondida): "Carga + avance por etapas" — "El
 - En el menú Producción, "Parte Diario" apunta a `/produccion/partes-diarios` (sin query param) y se marca activo en esa ruta.
 - `AppLayout.test.ts` deja de usar `?estado=En Curso` como caso de "Parte Diario".
 
+### S6 — Órdenes cerradas
+Usuario: "Una orden de produccion con estado cerrada ya no debe tener acciones de modificar, pense que para esas ordenes podemos sacar directamente el boton de acciones y tambien pense en que las ordenes con estado cerrada queden por ultimo, debajo de las demas ordenes que haya. Esto que sea asi por defecto, si el usuario decile poner filtros se los respetan"
+
+- Una orden con estado `Cerrada` no muestra el botón de acciones; la celda queda con un guion y no ofrece ninguna acción.
+- Por defecto el listado ubica las órdenes `Cerrada` al final, debajo de todas las demás, manteniendo `fecha_entrega` e `id` como desempate dentro de cada grupo.
+- Los filtros se respetan: filtrar por `Cerrada` muestra solo cerradas, con el mismo criterio de orden.
+
 ### Supuestos
 - A1: "mejor orden" = jerarquía y alineación visual, no ordenamiento interactivo por columna.
 - A2: una fila expandida a la vez (acordeón).
@@ -81,3 +88,8 @@ L2: decisión de alcance de Parte Diario = "Carga + avance por etapas" (selector
 L3 (evidencia de mapeo): `GestionOrdenesDeProduccionService::listar` ya arma `etapas_con_ids`, `partes`, `avance`; `PartesDiariosQuery::conformadoPorOrdenes` y `rechazadasPorEtapa` existen; el tope del servidor es `requerida + rechazadas - conformado`; no existe página ni acción `index` de Parte Diario; la entrada del menú era `/produccion/ordenes-de-produccion?estado=En Curso`.
 
 L4 (cierre): implementado y verificado. `php artisan test` 615/615, `npm run test:js` 159/159, `typecheck` y `eslint` limpios, Pint y Prettier aplicados. Corrección propia sobre la entrega del worker de T4: el menú de acciones quedaba recortado dentro del contenedor `overflow-x-auto` de la tabla; pasó a posicionamiento fijo calculado desde el botón, con cierre al hacer scroll. El hook `gga` agrupa todo el árbol de trabajo en el commit, por eso el commit 444addd contiene las cinco tareas y el layout previo.
+
+L5 (2026-11-11, pedido del usuario, verbatim):
+"Una orden de produccion con estado cerrada ya no debe tener acciones de modificar, pense que para esas ordenes podemos sacar directamente el boton de acciones y tambien pense en que las ordenes con estado cerrada queden por ultimo, debajo de las demas ordenes que haya. Esto que sea asi por defecto, si el usuario decile poner filtros se los respetan"
+
+L6 (cierre S6): `OrdenesDeProduccionQuery::listar` ordena con `case when estado = 'Cerrada'` antes de `fecha_entrega`/`id`; la página oculta el menú cuando `estado === 'Cerrada'`. Tests: `php artisan test` 616/616, `npm run test:js` 160/160.

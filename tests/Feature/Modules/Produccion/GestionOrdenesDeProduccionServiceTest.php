@@ -443,6 +443,38 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $this->assertSame($productoA->id, $filtradasPorBusqueda->items()[0]['producto']['id']);
     }
 
+    public function test_closed_orders_are_listed_after_the_others_by_default(): void
+    {
+        // Arrange
+        $planificacion = $this->planificacion();
+        $producto = $this->productoFabricado(['descripcion' => 'Silla de pino']);
+        $cerrada = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'estado' => EstadoOrdenProduccion::Cerrada->value,
+            'fecha_entrega' => '2026-11-01',
+        ]);
+        $pendiente = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'estado' => EstadoOrdenProduccion::Pendiente->value,
+            'fecha_entrega' => '2026-11-30',
+        ]);
+
+        // Act
+        $todas = $this->service()->listar([]);
+        $soloCerradas = $this->service()->listar([
+            'estado' => EstadoOrdenProduccion::Cerrada->value,
+        ]);
+
+        // Assert
+        $this->assertSame(
+            [$pendiente->id, $cerrada->id],
+            array_column($todas->items(), 'id'),
+        );
+        $this->assertSame([$cerrada->id], array_column($soloCerradas->items(), 'id'));
+    }
+
     public function test_list_approved_quantity_matches_closure_calculation_with_multiple_parts(): void
     {
         // Arrange

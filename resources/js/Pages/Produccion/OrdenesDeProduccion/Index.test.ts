@@ -421,6 +421,19 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(wrapper.text()).toContain('Registrar calidad');
     });
 
+    it('does not offer the actions menu for a closed order', () => {
+        // Arrange / Act
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ estado: 'Cerrada' }),
+            attachTo: document.body,
+        });
+
+        // Assert
+        expect(botonMenu(wrapper).exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('Modificar');
+        expect(wrapper.text()).toContain('Cerrada');
+    });
+
     it('expands an order to show its etapas_detalle', async () => {
         // Arrange
         const conEtapasProps = ordenCon({

@@ -489,6 +489,10 @@ function puedeAnular(orden: Orden): boolean {
     return orden.fecha_inicio === null && orden.partes.length === 0;
 }
 
+function tieneAcciones(orden: Orden): boolean {
+    return orden.estado !== 'Cerrada';
+}
+
 interface Accion {
     key: string;
     label: string;
@@ -886,7 +890,11 @@ function labelDePagina(label: string): string {
                                         <span v-else>—</span>
                                     </td>
                                     <td class="px-4 py-2.5 text-right text-xs" @click.stop>
+                                        <span v-if="!tieneAcciones(orden)" class="text-clay"
+                                            >—</span
+                                        >
                                         <div
+                                            v-else
                                             :ref="(elemento) => registrarMenu(orden.id, elemento)"
                                             class="relative inline-block text-left"
                                         >
