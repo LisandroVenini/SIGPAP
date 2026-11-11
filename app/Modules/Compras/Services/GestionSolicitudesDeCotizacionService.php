@@ -5,6 +5,8 @@ namespace App\Modules\Compras\Services;
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Compras\Enums\EstadoSolicitudDeCotizacion;
 use App\Modules\Compras\Mail\SolicitudDeCotizacionMail;
+use App\Modules\Compras\Models\Cotizacion;
+use App\Modules\Compras\Models\LineaCotizacion;
 use App\Modules\Compras\Models\LineaSolicitudCotizacion;
 use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
@@ -13,6 +15,7 @@ use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -38,7 +41,61 @@ class GestionSolicitudesDeCotizacionService
      */
     public function listar(array $filtros = []): LengthAwarePaginator
     {
-        return $this->query->listar($filtros);
+        return $this->query->listar($filtros)->through(fn (array $fila): array => [
+            ...$fila,
+            'codigo' => $this->codigo((int) $fila['id'], (string) $fila['fecha']),
+            'estado_visible' => $this->estadoVisible(
+                (string) $fila['estado'],
+                (int) $fila['cotizaciones'],
+                Carbon::parse((string) $fila['fecha_vencimiento']),
+            ),
+            'respuestas' => [
+                'recibidas' => (int) $fila['cotizaciones'],
+                'esperadas' => (int) $fila['proveedores'],
+            ],
+        ]);
+    }
+
+    /**
+     * Full detail of the given solicitudes: requested lines, invited suppliers,
+     * received quotes with their line prices and the visible state.
+     *
+     * @param  array<int, int>  $solicitudIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function detallesDeSolicitudes(array $solicitudIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $solicitudIds)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $solicitudes = SolicitudDeCotizacion::query()
+            ->with(['lineas', 'proveedores', 'cotizaciones.proveedor', 'cotizaciones.lineas'])
+            ->whereKey($ids)
+            ->get();
+
+        $articuloIds = $solicitudes
+            ->flatMap(fn (SolicitudDeCotizacion $solicitud): array => $solicitud->lineas
+                ->pluck('articulo_id')
+                ->merge($solicitud->cotizaciones->flatMap(
+                    fn (Cotizacion $cotizacion) => $cotizacion->lineas->pluck('articulo_id'),
+                ))
+                ->all())
+            ->unique()
+            ->values()
+            ->all();
+
+        $resumenes = $this->articulos->resumenesDeArticulos($articuloIds);
+
+        $detalles = [];
+
+        foreach ($solicitudes as $solicitud) {
+            $detalles[$solicitud->id] = $this->detalleDeSolicitud($solicitud, $resumenes);
+        }
+
+        return $detalles;
     }
 
     /**
@@ -303,5 +360,129 @@ class GestionSolicitudesDeCotizacionService
                 ),
             );
         }
+    }
+
+    /**
+     * @param  array<int, array{descripcion: string}>  $resumenes
+     * @return array<string, mixed>
+     */
+    private function detalleDeSolicitud(SolicitudDeCotizacion $solicitud, array $resumenes): array
+    {
+        $descripcion = fn (int $articuloId): string => $resumenes[$articuloId]['descripcion'] ?? '';
+        $pedidoPorArticulo = $solicitud->lineas->keyBy('articulo_id');
+
+        $cotizaciones = $solicitud->cotizaciones
+            ->sortBy('id')
+            ->map(function (Cotizacion $cotizacion) use ($descripcion, $pedidoPorArticulo): array {
+                $lineas = $cotizacion->lineas
+                    ->map(function (LineaCotizacion $linea) use ($descripcion, $pedidoPorArticulo): array {
+                        return [
+                            'articulo' => $descripcion((int) $linea->articulo_id),
+                            'precio_unitario' => (float) $linea->precio_unitario,
+                            'cantidad_solicitada' => (float) ($pedidoPorArticulo->get($linea->articulo_id)?->cantidad_solicitada ?? 0),
+                            'cantidad_ofertada' => (float) $linea->cantidad_ofertada,
+                            'fecha_prometida' => $linea->fecha_prometida?->toDateString(),
+                            'subtotal' => round((float) $linea->cantidad_ofertada * (float) $linea->precio_unitario, 2),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+
+                $fechasPrometidas = array_filter(array_column($lineas, 'fecha_prometida'));
+
+                return [
+                    'id' => (int) $cotizacion->id,
+                    'proveedor' => $cotizacion->proveedor?->razon_social ?? '',
+                    'fecha' => $cotizacion->fecha?->toDateString(),
+                    'total_ofertado' => round((float) array_sum(array_column($lineas, 'subtotal')), 2),
+                    'costo_pedido' => round((float) array_sum(array_map(
+                        fn (array $linea): float => $linea['cantidad_solicitada'] * $linea['precio_unitario'],
+                        $lineas,
+                    )), 2),
+                    'fecha_prometida' => $fechasPrometidas === [] ? null : max($fechasPrometidas),
+                    'lineas' => $lineas,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'id' => (int) $solicitud->id,
+            'codigo' => $this->codigo((int) $solicitud->id, $solicitud->fecha->toDateString()),
+            'fecha' => $solicitud->fecha->toDateString(),
+            'fecha_vencimiento' => $solicitud->fecha_vencimiento->toDateString(),
+            'estado' => $solicitud->estado,
+            'estado_visible' => $this->estadoVisible(
+                $solicitud->estado,
+                count($cotizaciones),
+                $solicitud->fecha_vencimiento,
+            ),
+            'insumos' => $this->resumenDeInsumos($solicitud->lineas, $descripcion),
+            'lineas' => $solicitud->lineas
+                ->map(fn (LineaSolicitudCotizacion $linea): array => [
+                    'articulo_id' => (int) $linea->articulo_id,
+                    'articulo' => $descripcion((int) $linea->articulo_id),
+                    'cantidad_solicitada' => (float) $linea->cantidad_solicitada,
+                ])
+                ->values()
+                ->all(),
+            'proveedores' => $solicitud->proveedores
+                ->sortBy('razon_social')
+                ->map(function (Proveedor $proveedor) use ($solicitud): array {
+                    $pivot = $proveedor->pivot;
+
+                    return [
+                        'id' => (int) $proveedor->id,
+                        'razon_social' => $proveedor->razon_social,
+                        'enlace_vigente' => $pivot !== null && $pivot->token !== null,
+                        'respondio' => $solicitud->cotizaciones->contains('proveedor_id', $proveedor->id),
+                    ];
+                })
+                ->values()
+                ->all(),
+            'cotizaciones' => $cotizaciones,
+        ];
+    }
+
+    private function codigo(int $id, string $fecha): string
+    {
+        return sprintf('SC-%s-%04d', substr($fecha, 0, 4), $id);
+    }
+
+    private function estadoVisible(string $estado, int $cotizaciones, Carbon $vencimiento): string
+    {
+        if ($estado === EstadoSolicitudDeCotizacion::Enviada->value) {
+            if ($cotizaciones > 0) {
+                return 'Respondida';
+            }
+
+            if ($vencimiento->lt(today())) {
+                return 'Vencida';
+            }
+        }
+
+        return $estado;
+    }
+
+    /**
+     * @param  Collection<int, LineaSolicitudCotizacion>  $lineas
+     * @param  callable(int): string  $descripcion
+     */
+    private function resumenDeInsumos(Collection $lineas, callable $descripcion): string
+    {
+        $nombres = $lineas
+            ->map(fn (LineaSolicitudCotizacion $linea): string => $descripcion((int) $linea->articulo_id))
+            ->filter()
+            ->values();
+
+        if ($nombres->isEmpty()) {
+            return '';
+        }
+
+        if ($nombres->count() === 1) {
+            return (string) $nombres->first();
+        }
+
+        return $nombres->first().' +'.($nombres->count() - 1);
     }
 }
