@@ -49,6 +49,10 @@ vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Ordenes from './Index.vue';
 
 const orden = {
@@ -273,10 +277,6 @@ describe('Compras OrdenesDeCompra page', () => {
 
     it('annuls an orden after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Ordenes, { props });
 
         // Act

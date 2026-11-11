@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Articulo {
     id: number;
@@ -135,11 +136,14 @@ function guardar(): void {
     }
 }
 
-function cambiarEstado(articulo: Articulo): void {
+async function cambiarEstado(articulo: Articulo): Promise<void> {
     if (articulo.estado === 'Activo' && articulo.stock_fisico > 0) {
-        const confirmado = window.confirm(
-            `El artículo "${articulo.descripcion}" tiene stock físico. ¿Confirmás la baja?`,
-        );
+        const confirmado = await confirmar({
+            titulo: 'Dar de baja artículo',
+            mensaje: `El artículo "${articulo.descripcion}" tiene stock físico. ¿Confirmás la baja?`,
+            confirmar: 'Dar de baja',
+            peligro: true,
+        });
 
         if (!confirmado) {
             return;

@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Planificacion {
     id: number;
@@ -105,8 +106,15 @@ function guardar(): void {
     });
 }
 
-function eliminar(planificacion: Planificacion): void {
-    if (!window.confirm(`¿Eliminar la planificación "${planificacion.nombre}"?`)) {
+async function eliminar(planificacion: Planificacion): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Eliminar planificación',
+        mensaje: `¿Eliminar la planificación "${planificacion.nombre}"?`,
+        confirmar: 'Eliminar',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 

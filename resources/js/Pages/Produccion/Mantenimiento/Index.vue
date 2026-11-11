@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface MaquinariaOption {
     id: number;
@@ -159,8 +160,15 @@ function guardarIntervencion(): void {
     );
 }
 
-function eliminarPlan(plan: Plan): void {
-    if (!window.confirm(`¿Eliminar el plan de mantenimiento de "${plan.maquinaria}"?`)) {
+async function eliminarPlan(plan: Plan): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Eliminar plan de mantenimiento',
+        mensaje: `¿Eliminar el plan de mantenimiento de "${plan.maquinaria}"?`,
+        confirmar: 'Eliminar',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 

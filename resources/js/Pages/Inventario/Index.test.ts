@@ -42,6 +42,10 @@ vi.mock('../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Index from './Index.vue';
 
 const props = {
@@ -152,10 +156,6 @@ describe('Inventario Index page', () => {
 
     it('confirms a baja when the article has stock and patches the state', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Index, { props });
 
         // Act

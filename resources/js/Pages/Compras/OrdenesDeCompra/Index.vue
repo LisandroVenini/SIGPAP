@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Articulo {
     id: number;
@@ -258,8 +259,15 @@ function guardarModificar(): void {
     });
 }
 
-function anular(orden: Orden): void {
-    if (!window.confirm(`¿Anular la orden ${orden.numero_oc}?`)) {
+async function anular(orden: Orden): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Anular orden de compra',
+        mensaje: `¿Anular la orden ${orden.numero_oc}?`,
+        confirmar: 'Anular',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 

@@ -41,6 +41,10 @@ vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Operarios from './Index.vue';
 
 const props = {
@@ -113,10 +117,6 @@ describe('Produccion Operarios page', () => {
 
     it('gives baja to an operario after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Operarios, { props });
 
         // Act

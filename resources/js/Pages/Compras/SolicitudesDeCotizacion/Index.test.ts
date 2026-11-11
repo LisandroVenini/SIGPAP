@@ -45,6 +45,10 @@ vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Solicitudes from './Index.vue';
 
 const articulo = { id: 10, codigo_sku: 'MP-001', descripcion: 'Tabla de pino', unidad: 'Unidad' };
@@ -253,10 +257,6 @@ describe('Compras SolicitudesDeCotizacion page', () => {
 
     it('annuls a solicitud after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Solicitudes, { props });
 
         // Act
@@ -365,10 +365,6 @@ describe('Compras SolicitudesDeCotizacion page', () => {
 
     it('adjudicates a received quote from the detail drawer', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Solicitudes, { props, attachTo: document.body });
         await wrapper.find('[data-testid="detalle-3"]').trigger('click');
 

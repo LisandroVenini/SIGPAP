@@ -41,6 +41,10 @@ vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Detalle from './Detalle.vue';
 
 const props = {
@@ -106,10 +110,6 @@ describe('Produccion Hoja de Ruta detail page', () => {
 
     it('unassigns an etapa after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Detalle, { props });
         const desasignar = wrapper
             .findAll('button')
@@ -227,10 +227,6 @@ describe('Produccion Hoja de Ruta detail page', () => {
 
     it('removes a recipe component after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Detalle, { props });
         const quitar = wrapper.findAll('button').find((button) => button.text() === 'Quitar');
 

@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Producto {
     id: number;
@@ -84,8 +85,15 @@ function asignar(): void {
     });
 }
 
-function desasignar(asignada: Asignada): void {
-    if (!window.confirm(`¿Desasignar la etapa "${asignada.etapa}"?`)) {
+async function desasignar(asignada: Asignada): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Desasignar etapa',
+        mensaje: `¿Desasignar la etapa "${asignada.etapa}"?`,
+        confirmar: 'Desasignar',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 
@@ -116,8 +124,15 @@ function agregarComponente(): void {
     });
 }
 
-function quitarComponente(componente: ComponenteDeReceta): void {
-    if (!window.confirm(`¿Quitar el insumo "${componente.descripcion}" de la receta?`)) {
+async function quitarComponente(componente: ComponenteDeReceta): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Quitar insumo de la receta',
+        mensaje: `¿Quitar el insumo "${componente.descripcion}" de la receta?`,
+        confirmar: 'Quitar',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 

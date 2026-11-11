@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Articulo {
     id: number;
@@ -219,8 +220,15 @@ function guardar(): void {
     });
 }
 
-function anular(solicitud: Solicitud): void {
-    if (!window.confirm(`¿Anular la solicitud del ${solicitud.fecha}?`)) {
+async function anular(solicitud: Solicitud): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Anular solicitud',
+        mensaje: `¿Anular la solicitud del ${solicitud.fecha}?`,
+        confirmar: 'Anular',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 
@@ -273,8 +281,14 @@ function puedeAdjudicar(detalle: DetalleSolicitud): boolean {
     return detalle.estado_visible !== 'Adjudicada' && detalle.estado_visible !== 'Anulada';
 }
 
-function adjudicar(cotizacionId: number): void {
-    if (!window.confirm('¿Adjudicar esta cotización y emitir la orden de compra?')) {
+async function adjudicar(cotizacionId: number): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Adjudicar y emitir orden de compra',
+        mensaje: '¿Adjudicar esta cotización y emitir la orden de compra?',
+        confirmar: 'Adjudicar',
+    });
+
+    if (!confirmado) {
         return;
     }
 

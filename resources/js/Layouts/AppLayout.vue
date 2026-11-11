@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import ConfirmDialog from '../Components/ConfirmDialog.vue';
 
 interface AuthUser {
     id: number;
@@ -417,5 +418,7 @@ const mobileItemClass = (active: boolean): string =>
             <h1 class="sr-only">{{ title }}</h1>
             <slot />
         </main>
+
+        <ConfirmDialog />
     </div>
 </template>
