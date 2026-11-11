@@ -1,30 +1,16 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
-
-interface Segmento {
-    etapa: string;
-    inicio: string;
-    fin: string;
-    dias: number;
-}
-
-interface Fila {
-    orden_id: number;
-    producto: string;
-    estado: string;
-    prioridad: number;
-    fecha_entrega: string | null;
-    reubicable: boolean;
-    conflicto_entrega: boolean;
-    etapas: Segmento[];
-}
+import GanttTimeline from './GanttTimeline.vue';
+import type { FilaCronograma, Horizonte } from './gantt';
+import { HORIZONTES, lunesDe, numeroSemana, rangoVisible, sumarDias } from './gantt';
 
 interface Cronograma {
     inicio: string;
+    hoy: string;
     dias: number;
-    filas: Fila[];
+    filas: FilaCronograma[];
 }
 
 const props = defineProps<{
@@ -37,37 +23,38 @@ const page = usePage<{
     errors: Record<string, string>;
 }>();
 
+const desde = ref(lunesDe(props.cronograma.hoy));
+const horizonte = ref<Horizonte>(14);
+const estadoFiltro = ref('');
+
 const drawerOpen = ref(false);
-const filaActiva = ref<Fila | null>(null);
+const filaActiva = ref<FilaCronograma | null>(null);
 const prioridad = ref<number | string>('');
 const motivo = ref('');
 const detalle = ref('');
 const confirmar = ref(false);
 
-function offset(fecha: string): number {
-    const inicio = new Date(`${props.cronograma.inicio}T00:00:00`);
-    const actual = new Date(`${fecha}T00:00:00`);
+const filasVisibles = computed(() =>
+    estadoFiltro.value === ''
+        ? props.cronograma.filas
+        : props.cronograma.filas.filter((fila) => fila.estado === estadoFiltro.value),
+);
 
-    return Math.round((actual.getTime() - inicio.getTime()) / 86400000);
+const conflictos = computed(() => filasVisibles.value.filter((fila) => fila.conflicto_entrega));
+
+const estados = computed(() =>
+    [...new Set(props.cronograma.filas.map((fila) => fila.estado))].sort(),
+);
+
+function moverSemana(semanas: number): void {
+    desde.value = sumarDias(desde.value, semanas * 7);
 }
 
-function claseDeEstado(estado: string): string {
-    if (estado === 'En Curso') {
-        return 'bg-teja text-white';
-    }
-
-    if (estado === 'Pospuesta') {
-        return 'bg-oxide/20 text-oxide';
-    }
-
-    if (estado === 'Asignada') {
-        return 'bg-pine-wash text-pine';
-    }
-
-    return 'bg-workshop text-steel';
+function irAHoy(): void {
+    desde.value = lunesDe(props.cronograma.hoy);
 }
 
-function abrir(fila: Fila): void {
+function abrir(fila: FilaCronograma): void {
     filaActiva.value = fila;
     prioridad.value = fila.prioridad;
     motivo.value = props.motivos[0] ?? '';
@@ -122,101 +109,152 @@ function guardar(): void {
                 {{ page.props.flash.success }}
             </div>
 
+            <section
+                class="flex flex-col gap-3 rounded-control border border-hairline bg-workshop/50 p-3 lg:flex-row lg:items-center lg:justify-between"
+            >
+                <div class="flex flex-wrap items-center gap-2">
+                    <div
+                        class="inline-flex items-center overflow-hidden rounded-control border border-hairline bg-surface"
+                    >
+                        <button
+                            type="button"
+                            class="px-2 py-1.5 text-steel transition-colors hover:bg-canvas hover:text-ink"
+                            aria-label="Semana anterior"
+                            @click="moverSemana(-1)"
+                        >
+                            ‹
+                        </button>
+                        <div
+                            class="flex items-center gap-2 border-x border-hairline px-3 py-1 text-xs font-semibold text-ink"
+                        >
+                            <span class="num" data-testid="rango-ventana">
+                                {{ rangoVisible(desde, horizonte) }}
+                            </span>
+                            <span
+                                class="num rounded bg-teja-wash px-1.5 py-0.5 text-[0.6875rem] font-medium text-teja-deep"
+                            >
+                                Semana {{ numeroSemana(desde) }}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            class="px-2 py-1.5 text-steel transition-colors hover:bg-canvas hover:text-ink"
+                            aria-label="Semana siguiente"
+                            @click="moverSemana(1)"
+                        >
+                            ›
+                        </button>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="rounded-control border border-hairline bg-surface px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-canvas"
+                        @click="irAHoy"
+                    >
+                        Hoy
+                    </button>
+
+                    <div
+                        class="inline-flex overflow-hidden rounded-control border border-hairline bg-surface text-xs"
+                    >
+                        <button
+                            v-for="opcion in HORIZONTES"
+                            :key="opcion"
+                            type="button"
+                            class="px-2.5 py-1.5 font-medium transition-colors"
+                            :class="
+                                horizonte === opcion
+                                    ? 'bg-teja-wash text-teja-deep'
+                                    : 'text-steel hover:bg-canvas hover:text-ink'
+                            "
+                            :data-testid="`horizonte-${opcion}`"
+                            @click="horizonte = opcion"
+                        >
+                            {{ opcion }} d
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <select
+                        v-model="estadoFiltro"
+                        data-testid="filtro-estado"
+                        class="rounded-control border border-hairline bg-surface px-2.5 py-1.5 text-xs text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                    >
+                        <option value="">Estado: todos</option>
+                        <option v-for="estado in estados" :key="estado" :value="estado">
+                            {{ estado }}
+                        </option>
+                    </select>
+                </div>
+            </section>
+
+            <div
+                class="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-control border border-hairline bg-surface px-3 py-2 text-[0.6875rem] text-steel"
+            >
+                <span class="font-semibold tracking-wider text-ink uppercase">Convención:</span>
+                <span class="flex items-center gap-1.5">
+                    <span class="h-2 w-3 rounded-sm bg-teja"></span> En curso
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span
+                        class="h-2 w-3 rounded-sm border border-dashed border-steel/60 bg-workshop"
+                    ></span>
+                    Planificado
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span
+                        class="h-2 w-3 rounded-sm border border-dashed border-oxide/70 bg-oxide/10"
+                    ></span>
+                    Conflicto de entrega
+                </span>
+                <span class="flex items-center gap-1.5">
+                    <span class="text-clay">🔒</span> Reubicación bloqueada
+                </span>
+            </div>
+
+            <div
+                v-if="conflictos.length > 0"
+                class="flex flex-col gap-1 rounded-control border border-amber/30 bg-amber-wash px-3 py-2 text-xs text-amber md:flex-row md:items-center md:justify-between"
+                data-testid="banner-conflictos"
+            >
+                <span>
+                    <span class="font-semibold tracking-wider uppercase">Regla de negocio:</span>
+                    {{ conflictos.length }}
+                    {{ conflictos.length === 1 ? 'orden incumple' : 'órdenes incumplen' }} su fecha
+                    de entrega con la proyección actual.
+                </span>
+                <span class="num font-semibold">
+                    {{ conflictos.map((fila) => `#${fila.orden_id}`).join(' · ') }}
+                </span>
+            </div>
+
             <div
                 class="overflow-hidden rounded-panel border border-hairline bg-surface shadow-diffused"
             >
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="border-b border-hairline bg-workshop">
-                            <tr>
-                                <th
-                                    class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
-                                >
-                                    Orden
-                                </th>
-                                <th
-                                    class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
-                                >
-                                    Proyección
-                                </th>
-                                <th
-                                    class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
-                                >
-                                    Acciones
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-hairline">
-                            <tr v-for="fila in props.cronograma.filas" :key="fila.orden_id">
-                                <td class="px-4 py-2.5 align-top text-sm">
-                                    <p class="font-medium text-ink">{{ fila.producto }}</p>
-                                    <p class="font-mono text-xs text-steel">
-                                        #{{ fila.orden_id }} · prioridad {{ fila.prioridad }}
-                                    </p>
-                                    <p
-                                        v-if="fila.fecha_entrega"
-                                        class="text-xs"
-                                        :class="
-                                            fila.conflicto_entrega ? 'text-oxide' : 'text-steel'
-                                        "
-                                    >
-                                        Entrega {{ fila.fecha_entrega }}
-                                    </p>
-                                </td>
-                                <td class="px-4 py-2.5">
-                                    <div
-                                        class="grid gap-1"
-                                        :style="{
-                                            gridTemplateColumns: `repeat(${props.cronograma.dias}, minmax(28px, 1fr))`,
-                                        }"
-                                    >
-                                        <div
-                                            v-for="segmento in fila.etapas"
-                                            :key="`${segmento.etapa}-${segmento.inicio}`"
-                                            class="truncate rounded px-1 py-1 text-center text-[0.625rem]"
-                                            :class="claseDeEstado(fila.estado)"
-                                            :style="{
-                                                gridColumn: `${offset(segmento.inicio) + 1} / span ${segmento.dias}`,
-                                            }"
-                                            :title="`${segmento.etapa}: ${segmento.inicio} → ${segmento.fin}`"
-                                        >
-                                            {{ segmento.etapa }}
-                                        </div>
-                                    </div>
-                                    <p
-                                        v-if="fila.conflicto_entrega"
-                                        class="mt-1 text-xs text-oxide"
-                                        data-testid="conflicto-entrega"
-                                    >
-                                        ⚠ Incumple la fecha de entrega
-                                    </p>
-                                </td>
-                                <td class="px-4 py-2.5 text-right text-xs">
-                                    <button
-                                        type="button"
-                                        class="font-medium text-teja hover:underline disabled:cursor-not-allowed disabled:text-clay/60"
-                                        :disabled="!fila.reubicable"
-                                        @click="abrir(fila)"
-                                    >
-                                        Reordenar
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <GanttTimeline
+                    v-if="filasVisibles.length > 0"
+                    :filas="filasVisibles"
+                    :desde="desde"
+                    :dias="horizonte"
+                    :hoy="props.cronograma.hoy"
+                    @reordenar="abrir"
+                />
+
+                <div v-else class="px-4 py-10 text-center text-sm text-steel">
+                    No hay órdenes de producción para programar.
                 </div>
 
                 <div
-                    v-if="props.cronograma.filas.length === 0"
-                    class="px-4 py-10 text-center text-sm text-steel"
+                    class="flex flex-wrap items-center justify-between gap-2 border-t border-hairline px-4 py-2.5 text-xs text-steel"
                 >
-                    No hay órdenes de producción para programar.
+                    <span>
+                        {{ filasVisibles.length }}
+                        {{ filasVisibles.length === 1 ? 'orden activa' : 'órdenes activas' }} ·
+                        {{ conflictos.length }} en conflicto · ventana
+                        <span class="num">{{ rangoVisible(desde, horizonte) }}</span>
+                    </span>
                 </div>
-            </div>
-
-            <div class="flex flex-wrap gap-2 text-xs text-steel">
-                <span>Días proyectados: {{ props.cronograma.dias }}</span>
-                <span>Inicio: {{ props.cronograma.inicio }}</span>
             </div>
         </div>
 

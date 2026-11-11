@@ -101,6 +101,59 @@ class GestionCronogramaServiceTest extends TestCase
         $this->assertSame(1, $cronograma['filas'][0]['etapas'][1]['dias']);
         $this->assertSame(now()->toDateString(), $cronograma['filas'][0]['etapas'][0]['inicio']);
         $this->assertSame(now()->addDays(2)->toDateString(), $cronograma['filas'][1]['etapas'][0]['inicio']);
+        $this->assertSame(now()->toDateString(), $cronograma['hoy']);
+        $this->assertSame(8.0, $cronograma['filas'][0]['cantidad_requerida']);
+        $this->assertSame(0.0, $cronograma['filas'][0]['avance']);
+        $this->assertSame(2, $cronograma['filas'][0]['dias_totales']);
+        $this->assertSame(0.0, $cronograma['filas'][0]['etapas'][0]['producida']);
+        $this->assertSame(
+            $cronograma['filas'][0]['etapas'][0]['etapa'],
+            $cronograma['filas'][0]['etapa_actual'],
+        );
+    }
+
+    public function test_reports_stage_progress_and_the_current_stage(): void
+    {
+        // Arrange
+        $planificacion = $this->planificacion();
+        $producto = $this->producto();
+        $corte = Etapa::factory()->create(['nombre' => 'Corte']);
+        $lijado = Etapa::factory()->create(['nombre' => 'Lijado']);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $corte->id,
+            'tiempo_por_unidad' => 60,
+            'orden' => 1,
+        ]);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $lijado->id,
+            'tiempo_por_unidad' => 60,
+            'orden' => 2,
+        ]);
+        $orden = $this->orden([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'prioridad_actual' => 1,
+            'estado' => EstadoOrdenProduccion::EnCurso->value,
+            'cantidad_requerida' => 10,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'maquinaria_id' => null,
+            'cantidad_conformada' => 4,
+        ]);
+
+        // Act
+        $fila = app(GestionCronogramaService::class)->proyectar()['filas'][0];
+
+        // Assert
+        $this->assertSame(4.0, $fila['etapas'][0]['producida']);
+        $this->assertSame(0.0, $fila['etapas'][1]['producida']);
+        $this->assertSame('Corte', $fila['etapa_actual']);
+        $this->assertSame(0.0, $fila['avance']);
     }
 
     public function test_excludes_closed_and_cancelled_orders(): void

@@ -125,7 +125,7 @@ class HojaDeRutaQuery
      * Return the full route sheet of each product, ordered by route order.
      *
      * @param  array<int, int>  $articuloIds
-     * @return array<int, array<int, array{etapa:string, tiempo_por_unidad:float}>>
+     * @return array<int, array<int, array{etapa_id:int, etapa:string, tiempo_por_unidad:float}>>
      */
     public function rutaPorArticulo(array $articuloIds): array
     {
@@ -138,10 +138,16 @@ class HojaDeRutaQuery
             ->whereIn('asignaciones_de_etapa.articulo_id', $articuloIds)
             ->whereNull('etapas.deleted_at')
             ->orderBy('asignaciones_de_etapa.orden')
-            ->select('asignaciones_de_etapa.articulo_id', 'etapas.nombre', 'asignaciones_de_etapa.tiempo_por_unidad')
+            ->select(
+                'asignaciones_de_etapa.articulo_id',
+                'asignaciones_de_etapa.etapa_id',
+                'etapas.nombre',
+                'asignaciones_de_etapa.tiempo_por_unidad',
+            )
             ->get()
             ->groupBy('articulo_id')
             ->map(fn ($filas): array => $filas->map(fn ($fila): array => [
+                'etapa_id' => (int) $fila->etapa_id,
                 'etapa' => $fila->nombre,
                 'tiempo_por_unidad' => (float) $fila->tiempo_por_unidad,
             ])->values()->all())
