@@ -59,11 +59,11 @@ Decisión del usuario (pregunta respondida): "Carga + avance por etapas" — "El
 
 | ID | Spec | Route | Status | Commit |
 | --- | --- | --- | --- | --- |
-| T1 | S2, S4 | inline | pending | — |
-| T2 | S4 | inline | pending | — |
-| T3 | S4 | delegated | pending | — |
-| T4 | S1, S2, S3 | delegated | pending | — |
-| T5 | S5 | inline | pending | — |
+| T1 | S2, S4 | inline | done (444addd) | 444addd |
+| T2 | S4 | inline | done (444addd) | 444addd |
+| T3 | S4 | delegated | done (444addd) | 444addd |
+| T4 | S1, S2, S3 | delegated | done (444addd) | 444addd |
+| T5 | S5 | inline | done (444addd) | 444addd |
 
 - T1: backend — `PartesDiariosQuery::rechazadasPorOrdenes`, `etapas_detalle` por orden en `GestionOrdenesDeProduccionService::listar`, y datos del panel de Parte Diario. Tests de Feature.
 - T2: backend — `ParteDiarioController::index`, ruta, redirect del store a la nueva sección, opciones para el formulario. Tests de Feature.
@@ -79,3 +79,5 @@ L1 (2026-11-11, pedido del usuario, verbatim):
 L2: decisión de alcance de Parte Diario = "Carga + avance por etapas" (selector de orden En Curso, avance por etapas, carga y partes del día).
 
 L3 (evidencia de mapeo): `GestionOrdenesDeProduccionService::listar` ya arma `etapas_con_ids`, `partes`, `avance`; `PartesDiariosQuery::conformadoPorOrdenes` y `rechazadasPorEtapa` existen; el tope del servidor es `requerida + rechazadas - conformado`; no existe página ni acción `index` de Parte Diario; la entrada del menú era `/produccion/ordenes-de-produccion?estado=En Curso`.
+
+L4 (cierre): implementado y verificado. `php artisan test` 615/615, `npm run test:js` 159/159, `typecheck` y `eslint` limpios, Pint y Prettier aplicados. Corrección propia sobre la entrega del worker de T4: el menú de acciones quedaba recortado dentro del contenedor `overflow-x-auto` de la tabla; pasó a posicionamiento fijo calculado desde el botón, con cierre al hacer scroll. El hook `gga` agrupa todo el árbol de trabajo en el commit, por eso el commit 444addd contiene las cinco tareas y el layout previo.
