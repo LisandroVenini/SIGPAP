@@ -490,7 +490,7 @@ function puedeAnular(orden: Orden): boolean {
 }
 
 function tieneAcciones(orden: Orden): boolean {
-    return orden.estado !== 'Cerrada';
+    return !['Cerrada', 'Anulada'].includes(orden.estado);
 }
 
 interface Accion {

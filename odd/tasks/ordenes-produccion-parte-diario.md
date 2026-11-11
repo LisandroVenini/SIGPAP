@@ -52,7 +52,7 @@ Decisión del usuario (pregunta respondida): "Carga + avance por etapas" — "El
 ### S6 — Órdenes cerradas
 Usuario: "Una orden de produccion con estado cerrada ya no debe tener acciones de modificar, pense que para esas ordenes podemos sacar directamente el boton de acciones y tambien pense en que las ordenes con estado cerrada queden por ultimo, debajo de las demas ordenes que haya. Esto que sea asi por defecto, si el usuario decile poner filtros se los respetan"
 
-- Una orden con estado `Cerrada` no muestra el botón de acciones; la celda queda con un guion y no ofrece ninguna acción.
+- Una orden con estado `Cerrada` o `Anulada` no muestra el botón de acciones; la celda queda con un guion y no ofrece ninguna acción.
 - Por defecto el listado ubica las órdenes `Cerrada` al final, debajo de todas las demás, manteniendo `fecha_entrega` e `id` como desempate dentro de cada grupo.
 - Los filtros se respetan: filtrar por `Cerrada` muestra solo cerradas, con el mismo criterio de orden.
 
@@ -93,3 +93,8 @@ L5 (2026-11-11, pedido del usuario, verbatim):
 "Una orden de produccion con estado cerrada ya no debe tener acciones de modificar, pense que para esas ordenes podemos sacar directamente el boton de acciones y tambien pense en que las ordenes con estado cerrada queden por ultimo, debajo de las demas ordenes que haya. Esto que sea asi por defecto, si el usuario decile poner filtros se los respetan"
 
 L6 (cierre S6): `OrdenesDeProduccionQuery::listar` ordena con `case when estado = 'Cerrada'` antes de `fecha_entrega`/`id`; la página oculta el menú cuando `estado === 'Cerrada'`. Tests: `php artisan test` 616/616, `npm run test:js` 160/160.
+
+L7 (2026-11-11, pedido del usuario, verbatim):
+"dale, tratalo igual"
+
+Alcance: `Anulada` recibe el mismo trato que `Cerrada` en cuanto a acciones (sin menú). El ordenamiento al final sigue aplicando solo a `Cerrada`, tal como se especificó en S6.
