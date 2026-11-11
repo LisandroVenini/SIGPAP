@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { enableAutoUnmount, mount } from '@vue/test-utils';
-import { reactive } from 'vue';
+import { enableAutoUnmount, mount, type VueWrapper } from '@vue/test-utils';
+import { nextTick, reactive } from 'vue';
 
 enableAutoUnmount(afterEach);
 
@@ -73,6 +73,11 @@ const maquinariaMantenimiento = {
     seleccionable: false,
 };
 
+const etapasDetalle = [
+    { etapa_id: 10, nombre: 'Corte', producida: 4, rechazadas: 0, faltante: 6 },
+    { etapa_id: 11, nombre: 'Lijado', producida: 10, rechazadas: 1, faltante: 0 },
+];
+
 const ordenBase = {
     id: 1,
     producto: { id: 10, codigo_sku: 'PT-A', descripcion: 'Silla' },
@@ -93,6 +98,7 @@ const ordenBase = {
         { id: 10, nombre: 'Corte' },
         { id: 11, nombre: 'Lijado' },
     ],
+    etapas_detalle: etapasDetalle,
     partes: [],
     conformado_primera_etapa: 0,
     conformado_ultima_etapa: 0,
@@ -124,6 +130,40 @@ const props = {
     operariosDisponibles: [operarioA, operarioB],
     maquinariasDisponibles: [maquinariaDisponible, maquinariaMantenimiento],
 };
+
+function botonMenu(wrapper: VueWrapper, ordenId = 1) {
+    return wrapper.find(`[data-testid="menu-orden-${ordenId}"]`);
+}
+
+async function abrirMenu(wrapper: VueWrapper, ordenId = 1): Promise<void> {
+    await botonMenu(wrapper, ordenId).trigger('click');
+}
+
+async function elegirAccion(wrapper: VueWrapper, label: string): Promise<void> {
+    const accion = wrapper.findAll('button').find((button) => button.text() === label);
+
+    expect(accion).toBeDefined();
+    await accion?.trigger('click');
+}
+
+async function ejecutarAccionDeOrden(
+    wrapper: VueWrapper,
+    label: string,
+    ordenId = 1,
+): Promise<void> {
+    await abrirMenu(wrapper, ordenId);
+    await elegirAccion(wrapper, label);
+}
+
+function ordenCon(overrides: Record<string, unknown>) {
+    return {
+        ...props,
+        ordenes: {
+            ...props.ordenes,
+            data: [{ ...ordenBase, ...overrides }],
+        },
+    };
+}
 
 describe('Produccion OrdenesDeProduccion page', () => {
     beforeEach(() => {
@@ -217,10 +257,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         const wrapper = mount(Ordenes, { props, attachTo: document.body });
 
         // Act
-        const asignar = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'Asignar recursos');
-        await asignar?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Asignar recursos');
 
         // Assert
         const marcados = wrapper
@@ -235,8 +272,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         const wrapper = mount(Ordenes, { props, attachTo: document.body });
 
         // Act
-        const modificar = wrapper.findAll('button').find((button) => button.text() === 'Modificar');
-        await modificar?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Modificar');
 
         const form = wrapper.find('[data-testid="modificar-orden-form"]');
         await form.find('input[type="number"]').setValue('25');
@@ -244,6 +280,8 @@ describe('Produccion OrdenesDeProduccion page', () => {
         await form.trigger('submit.prevent');
 
         // Assert
+        expect(wrapper.find('[data-testid="menu-acciones"]').exists()).toBe(false);
+
         const payload = hoisted.put.mock.calls[0][2];
         expect(Number(payload.cantidad)).toBe(25);
         expect(payload.fecha_entrega).toBe('2026-11-25');
@@ -259,8 +297,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         const wrapper = mount(Ordenes, { props, attachTo: document.body });
 
         // Act
-        const anular = wrapper.findAll('button').find((button) => button.text() === 'Anular');
-        await anular?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Anular');
         await wrapper.find('[data-testid="anular-orden-form"]').trigger('submit.prevent');
 
         // Assert
@@ -291,10 +328,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         const wrapper = mount(Ordenes, { props, attachTo: document.body });
 
         // Act
-        const asignar = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'Asignar recursos');
-        await asignar?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Asignar recursos');
 
         const form = wrapper.find('[data-testid="asignar-recursos-form"]');
         const checkboxes = form.findAll('input[type="checkbox"]');
@@ -315,18 +349,13 @@ describe('Produccion OrdenesDeProduccion page', () => {
 
     it('posts iniciar through the router', async () => {
         // Arrange
-        const asignadaProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [{ ...props.ordenes.data[0], estado: 'Asignada' }],
-            },
-        };
-        const wrapper = mount(Ordenes, { props: asignadaProps, attachTo: document.body });
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ estado: 'Asignada' }),
+            attachTo: document.body,
+        });
 
         // Act
-        const iniciar = wrapper.findAll('button').find((button) => button.text() === 'Iniciar');
-        await iniciar?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Iniciar');
 
         // Assert
         expect(hoisted.routerPost).toHaveBeenCalledWith(
@@ -341,10 +370,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         const wrapper = mount(Ordenes, { props, attachTo: document.body });
 
         // Act
-        const asignar = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'Asignar recursos');
-        await asignar?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Asignar recursos');
 
         const form = wrapper.find('[data-testid="asignar-recursos-form"]');
         const checkboxes = form.findAll('input[type="checkbox"]');
@@ -356,30 +382,21 @@ describe('Produccion OrdenesDeProduccion page', () => {
 
     it('renders the progress column with the advance text', () => {
         // Arrange
-        const enCursoProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [
-                    {
-                        ...ordenBase,
-                        estado: 'En Curso',
-                        partes: [
-                            {
-                                id: 1,
-                                etapa_id: 10,
-                                etapa: 'Corte',
-                                fecha: '2026-10-30',
-                                cantidad: 4,
-                                maquinaria: null,
-                                observaciones: null,
-                            },
-                        ],
-                        avance: 40,
-                    },
-                ],
-            },
-        };
+        const enCursoProps = ordenCon({
+            estado: 'En Curso',
+            partes: [
+                {
+                    id: 1,
+                    etapa_id: 10,
+                    etapa: 'Corte',
+                    fecha: '2026-10-30',
+                    cantidad: 4,
+                    maquinaria: null,
+                    observaciones: null,
+                },
+            ],
+            avance: 40,
+        });
 
         // Act
         const wrapper = mount(Ordenes, { props: enCursoProps });
@@ -388,209 +405,237 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(wrapper.text()).toContain('4 / 10');
     });
 
-    it('shows the cargar parte action only for en curso orders', () => {
+    it('does not offer the cargar parte action anymore', async () => {
         // Arrange
-        const enCursoProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [{ ...ordenBase, estado: 'En Curso' }],
-            },
-        };
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ estado: 'En Curso' }),
+            attachTo: document.body,
+        });
 
         // Act
-        const wrapper = mount(Ordenes, { props: enCursoProps });
-
-        // Assert
-        expect(wrapper.text()).toContain('Cargar parte');
-    });
-
-    it('hides the cargar parte action for non en curso orders', () => {
-        // Arrange / Act
-        const wrapper = mount(Ordenes, { props });
+        await abrirMenu(wrapper);
 
         // Assert
         expect(wrapper.text()).not.toContain('Cargar parte');
+        expect(wrapper.find('[data-testid="parte-form"]').exists()).toBe(false);
+        expect(wrapper.text()).toContain('Registrar calidad');
     });
 
-    it('opens the parte drawer and posts the payload', async () => {
+    it('expands an order to show its etapas_detalle', async () => {
         // Arrange
-        const enCursoProps = {
+        const conEtapasProps = ordenCon({
+            estado: 'En Curso',
+            etapas_detalle: [
+                ...etapasDetalle,
+                { etapa_id: 12, nombre: 'Pintura', producida: 0, rechazadas: 0, faltante: 5 },
+            ],
+        });
+        const wrapper = mount(Ordenes, { props: conEtapasProps });
+        const chevron = wrapper.find('[data-testid="expandir-orden-1"]');
+
+        // Act
+        expect(chevron.attributes('aria-expanded')).toBe('false');
+        expect(chevron.attributes('aria-controls')).toBe('etapas-orden-1');
+        await chevron.trigger('click');
+
+        // Assert
+        const subtabla = wrapper.find('[data-testid="etapas-orden-1"]');
+        expect(chevron.attributes('aria-expanded')).toBe('true');
+        expect(subtabla.exists()).toBe(true);
+        expect(subtabla.text()).toContain('Corte');
+        expect(subtabla.text()).toContain('4');
+        expect(subtabla.text()).toContain('6');
+        expect(subtabla.text()).toContain('En curso');
+        expect(subtabla.text()).toContain('Completada');
+        expect(subtabla.text()).toContain('Sin iniciar');
+        expect(subtabla.text()).toContain('5');
+    });
+
+    it('collapses the expanded order when triggered again', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props });
+        const chevron = wrapper.find('[data-testid="expandir-orden-1"]');
+
+        // Act
+        await chevron.trigger('click');
+        expect(wrapper.find('[data-testid="etapas-orden-1"]').exists()).toBe(true);
+
+        await chevron.trigger('click');
+
+        // Assert
+        expect(wrapper.find('[data-testid="etapas-orden-1"]').exists()).toBe(false);
+    });
+
+    it('keeps only one order expanded at a time', async () => {
+        // Arrange
+        const segundaOrden = {
+            ...ordenBase,
+            id: 2,
+            producto: productoB,
+            etapas_detalle: [
+                { etapa_id: 20, nombre: 'Armado', producida: 2, rechazadas: 0, faltante: 3 },
+            ],
+        };
+        const dosOrdenes = {
             ...props,
             ordenes: {
                 ...props.ordenes,
-                data: [{ ...ordenBase, estado: 'En Curso' }],
+                data: [ordenBase, segundaOrden],
+                total: 2,
             },
         };
-        const wrapper = mount(Ordenes, { props: enCursoProps, attachTo: document.body });
+        const wrapper = mount(Ordenes, { props: dosOrdenes });
 
         // Act
-        const cargar = wrapper.findAll('button').find((button) => button.text() === 'Cargar parte');
-        await cargar?.trigger('click');
-
-        const form = wrapper.find('[data-testid="parte-form"]');
-        await form.find('#etapa_id').setValue('11');
-        await form.find('#maquinaria_id').setValue('1');
-        await form.find('#fecha').setValue('2026-10-31');
-        await form.find('#cantidad').setValue('5');
-        await form.find('#observaciones').setValue('Observación de prueba');
-        await form.trigger('submit.prevent');
+        await wrapper.find('[data-testid="expandir-orden-1"]').trigger('click');
+        await wrapper.find('[data-testid="expandir-orden-2"]').trigger('click');
 
         // Assert
-        expect(hoisted.post).toHaveBeenCalledWith(
-            '/produccion/ordenes-de-produccion/1/partes',
-            expect.objectContaining({ preserveScroll: true }),
-            expect.any(Object),
-        );
-
-        const payload = hoisted.post.mock.calls[0][2];
-        expect(Number(payload.etapa_id)).toBe(11);
-        expect(Number(payload.maquinaria_id)).toBe(1);
-        expect(payload.fecha).toBe('2026-10-31');
-        expect(Number(payload.cantidad)).toBe(5);
-        expect(payload.observaciones).toBe('Observación de prueba');
+        expect(wrapper.find('[data-testid="etapas-orden-1"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="etapas-orden-2"]').text()).toContain('Armado');
     });
 
-    it('lists the order partes inside the drawer', async () => {
+    it('closes the action menu on Escape and returns focus to the trigger', async () => {
         // Arrange
-        const enCursoProps = {
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+        const trigger = botonMenu(wrapper);
+
+        await trigger.trigger('click');
+        expect(trigger.attributes('aria-expanded')).toBe('true');
+        expect(wrapper.find('[data-testid="etapas-orden-1"]').exists()).toBe(false);
+
+        // Act
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        await nextTick();
+
+        // Assert
+        expect(trigger.attributes('aria-expanded')).toBe('false');
+        expect(wrapper.find('[data-testid="menu-acciones"]').exists()).toBe(false);
+        expect(document.activeElement).toBe(trigger.element);
+    });
+
+    it('keeps only one action menu open at a time', async () => {
+        // Arrange
+        const segundaOrden = { ...ordenBase, id: 2, producto: productoB };
+        const dosOrdenes = {
             ...props,
             ordenes: {
                 ...props.ordenes,
-                data: [
-                    {
-                        ...ordenBase,
-                        estado: 'En Curso',
-                        partes: [
-                            {
-                                id: 1,
-                                etapa_id: 10,
-                                etapa: 'Corte',
-                                fecha: '2026-10-30',
-                                cantidad: 4,
-                                maquinaria: null,
-                                observaciones: null,
-                            },
-                        ],
-                    },
-                ],
+                data: [ordenBase, segundaOrden],
+                total: 2,
             },
         };
-        const wrapper = mount(Ordenes, { props: enCursoProps, attachTo: document.body });
+        const wrapper = mount(Ordenes, { props: dosOrdenes, attachTo: document.body });
 
         // Act
-        const cargar = wrapper.findAll('button').find((button) => button.text() === 'Cargar parte');
-        await cargar?.trigger('click');
+        await abrirMenu(wrapper, 1);
+        await abrirMenu(wrapper, 2);
 
         // Assert
-        expect(wrapper.text()).toContain('Partes registrados');
-        expect(wrapper.text()).toContain('Corte');
-        expect(wrapper.text()).toContain('2026-10-30');
-        expect(wrapper.text()).toContain('4');
+        expect(wrapper.findAll('[data-testid="menu-acciones"]')).toHaveLength(1);
+        expect(botonMenu(wrapper, 1).attributes('aria-expanded')).toBe('false');
+        expect(botonMenu(wrapper, 2).attributes('aria-expanded')).toBe('true');
+    });
+
+    it('closes the action menu on an outside pointerdown', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        await abrirMenu(wrapper);
+        expect(wrapper.find('[data-testid="menu-acciones"]').exists()).toBe(true);
+
+        // Act
+        document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        await nextTick();
+
+        // Assert
+        expect(wrapper.find('[data-testid="menu-acciones"]').exists()).toBe(false);
     });
 
     it('renders the pospuesta badge', () => {
         // Arrange / Act
-        const pospuestaProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [{ ...ordenBase, estado: 'Pospuesta' }],
-            },
-        };
-        const wrapper = mount(Ordenes, { props: pospuestaProps });
+        const wrapper = mount(Ordenes, { props: ordenCon({ estado: 'Pospuesta' }) });
 
         // Assert
         expect(wrapper.text()).toContain('Pospuesta');
     });
 
-    it('shows registrar calidad and cerrar orden only for en curso orders', () => {
+    it('shows registrar calidad and cerrar orden only for en curso orders', async () => {
         // Arrange
-        const enCursoProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [{ ...ordenBase, estado: 'En Curso' }],
-            },
-        };
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ estado: 'En Curso' }),
+            attachTo: document.body,
+        });
 
         // Act
-        const wrapper = mount(Ordenes, { props: enCursoProps });
+        await abrirMenu(wrapper);
 
         // Assert
         expect(wrapper.text()).toContain('Registrar calidad');
         expect(wrapper.text()).toContain('Cerrar orden');
     });
 
-    it('shows posponer for allowed states', () => {
-        // Arrange / Act
-        const wrapper = mount(Ordenes, { props });
+    it('shows posponer for allowed states', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Act
+        await abrirMenu(wrapper);
 
         // Assert
         expect(wrapper.text()).toContain('Posponer');
     });
 
-    it('shows reanudar for pospuesta orders', () => {
+    it('shows reanudar for pospuesta orders', async () => {
         // Arrange
-        const pospuestaProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [{ ...ordenBase, estado: 'Pospuesta' }],
-            },
-        };
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ estado: 'Pospuesta' }),
+            attachTo: document.body,
+        });
 
         // Act
-        const wrapper = mount(Ordenes, { props: pospuestaProps });
+        await abrirMenu(wrapper);
 
         // Assert
         expect(wrapper.text()).toContain('Reanudar');
     });
 
-    it('hides anular for started orders', () => {
+    it('hides anular for started orders', async () => {
         // Arrange
-        const iniciadaProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [{ ...ordenBase, fecha_inicio: '2026-11-01' }],
-            },
-        };
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ fecha_inicio: '2026-11-01' }),
+            attachTo: document.body,
+        });
 
         // Act
-        const wrapper = mount(Ordenes, { props: iniciadaProps });
+        await abrirMenu(wrapper);
 
         // Assert
         expect(wrapper.text()).not.toContain('Anular');
     });
 
-    it('hides anular for orders with partes', () => {
+    it('hides anular for orders with partes', async () => {
         // Arrange
-        const conPartesProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [
-                    {
-                        ...ordenBase,
-                        partes: [
-                            {
-                                id: 1,
-                                etapa_id: 10,
-                                etapa: 'Corte',
-                                fecha: '2026-10-30',
-                                cantidad: 4,
-                                maquinaria: null,
-                                observaciones: null,
-                            },
-                        ],
-                    },
-                ],
-            },
-        };
+        const conPartesProps = ordenCon({
+            partes: [
+                {
+                    id: 1,
+                    etapa_id: 10,
+                    etapa: 'Corte',
+                    fecha: '2026-10-30',
+                    cantidad: 4,
+                    maquinaria: null,
+                    observaciones: null,
+                },
+            ],
+        });
+        const wrapper = mount(Ordenes, {
+            props: conPartesProps,
+            attachTo: document.body,
+        });
 
         // Act
-        const wrapper = mount(Ordenes, { props: conPartesProps });
+        await abrirMenu(wrapper);
 
         // Assert
         expect(wrapper.text()).not.toContain('Anular');
@@ -598,36 +643,27 @@ describe('Produccion OrdenesDeProduccion page', () => {
 
     it('opens the calidad drawer and posts the payload', async () => {
         // Arrange
-        const enCursoProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [
-                    {
-                        ...ordenBase,
-                        estado: 'En Curso',
-                        partes: [
-                            {
-                                id: 1,
-                                etapa_id: 10,
-                                etapa: 'Corte',
-                                fecha: '2026-10-30',
-                                cantidad: 4,
-                                maquinaria: null,
-                                observaciones: null,
-                            },
-                        ],
-                    },
-                ],
-            },
-        };
-        const wrapper = mount(Ordenes, { props: enCursoProps, attachTo: document.body });
+        const enCursoProps = ordenCon({
+            estado: 'En Curso',
+            partes: [
+                {
+                    id: 1,
+                    etapa_id: 10,
+                    etapa: 'Corte',
+                    fecha: '2026-10-30',
+                    cantidad: 4,
+                    maquinaria: null,
+                    observaciones: null,
+                },
+            ],
+        });
+        const wrapper = mount(Ordenes, {
+            props: enCursoProps,
+            attachTo: document.body,
+        });
 
         // Act
-        const calidad = wrapper
-            .findAll('button')
-            .find((button) => button.text() === 'Registrar calidad');
-        await calidad?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Registrar calidad');
 
         const form = wrapper.find('[data-testid="calidad-form"]');
         await form.find('#parte_diario_id').setValue('1');
@@ -650,26 +686,19 @@ describe('Produccion OrdenesDeProduccion page', () => {
 
     it('opens the cerrar drawer and posts unidades finales', async () => {
         // Arrange
-        const enCursoProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [
-                    {
-                        ...ordenBase,
-                        estado: 'En Curso',
-                        conformado_ultima_etapa: 10,
-                        aprobadas_ultima_etapa: 10,
-                        tiene_control_calidad: true,
-                    },
-                ],
-            },
-        };
-        const wrapper = mount(Ordenes, { props: enCursoProps, attachTo: document.body });
+        const enCursoProps = ordenCon({
+            estado: 'En Curso',
+            conformado_ultima_etapa: 10,
+            aprobadas_ultima_etapa: 10,
+            tiene_control_calidad: true,
+        });
+        const wrapper = mount(Ordenes, {
+            props: enCursoProps,
+            attachTo: document.body,
+        });
 
         // Act
-        const cerrar = wrapper.findAll('button').find((button) => button.text() === 'Cerrar orden');
-        await cerrar?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Cerrar orden');
 
         const form = wrapper.find('[data-testid="cerrar-orden-form"]');
         expect(form.text()).toContain('10');
@@ -691,8 +720,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         const wrapper = mount(Ordenes, { props, attachTo: document.body });
 
         // Act
-        const posponer = wrapper.findAll('button').find((button) => button.text() === 'Posponer');
-        await posponer?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Posponer');
 
         const form = wrapper.find('[data-testid="posponer-orden-form"]');
         await form.find('#fecha_prevista_inicio').setValue('2026-12-01');
@@ -716,18 +744,13 @@ describe('Produccion OrdenesDeProduccion page', () => {
 
     it('posts reanudar through the router for pospuesta orders', async () => {
         // Arrange
-        const pospuestaProps = {
-            ...props,
-            ordenes: {
-                ...props.ordenes,
-                data: [{ ...ordenBase, estado: 'Pospuesta' }],
-            },
-        };
-        const wrapper = mount(Ordenes, { props: pospuestaProps, attachTo: document.body });
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ estado: 'Pospuesta' }),
+            attachTo: document.body,
+        });
 
         // Act
-        const reanudar = wrapper.findAll('button').find((button) => button.text() === 'Reanudar');
-        await reanudar?.trigger('click');
+        await ejecutarAccionDeOrden(wrapper, 'Reanudar');
         const confirmar = wrapper
             .find('[data-testid="reanudar-orden-form"]')
             .findAll('button')

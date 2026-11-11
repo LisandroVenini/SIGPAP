@@ -389,6 +389,22 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $this->assertSame(30.0, $fila['avance']);
         $this->assertSame('Lijado', $fila['partes'][0]['etapa']);
         $this->assertSame('Corte', $fila['partes'][1]['etapa']);
+        $this->assertSame([
+            [
+                'etapa_id' => $corte->id,
+                'nombre' => 'Corte',
+                'producida' => 4.0,
+                'rechazadas' => 0.0,
+                'faltante' => 6.0,
+            ],
+            [
+                'etapa_id' => $lijado->id,
+                'nombre' => 'Lijado',
+                'producida' => 3.0,
+                'rechazadas' => 0.0,
+                'faltante' => 7.0,
+            ],
+        ], $fila['etapas_detalle']);
     }
 
     public function test_lists_orders_with_filters_and_ordering(): void

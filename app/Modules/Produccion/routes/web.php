@@ -56,6 +56,8 @@ Route::middleware('web')
                 ->whereNumber('orden')
                 ->name('ordenes-de-produccion.partes.store');
 
+            Route::get('partes-diarios', [ParteDiarioController::class, 'index'])->name('partes-diarios.index');
+
             Route::get('etapas', [EtapaController::class, 'index'])->name('etapas.index');
             Route::post('etapas', [EtapaController::class, 'store'])->name('etapas.store');
             Route::put('etapas/{etapa}', [EtapaController::class, 'update'])->name('etapas.update');
