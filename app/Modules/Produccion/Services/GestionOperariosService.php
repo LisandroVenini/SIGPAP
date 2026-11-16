@@ -95,13 +95,16 @@ class GestionOperariosService
     public function eliminar(Usuario $actor, Operario $operario, ?string $direccionIp = null): void
     {
         DB::transaction(function () use ($actor, $operario, $direccionIp): void {
-            $enCurso = $operario->ordenesDeProduccion()
-                ->where('estado', EstadoOrdenProduccion::EnCurso->value)
+            $activa = $operario->ordenesDeProduccion()
+                ->whereNotIn('estado', [
+                    EstadoOrdenProduccion::Cerrada->value,
+                    EstadoOrdenProduccion::Anulada->value,
+                ])
                 ->exists();
 
-            if ($enCurso) {
+            if ($activa) {
                 throw ValidationException::withMessages([
-                    'operario' => 'El operario está asignado a una orden de producción en curso.',
+                    'operario' => 'El operario está asignado a una orden de producción activa.',
                 ]);
             }
 

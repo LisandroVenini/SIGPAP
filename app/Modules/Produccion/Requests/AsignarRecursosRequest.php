@@ -3,6 +3,7 @@
 namespace App\Modules\Produccion\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AsignarRecursosRequest extends FormRequest
 {
@@ -18,9 +19,13 @@ class AsignarRecursosRequest extends FormRequest
     {
         return [
             'operarios' => ['nullable', 'array'],
-            'operarios.*' => ['integer', 'exists:operarios,id'],
+            'operarios.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('operarios', 'id')->whereNull('deleted_at'),
+            ],
             'maquinarias' => ['nullable', 'array'],
-            'maquinarias.*' => ['integer', 'exists:maquinarias,id'],
+            'maquinarias.*' => ['integer', 'distinct', 'exists:maquinarias,id'],
         ];
     }
 }

@@ -684,4 +684,48 @@ class GestionPartesDiariosServiceTest extends TestCase
             'etapa_id' => $ensamble->id,
         ]);
     }
+
+    public function test_rejects_a_part_with_a_machine_that_is_not_available(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+        $etapa = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapa->id,
+            'orden' => 1,
+        ]);
+        $orden = $this->ordenEnCurso($producto);
+        app(GestionReservasService::class)->reservar($orden->id, [$insumo->id => 20]);
+        $maquinaria = Maquinaria::factory()->create([
+            'estado_operativo' => EstadoMaquinaria::EnMantenimiento->value,
+        ]);
+        $orden->maquinarias()->attach($maquinaria->id);
+
+        // Act
+        try {
+            $this->service()->registrar(
+                $actor,
+                $orden,
+                $etapa->id,
+                $maquinaria->id,
+                now()->toDateString(),
+                2,
+                null,
+                '127.0.0.1'
+            );
+            $this->fail('Se esperaba una excepción por máquina no disponible.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('maquinaria', $excepcion->errors());
+        }
+
+        $this->assertDatabaseMissing('partes_diarios', [
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $etapa->id,
+        ]);
+    }
 }

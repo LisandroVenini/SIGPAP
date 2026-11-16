@@ -4,6 +4,7 @@ namespace Tests\Feature\Modules\Produccion;
 
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\Etapa;
+use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Produccion\Services\GestionEtapasService;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
@@ -99,5 +100,22 @@ class GestionEtapasServiceTest extends TestCase
 
         // Assert
         $this->assertSoftDeleted('etapas', ['id' => $etapa->id]);
+    }
+
+    public function test_blocks_deletion_when_the_stage_has_daily_parts(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $etapa = Etapa::factory()->create();
+        ParteDiario::factory()->create(['etapa_id' => $etapa->id]);
+
+        // Act
+        try {
+            app(GestionEtapasService::class)->eliminar($actor, $etapa);
+            $this->fail('Se esperaba una excepción por partes diarios.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('etapa', $excepcion->errors());
+        }
     }
 }

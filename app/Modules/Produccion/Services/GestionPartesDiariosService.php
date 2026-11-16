@@ -5,6 +5,7 @@ namespace App\Modules\Produccion\Services;
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Inventario\Services\GestionReservasService;
+use App\Modules\Produccion\Enums\EstadoMaquinaria;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\Maquinaria;
@@ -189,6 +190,13 @@ class GestionPartesDiariosService
 
             if ($maquinariaId !== null) {
                 $maquinaria = Maquinaria::query()->whereKey($maquinariaId)->lockForUpdate()->firstOrFail();
+
+                if ($maquinaria->estado_operativo !== EstadoMaquinaria::Disponible->value) {
+                    throw ValidationException::withMessages([
+                        'maquinaria' => 'La maquinaria no está disponible: no se puede registrar producción con ella.',
+                    ]);
+                }
+
                 $maquinaria->desgaste_acumulado = round((float) $maquinaria->desgaste_acumulado + $cantidad, 2);
                 $maquinaria->save();
 

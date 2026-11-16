@@ -167,4 +167,22 @@ class GestionMaquinariasServiceTest extends TestCase
             'usuario_id' => $actor->id,
         ]);
     }
+
+    public function test_blocks_deletion_when_the_machine_is_assigned_to_a_pending_order(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $maquinaria = Maquinaria::factory()->create();
+        $orden = OrdenDeProduccion::factory()->create(['estado' => EstadoOrdenProduccion::Pendiente->value]);
+        $orden->maquinarias()->attach($maquinaria->id);
+
+        // Act
+        try {
+            app(GestionMaquinariasService::class)->eliminar($actor, $maquinaria);
+            $this->fail('Se esperaba una excepción por orden activa.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('maquinaria', $excepcion->errors());
+        }
+    }
 }

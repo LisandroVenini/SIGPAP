@@ -104,4 +104,22 @@ class GestionOperariosServiceTest extends TestCase
         // Assert
         $this->assertSoftDeleted('operarios', ['id' => $operario->id]);
     }
+
+    public function test_blocks_deletion_when_the_operator_is_assigned_to_a_pending_order(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $operario = Operario::factory()->create();
+        $orden = OrdenDeProduccion::factory()->create(['estado' => EstadoOrdenProduccion::Pendiente->value]);
+        $orden->operarios()->attach($operario->id);
+
+        // Act
+        try {
+            app(GestionOperariosService::class)->eliminar($actor, $operario);
+            $this->fail('Se esperaba una excepción por orden activa.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('operario', $excepcion->errors());
+        }
+    }
 }

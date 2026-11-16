@@ -87,6 +87,8 @@ class GestionHojaDeRutaService
             ]);
         }
 
+        $this->asegurarSinOrdenesActivas($articuloId);
+
         if (AsignacionDeEtapa::query()->where('articulo_id', $articuloId)->where('etapa_id', $etapaId)->exists()) {
             throw ValidationException::withMessages([
                 'etapa_id' => 'La etapa ya forma parte de la hoja de ruta del producto.',
@@ -119,16 +121,7 @@ class GestionHojaDeRutaService
 
     public function desasignar(Usuario $actor, int $articuloId, int $etapaId, ?string $direccionIp = null): void
     {
-        $enCurso = OrdenDeProduccion::query()
-            ->where('articulo_id', $articuloId)
-            ->where('estado', EstadoOrdenProduccion::EnCurso->value)
-            ->exists();
-
-        if ($enCurso) {
-            throw ValidationException::withMessages([
-                'articulo' => 'Existen órdenes de producción en curso con esta hoja de ruta. No se puede desasignar.',
-            ]);
-        }
+        $this->asegurarSinOrdenesActivas($articuloId);
 
         $asignacion = AsignacionDeEtapa::query()
             ->where('articulo_id', $articuloId)
@@ -165,6 +158,8 @@ class GestionHojaDeRutaService
         string $direccion,
         ?string $direccionIp = null,
     ): void {
+        $this->asegurarSinOrdenesActivas($articuloId);
+
         $asignaciones = AsignacionDeEtapa::query()
             ->where('articulo_id', $articuloId)
             ->ordenadas()
@@ -243,6 +238,23 @@ class GestionHojaDeRutaService
             if ((int) $asignacion->orden !== $ordenEsperado) {
                 $asignacion->update(['orden' => $ordenEsperado]);
             }
+        }
+    }
+
+    private function asegurarSinOrdenesActivas(int $articuloId): void
+    {
+        $activas = OrdenDeProduccion::query()
+            ->where('articulo_id', $articuloId)
+            ->whereNotIn('estado', [
+                EstadoOrdenProduccion::Cerrada->value,
+                EstadoOrdenProduccion::Anulada->value,
+            ])
+            ->exists();
+
+        if ($activas) {
+            throw ValidationException::withMessages([
+                'articulo' => 'El producto tiene órdenes de producción activas: no se puede modificar su hoja de ruta.',
+            ]);
         }
     }
 }
