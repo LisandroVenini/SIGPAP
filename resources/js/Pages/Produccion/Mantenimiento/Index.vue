@@ -65,7 +65,9 @@ const planDrawerOpen = ref(false);
 const planModo = ref<'crear' | 'editar'>('crear');
 const planEditando = ref<Plan | null>(null);
 const intervencionDrawerOpen = ref(false);
+const intervencionModo = ref<'crear' | 'editar'>('crear');
 const maquinariaIntervencion = ref<Plan | null>(null);
+const intervencionEditando = ref<Intervencion | null>(null);
 
 const planForm = useForm({
     maquinaria_id: '',
@@ -136,6 +138,8 @@ function guardarPlan(): void {
 }
 
 function abrirIntervencion(plan: Plan): void {
+    intervencionModo.value = 'crear';
+    intervencionEditando.value = null;
     maquinariaIntervencion.value = plan;
     intervencionForm.reset();
     intervencionForm.clearErrors();
@@ -144,11 +148,57 @@ function abrirIntervencion(plan: Plan): void {
     intervencionDrawerOpen.value = true;
 }
 
+function abrirEditarIntervencion(intervencion: Intervencion): void {
+    intervencionModo.value = 'editar';
+    intervencionEditando.value = intervencion;
+    maquinariaIntervencion.value = null;
+    intervencionForm.clearErrors();
+    intervencionForm.maquinaria_id = String(intervencion.maquinaria_id);
+    intervencionForm.fecha = intervencion.fecha;
+    intervencionForm.tipo = intervencion.tipo;
+    intervencionForm.responsable = intervencion.responsable;
+    intervencionForm.observaciones = intervencion.observaciones ?? '';
+    intervencionDrawerOpen.value = true;
+}
+
+async function eliminarIntervencion(intervencion: Intervencion): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Eliminar intervención',
+        mensaje: `¿Eliminar la intervención del ${intervencion.fecha} de "${intervencion.maquinaria}"?`,
+        confirmar: 'Eliminar',
+        peligro: true,
+    });
+
+    if (!confirmado) {
+        return;
+    }
+
+    router.delete(
+        `/produccion/maquinarias/${intervencion.maquinaria_id}/mantenimientos/${intervencion.id}`,
+        { preserveScroll: true },
+    );
+}
+
 function cerrarIntervencionDrawer(): void {
     intervencionDrawerOpen.value = false;
 }
 
 function guardarIntervencion(): void {
+    if (intervencionModo.value === 'editar' && intervencionEditando.value) {
+        const intervencion = intervencionEditando.value;
+        intervencionForm.put(
+            `/produccion/maquinarias/${intervencion.maquinaria_id}/mantenimientos/${intervencion.id}`,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    intervencionDrawerOpen.value = false;
+                },
+            },
+        );
+
+        return;
+    }
+
     if (!maquinariaIntervencion.value) {
         return;
     }
@@ -413,6 +463,11 @@ function labelDePagina(label: string): string {
                                 >
                                     Observaciones
                                 </th>
+                                <th
+                                    class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Acciones
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-hairline">
@@ -431,6 +486,25 @@ function labelDePagina(label: string): string {
                                 </td>
                                 <td class="px-4 py-2.5 text-sm text-steel">
                                     {{ intervencion.observaciones ?? '-' }}
+                                </td>
+                                <td class="px-4 py-2.5 text-right text-xs whitespace-nowrap">
+                                    <button
+                                        type="button"
+                                        class="font-medium text-teja hover:underline"
+                                        :data-testid="`editar-intervencion-${intervencion.id}`"
+                                        @click="abrirEditarIntervencion(intervencion)"
+                                    >
+                                        Editar
+                                    </button>
+                                    <span class="mx-2 text-clay/40">|</span>
+                                    <button
+                                        type="button"
+                                        class="font-medium text-steel hover:text-oxide"
+                                        :data-testid="`eliminar-intervencion-${intervencion.id}`"
+                                        @click="eliminarIntervencion(intervencion)"
+                                    >
+                                        Eliminar
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
@@ -558,7 +632,13 @@ function labelDePagina(label: string): string {
                 class="flex h-full w-full max-w-[420px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >
                 <div class="flex items-center justify-between border-b border-hairline pb-3">
-                    <h3 class="text-lg font-semibold text-ink">Registrar mantenimiento</h3>
+                    <h3 class="text-lg font-semibold text-ink">
+                        {{
+                            intervencionModo === 'editar'
+                                ? 'Editar intervención'
+                                : 'Registrar mantenimiento'
+                        }}
+                    </h3>
                     <button
                         type="button"
                         class="text-sm text-steel hover:text-ink"

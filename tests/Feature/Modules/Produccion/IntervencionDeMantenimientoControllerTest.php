@@ -139,4 +139,81 @@ class IntervencionDeMantenimientoControllerTest extends TestCase
         $response->assertSessionHasErrors('fecha');
         $this->assertDatabaseCount('intervenciones_de_mantenimiento', 1);
     }
+
+    public function test_supervisor_can_update_an_intervention(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $maquinaria = Maquinaria::factory()->create();
+        $intervencion = IntervencionDeMantenimiento::factory()->create([
+            'maquinaria_id' => $maquinaria->id,
+            'fecha' => '2026-11-01',
+            'tipo' => 'Preventivo',
+            'responsable' => 'Taller interno',
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->put(
+            "/produccion/maquinarias/{$maquinaria->id}/mantenimientos/{$intervencion->id}",
+            [
+                'fecha' => '2026-11-02',
+                'tipo' => 'Correctivo',
+                'responsable' => 'Taller externo',
+                'observaciones' => 'Se cambió el rodamiento.',
+            ],
+        );
+
+        // Assert
+        $response->assertRedirect('/produccion/planes-de-mantenimiento');
+        $this->assertDatabaseHas('intervenciones_de_mantenimiento', [
+            'id' => $intervencion->id,
+            'fecha' => '2026-11-02',
+            'tipo' => 'Correctivo',
+            'responsable' => 'Taller externo',
+        ]);
+    }
+
+    public function test_supervisor_can_delete_an_intervention(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $maquinaria = Maquinaria::factory()->create();
+        $intervencion = IntervencionDeMantenimiento::factory()->create([
+            'maquinaria_id' => $maquinaria->id,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->delete(
+            "/produccion/maquinarias/{$maquinaria->id}/mantenimientos/{$intervencion->id}",
+        );
+
+        // Assert
+        $response->assertRedirect('/produccion/planes-de-mantenimiento');
+        $this->assertDatabaseMissing('intervenciones_de_mantenimiento', ['id' => $intervencion->id]);
+    }
+
+    public function test_an_intervention_from_another_machine_cannot_be_updated(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $maquinaria = Maquinaria::factory()->create();
+        $otraMaquinaria = Maquinaria::factory()->create();
+        $intervencion = IntervencionDeMantenimiento::factory()->create([
+            'maquinaria_id' => $otraMaquinaria->id,
+            'fecha' => '2026-11-01',
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->put(
+            "/produccion/maquinarias/{$maquinaria->id}/mantenimientos/{$intervencion->id}",
+            [
+                'fecha' => '2026-11-02',
+                'tipo' => 'Correctivo',
+                'responsable' => 'Taller externo',
+            ],
+        );
+
+        // Assert
+        $response->assertSessionHasErrors('intervencion');
+    }
 }

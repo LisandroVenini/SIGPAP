@@ -79,6 +79,14 @@ Route::middleware('web')
             Route::post('maquinarias/{maquinaria}/mantenimientos', [IntervencionDeMantenimientoController::class, 'store'])
                 ->whereNumber('maquinaria')
                 ->name('maquinarias.mantenimientos.store');
+            Route::put('maquinarias/{maquinaria}/mantenimientos/{intervencion}', [IntervencionDeMantenimientoController::class, 'update'])
+                ->whereNumber('maquinaria')
+                ->whereNumber('intervencion')
+                ->name('maquinarias.mantenimientos.update');
+            Route::delete('maquinarias/{maquinaria}/mantenimientos/{intervencion}', [IntervencionDeMantenimientoController::class, 'destroy'])
+                ->whereNumber('maquinaria')
+                ->whereNumber('intervencion')
+                ->name('maquinarias.mantenimientos.destroy');
 
             Route::get('planes-de-mantenimiento', [PlanDeMantenimientoController::class, 'index'])->name('planes.index');
             Route::post('planes-de-mantenimiento', [PlanDeMantenimientoController::class, 'store'])->name('planes.store');

@@ -10,6 +10,7 @@ use App\Modules\Produccion\Queries\DashboardMantenimientosQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class GestionMantenimientosService
 {
@@ -79,6 +80,89 @@ class GestionMantenimientosService
 
             return $intervencion;
         });
+    }
+
+    public function actualizar(
+        Usuario $actor,
+        Maquinaria $maquinaria,
+        IntervencionDeMantenimiento $intervencion,
+        string $fecha,
+        string $tipo,
+        string $responsable,
+        ?string $observaciones,
+        ?string $direccionIp = null,
+    ): IntervencionDeMantenimiento {
+        return DB::transaction(function () use ($actor, $maquinaria, $intervencion, $fecha, $tipo, $responsable, $observaciones, $direccionIp): IntervencionDeMantenimiento {
+            $this->asegurarPertenencia($maquinaria, $intervencion);
+
+            $anterior = [
+                'fecha' => $intervencion->fecha?->toDateString(),
+                'tipo' => $intervencion->tipo,
+                'responsable' => $intervencion->responsable,
+                'observaciones' => $intervencion->observaciones,
+            ];
+
+            $intervencion->update([
+                'fecha' => $fecha,
+                'tipo' => $tipo,
+                'responsable' => $responsable,
+                'observaciones' => $observaciones,
+            ]);
+
+            $this->auditoria->registrarEvento(
+                $actor->id,
+                'actualizar_intervencion_mantenimiento',
+                $anterior,
+                [
+                    'fecha' => $fecha,
+                    'tipo' => $tipo,
+                    'responsable' => $responsable,
+                    'observaciones' => $observaciones,
+                ],
+                $direccionIp,
+                IntervencionDeMantenimiento::class,
+                $intervencion->id,
+            );
+
+            return $intervencion;
+        });
+    }
+
+    public function eliminar(
+        Usuario $actor,
+        Maquinaria $maquinaria,
+        IntervencionDeMantenimiento $intervencion,
+        ?string $direccionIp = null,
+    ): void {
+        DB::transaction(function () use ($actor, $maquinaria, $intervencion, $direccionIp): void {
+            $this->asegurarPertenencia($maquinaria, $intervencion);
+
+            $this->auditoria->registrarEvento(
+                $actor->id,
+                'eliminar_intervencion_mantenimiento',
+                [
+                    'fecha' => $intervencion->fecha?->toDateString(),
+                    'tipo' => $intervencion->tipo,
+                    'responsable' => $intervencion->responsable,
+                    'observaciones' => $intervencion->observaciones,
+                ],
+                null,
+                $direccionIp,
+                IntervencionDeMantenimiento::class,
+                $intervencion->id,
+            );
+
+            $intervencion->delete();
+        });
+    }
+
+    private function asegurarPertenencia(Maquinaria $maquinaria, IntervencionDeMantenimiento $intervencion): void
+    {
+        if ((int) $intervencion->maquinaria_id !== (int) $maquinaria->getKey()) {
+            throw ValidationException::withMessages([
+                'intervencion' => 'La intervención no pertenece a la maquinaria indicada.',
+            ]);
+        }
     }
 
     public function evaluarBloqueo(Usuario $actor, Maquinaria $maquinaria, ?string $direccionIp = null): bool
