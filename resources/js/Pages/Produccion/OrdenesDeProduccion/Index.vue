@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import DatePicker from '@/Components/DatePicker.vue';
@@ -250,6 +250,22 @@ const formAnular = useForm({
 const formAsignar = useForm({
     operarios: [] as number[],
     maquinarias: [] as number[],
+});
+
+const maximoRechazadas = computed<number | undefined>(() => {
+    if (!ordenActiva.value) {
+        return undefined;
+    }
+
+    if (formCalidad.parte_diario_id !== '') {
+        const parte = ordenActiva.value.partes.find(
+            (registro) => String(registro.id) === String(formCalidad.parte_diario_id),
+        );
+
+        return parte ? Number(parte.cantidad) : undefined;
+    }
+
+    return Number(ordenActiva.value.conformado_ultima_etapa);
 });
 
 const formCalidad = useForm({
@@ -1423,6 +1439,7 @@ function labelDePagina(label: string): string {
                             type="number"
                             step="0.01"
                             min="0"
+                            :max="maximoRechazadas"
                             required
                             class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
