@@ -261,4 +261,51 @@ class SolicitudDeCotizacionControllerTest extends TestCase
         // Assert
         $response->assertNotFound();
     }
+
+    public function test_a_vencimiento_beyond_thirty_days_is_rejected(): void
+    {
+        // Arrange
+        Mail::fake();
+        $usuario = $this->usuarioConRol(Rol::EncargadoCompras);
+        $articulo = Articulo::factory()->create(['tipo' => 'Materia Prima', 'estado' => 'Activo']);
+        $proveedor = Proveedor::factory()->create(['email' => 'ventas@aceros.test', 'estado' => 'Activo']);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/compras/solicitudes-de-cotizacion', [
+            'fecha_vencimiento' => today()->addDays(40)->toDateString(),
+            'lineas' => [
+                ['articulo_id' => $articulo->id, 'cantidad_solicitada' => 4],
+            ],
+            'proveedores' => [$proveedor->id],
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_vencimiento');
+        $this->assertDatabaseCount('solicitudes_de_cotizacion', 0);
+    }
+
+    public function test_an_inactive_provider_is_rejected(): void
+    {
+        // Arrange
+        Mail::fake();
+        $usuario = $this->usuarioConRol(Rol::EncargadoCompras);
+        $articulo = Articulo::factory()->create(['tipo' => 'Materia Prima', 'estado' => 'Activo']);
+        $proveedor = Proveedor::factory()->create([
+            'email' => 'ventas@aceros.test',
+            'estado' => 'Inactivo',
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/compras/solicitudes-de-cotizacion', [
+            'fecha_vencimiento' => today()->addWeek()->toDateString(),
+            'lineas' => [
+                ['articulo_id' => $articulo->id, 'cantidad_solicitada' => 4],
+            ],
+            'proveedores' => [$proveedor->id],
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('proveedores');
+        $this->assertDatabaseCount('solicitudes_de_cotizacion', 0);
+    }
 }

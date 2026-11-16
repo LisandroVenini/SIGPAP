@@ -58,4 +58,16 @@ class ListarEventosRequestTest extends TestCase
         // Assert
         $response->assertSessionHasErrors('usuario_id');
     }
+
+    public function test_it_rejects_a_range_longer_than_one_year(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+
+        // Act
+        $response = $this->actingAs($admin)->get('/auditoria?fecha_desde=2025-01-01&fecha_hasta=2026-06-01');
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_hasta');
+    }
 }

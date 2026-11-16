@@ -3,6 +3,7 @@
 namespace Tests\Feature\Modules\Produccion;
 
 use App\Modules\Produccion\Enums\EstadoMaquinaria;
+use App\Modules\Produccion\Models\IntervencionDeMantenimiento;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
@@ -113,5 +114,29 @@ class IntervencionDeMantenimientoControllerTest extends TestCase
         // Assert
         $response->assertRedirect('/produccion/planes-de-mantenimiento');
         $response->assertSessionHasErrors('fecha');
+    }
+
+    public function test_only_one_intervention_per_machine_and_day_is_allowed(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $maquinaria = Maquinaria::factory()->create();
+        IntervencionDeMantenimiento::factory()->create([
+            'maquinaria_id' => $maquinaria->id,
+            'fecha' => '2026-11-01',
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->post("/produccion/maquinarias/{$maquinaria->id}/mantenimientos", [
+                'maquinaria_id' => $maquinaria->id,
+                'fecha' => '2026-11-01',
+                'tipo' => 'Correctivo',
+                'responsable' => 'Taller externo',
+            ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha');
+        $this->assertDatabaseCount('intervenciones_de_mantenimiento', 1);
     }
 }

@@ -401,4 +401,27 @@ class PortalCotizacionControllerTest extends TestCase
 
         $this->post('/portal/cotizaciones/'.Str::uuid(), $payload)->assertStatus(429);
     }
+
+    public function test_a_promised_date_after_the_expiration_is_rejected(): void
+    {
+        // Arrange
+        $contexto = $this->solicitudConToken(today()->addWeek()->toDateString());
+        $payload = [
+            'lineas' => [
+                [
+                    'articulo_id' => $contexto['articulo']->id,
+                    'precio_unitario' => 100,
+                    'cantidad_ofertada' => 5,
+                    'fecha_prometida' => today()->addDays(10)->toDateString(),
+                ],
+            ],
+        ];
+
+        // Act
+        $response = $this->post("/portal/cotizaciones/{$contexto['token']}", $payload);
+
+        // Assert
+        $response->assertSessionHasErrors('lineas.0.fecha_prometida');
+        $this->assertDatabaseCount('cotizaciones', 0);
+    }
 }

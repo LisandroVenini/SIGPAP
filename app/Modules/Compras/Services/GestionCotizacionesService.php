@@ -68,6 +68,7 @@ class GestionCotizacionesService
             }
 
             $this->validarLineas($lineas);
+            $this->validarFechasPrometidas($solicitud, $lineas);
             $this->validarArticulosDeLaSolicitud($solicitud, $lineas);
 
             $usuarioId = $this->usuarioDeAuditoria($solicitud, $actor);
@@ -172,6 +173,30 @@ class GestionCotizacionesService
         }
     }
 
+    /**
+     * The promised date must fall inside the request window.
+     *
+     * @param  array<int, array{articulo_id: int, precio_unitario: float|int|string, cantidad_ofertada: float|int|string, fecha_prometida: string}>  $lineas
+     */
+    private function validarFechasPrometidas(SolicitudDeCotizacion $solicitud, array $lineas): void
+    {
+        $inicio = $solicitud->fecha;
+        $vencimiento = $solicitud->fecha_vencimiento;
+
+        foreach ($lineas as $indice => $linea) {
+            $fecha = Carbon::parse($linea['fecha_prometida'] ?? null);
+
+            if ($fecha->lt($inicio) || $fecha->gt($vencimiento)) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.fecha_prometida" => "La fecha prometida debe estar entre el {$inicio->toDateString()} y el {$vencimiento->toDateString()}.",
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  array<int, array{articulo_id: int, precio_unitario: float|int|string, cantidad_ofertada: float|int|string, fecha_prometida: string}>  $lineas
+     */
     private function validarLineas(array $lineas): void
     {
         foreach ($lineas as $indice => $linea) {

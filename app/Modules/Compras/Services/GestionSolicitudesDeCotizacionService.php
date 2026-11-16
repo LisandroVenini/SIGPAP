@@ -316,6 +316,14 @@ class GestionSolicitudesDeCotizacionService
             ]);
         }
 
+        $inactivo = $proveedores->first(fn (Proveedor $proveedor): bool => $proveedor->estado !== 'Activo');
+
+        if ($inactivo !== null) {
+            throw ValidationException::withMessages([
+                'proveedores' => "El proveedor {$inactivo->razon_social} no está activo.",
+            ]);
+        }
+
         $sinEmail = $proveedores->first(fn (Proveedor $proveedor): bool => blank($proveedor->email));
 
         if ($sinEmail !== null) {
