@@ -16,7 +16,7 @@ Branch: `feat/validaciones-fechas`. Delivery: `ask-on-risk`.
 ### V3 — Entrega de la orden coherente
 - Al crear: `fecha_entrega >= fecha_inicio` de la planificación elegida.
 - Al editar: `fecha_entrega >= fecha_prevista_inicio` (si existe) y `>= fecha_inicio` de su planificación.
-- Al posponer: `fecha_prevista_inicio <= fecha_entrega` de la orden.
+- Posponer no se bloquea si la fecha prevista supera la entrega: la proyección ya marca el conflicto; bloquearlo impediría reprogramar.
 - La excepción de fecha histórica sin cambios del calendario se mantiene.
 
 ### V4 — Parte diario coherente
@@ -47,6 +47,7 @@ Branch: `feat/validaciones-fechas`. Delivery: `ask-on-risk`.
 - A1: el rango de 90 días y el de 30 días son constantes de negocio; si cambian, se ajustan en el servicio/request correspondiente.
 - A2: se descarta validar "intervención no anterior al alta de la máquina" porque no existe un campo de alta de negocio y bloquearía la carga de historial.
 - A3: la secuencialidad del parte es por cantidades, no por fechas.
+- A4: posponer más allá de la entrega es una decisión válida; el conflicto se muestra en el cronograma.
 
 ## Tasks
 

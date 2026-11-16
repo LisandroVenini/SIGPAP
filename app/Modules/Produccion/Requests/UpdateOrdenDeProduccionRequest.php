@@ -3,6 +3,8 @@
 namespace App\Modules\Produccion\Requests;
 
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use Carbon\Carbon;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,23 +27,41 @@ class UpdateOrdenDeProduccionRequest extends FormRequest
                 'date',
                 // An unchanged historical delivery date stays valid so an overdue
                 // order can still be edited; moving it requires today or later.
-                Rule::when(
-                    (string) $this->input('fecha_entrega') !== $this->fechaOriginal(),
-                    ['after_or_equal:today'],
-                ),
+                Rule::when($this->fechaCambia(), ['after_or_equal:today']),
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $orden = $this->route('orden');
+
+                    if (! $orden instanceof OrdenDeProduccion || ! $this->fechaCambia()) {
+                        return;
+                    }
+
+                    $fecha = Carbon::parse($value);
+
+                    if ($orden->fecha_prevista_inicio !== null && $fecha->lt($orden->fecha_prevista_inicio)) {
+                        $fail('La fecha de entrega no puede ser anterior al inicio previsto de la orden.');
+                    }
+
+                    $inicioDeLaPlanificacion = $orden->planificacionDeProduccion?->fecha_inicio;
+
+                    if ($inicioDeLaPlanificacion !== null && $fecha->lt($inicioDeLaPlanificacion)) {
+                        $fail('La fecha de entrega no puede ser anterior al inicio de la planificación.');
+                    }
+                },
             ],
         ];
     }
 
     /**
-     * Delivery date stored on the bound order, used to allow unchanged dates.
+     * Whether the submitted delivery date differs from the stored one.
      */
-    private function fechaOriginal(): ?string
+    private function fechaCambia(): bool
     {
         $orden = $this->route('orden');
 
-        return $orden instanceof OrdenDeProduccion
-            ? $orden->fecha_entrega?->toDateString()
-            : null;
+        if (! $orden instanceof OrdenDeProduccion) {
+            return true;
+        }
+
+        return (string) $this->input('fecha_entrega') !== $orden->fecha_entrega?->toDateString();
     }
 }

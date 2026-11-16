@@ -142,6 +142,20 @@ class GestionPartesDiariosService
                 ]);
             }
 
+            $etapasOrdenadas = $asignaciones->keys()->values()->all();
+            $posicion = array_search($etapaId, $etapasOrdenadas, true);
+
+            if ($posicion !== false && $posicion > 0) {
+                $etapaAnterior = $etapasOrdenadas[$posicion - 1];
+                $conformadoAnterior = $conformadoPorEtapa[$etapaAnterior] ?? 0.0;
+
+                if (round(($conformadoEnEtapa + $cantidad) - $conformadoAnterior, 2) > 0) {
+                    throw ValidationException::withMessages([
+                        'etapa' => "La etapa anterior tiene {$conformadoAnterior} unidades conformadas: no se pueden registrar más de esas en esta etapa.",
+                    ]);
+                }
+            }
+
             $parte = ParteDiario::query()
                 ->where('orden_de_produccion_id', $orden->id)
                 ->where('etapa_id', $etapaId)

@@ -242,4 +242,24 @@ class ParteDiarioControllerTest extends TestCase
             ->has('ordenes.0.partes_hoy', 1)
             ->where('ordenes.0.partes_hoy.0.cantidad', 4));
     }
+
+    public function test_a_parte_before_the_order_start_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        [$orden, $corte] = $this->ordenConHojaDeRuta();
+        $orden->fecha_inicio = now()->subDays(2)->toDateString();
+        $orden->save();
+
+        // Act
+        $response = $this->actingAs($usuario)->post("/produccion/ordenes-de-produccion/{$orden->id}/partes", [
+            'etapa_id' => $corte->id,
+            'fecha' => now()->subDays(5)->toDateString(),
+            'cantidad' => 1,
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha');
+        $this->assertDatabaseCount('partes_diarios', 0);
+    }
 }
