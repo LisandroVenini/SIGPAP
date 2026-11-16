@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
 import { confirmar } from '@/composables/useConfirm';
 
 interface Articulo {
@@ -404,24 +405,21 @@ function labelDePagina(label: string): string {
                     <label for="filtro-fecha-desde" class="text-xs font-medium text-steel"
                         >Desde</label
                     >
-                    <input
+                    <DatePicker
                         id="filtro-fecha-desde"
                         v-model="filtros.fecha_desde"
                         data-testid="filtro-fecha-desde"
-                        type="date"
-                        class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                     />
                 </div>
                 <div class="flex flex-col gap-1">
                     <label for="filtro-fecha-hasta" class="text-xs font-medium text-steel"
                         >Hasta</label
                     >
-                    <input
+                    <DatePicker
                         id="filtro-fecha-hasta"
                         v-model="filtros.fecha_hasta"
+                        :min="filtros.fecha_desde || null"
                         data-testid="filtro-fecha-hasta"
-                        type="date"
-                        class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                     />
                 </div>
                 <div class="flex items-center gap-2">

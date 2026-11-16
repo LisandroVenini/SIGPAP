@@ -2,7 +2,11 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
+import { hoyISO } from '@/lib/fechas';
 import { confirmar } from '@/composables/useConfirm';
+
+const hoy = hoyISO();
 
 interface Articulo {
     id: number;
@@ -402,24 +406,21 @@ function porcentaje(valor: number): string {
                     <label for="filtro-fecha-desde" class="text-xs font-medium text-steel"
                         >Desde</label
                     >
-                    <input
+                    <DatePicker
                         id="filtro-fecha-desde"
                         v-model="filtros.fecha_desde"
                         data-testid="filtro-fecha-desde"
-                        type="date"
-                        class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                     />
                 </div>
                 <div class="flex flex-col gap-1">
                     <label for="filtro-fecha-hasta" class="text-xs font-medium text-steel"
                         >Hasta</label
                     >
-                    <input
+                    <DatePicker
                         id="filtro-fecha-hasta"
                         v-model="filtros.fecha_hasta"
+                        :min="filtros.fecha_desde || null"
                         data-testid="filtro-fecha-hasta"
-                        type="date"
-                        class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                     />
                 </div>
                 <div class="flex items-center gap-2">
@@ -898,12 +899,11 @@ function porcentaje(valor: number): string {
                         <label for="fecha_vencimiento" class="text-xs font-medium text-steel"
                             >Fecha de vencimiento</label
                         >
-                        <input
+                        <DatePicker
                             id="fecha_vencimiento"
                             v-model="form.fecha_vencimiento"
-                            type="date"
+                            :min="hoy"
                             required
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
                         <p v-if="form.errors.fecha_vencimiento" class="text-xs text-oxide">
                             {{ form.errors.fecha_vencimiento }}
