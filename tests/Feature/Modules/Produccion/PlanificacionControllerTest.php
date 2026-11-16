@@ -212,4 +212,43 @@ class PlanificacionControllerTest extends TestCase
             'nombre' => 'Semana pasada (corregida)',
         ]);
     }
+
+    public function test_an_overlapping_planificacion_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        PlanificacionDeProduccion::factory()->create([
+            'nombre' => 'Semana en curso',
+            'fecha_inicio' => now()->toDateString(),
+            'fecha_fin' => now()->addDays(10)->toDateString(),
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/planificaciones', [
+            'nombre' => 'Semana superpuesta',
+            'fecha_inicio' => now()->addDays(2)->toDateString(),
+            'fecha_fin' => now()->addDays(5)->toDateString(),
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_inicio');
+        $this->assertDatabaseMissing('planificaciones_de_produccion', ['nombre' => 'Semana superpuesta']);
+    }
+
+    public function test_a_planificacion_longer_than_ninety_days_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/planificaciones', [
+            'nombre' => 'Trimestre largo',
+            'fecha_inicio' => now()->addDay()->toDateString(),
+            'fecha_fin' => now()->addDays(120)->toDateString(),
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_fin');
+        $this->assertDatabaseMissing('planificaciones_de_produccion', ['nombre' => 'Trimestre largo']);
+    }
 }

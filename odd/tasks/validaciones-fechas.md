@@ -1,0 +1,65 @@
+# Validaciones transversales de fechas y coherencia — Producción y Compras
+
+Objetivo: implementar las validaciones pendientes detectadas al construir el calendario, en front y backend, con tests.
+Branch: `feat/validaciones-fechas`. Delivery: `ask-on-risk`.
+
+## Specs
+
+### V1 — Zona horaria unificada
+- `config/app.php` usa `APP_TIMEZONE` con default `America/Argentina/Buenos_Aires`, para que `today()` del backend coincida con la fecha local del navegador.
+
+### V2 — Planificaciones coherentes
+- Un período no puede superar los 90 días.
+- No puede superponerse con otra planificación existente (al editar se excluye a sí misma).
+- Errores en `fecha_inicio`/`fecha_fin` con el nombre de la planificación conflictiva.
+
+### V3 — Entrega de la orden coherente
+- Al crear: `fecha_entrega >= fecha_inicio` de la planificación elegida.
+- Al editar: `fecha_entrega >= fecha_prevista_inicio` (si existe) y `>= fecha_inicio` de su planificación.
+- Al posponer: `fecha_prevista_inicio <= fecha_entrega` de la orden.
+- La excepción de fecha histórica sin cambios del calendario se mantiene.
+
+### V4 — Parte diario coherente
+- La fecha del parte no puede ser anterior al inicio de la orden ni posterior a hoy.
+- Flujo secuencial: una etapa no puede declarar más unidades de las que la etapa anterior ya tiene conformadas.
+
+### V5 — Cotización del portal
+- `fecha_prometida` no anterior a la fecha de la solicitud ni posterior a su vencimiento.
+- El front acota el calendario con ese máximo.
+
+### V6 — Solicitud de cotización
+- Vencimiento máximo de 30 días desde hoy (además de no anterior a hoy).
+- No se pueden enviar solicitudes a proveedores inactivos.
+
+### V7 — Mantenimiento
+- Una sola intervención por máquina y por día (evita duplicados de carga).
+
+### V8 — Reportes y auditoría
+- El rango entre `fecha_desde` y `fecha_hasta` no puede superar 366 días.
+
+### V9 — Límites en el front
+- Calidad: el máximo de rechazadas es el conformado disponible.
+- Solicitud: el calendario de vencimiento no supera los 30 días.
+- Posponer: el calendario no supera la fecha de entrega.
+- Portal: el calendario no supera el vencimiento de la solicitud.
+
+### Supuestos y decisiones
+- A1: el rango de 90 días y el de 30 días son constantes de negocio; si cambian, se ajustan en el servicio/request correspondiente.
+- A2: se descarta validar "intervención no anterior al alta de la máquina" porque no existe un campo de alta de negocio y bloquearía la carga de historial.
+- A3: la secuencialidad del parte es por cantidades, no por fechas.
+
+## Tasks
+
+| ID | Spec | Route | Status |
+| --- | --- | --- | --- |
+| T1 | V1, V2 | inline | pending |
+| T2 | V3 | inline | pending |
+| T3 | V4 | inline | pending |
+| T4 | V5, V6 | inline | pending |
+| T5 | V7, V8 | inline | pending |
+| T6 | V9 | inline | pending |
+
+## Log
+
+L1 (2026-11-16, pedido del usuario, verbatim):
+"quedo muy bueno el calendario. Sigamos con todas las otras validaciones que dijiste. Arma un plan de implementacion y ejecutalo"
