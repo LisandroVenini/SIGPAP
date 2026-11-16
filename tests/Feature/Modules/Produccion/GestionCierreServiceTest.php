@@ -674,4 +674,40 @@ class GestionCierreServiceTest extends TestCase
         $this->assertSame(EstadoOrdenProduccion::Cerrada->value, $orden->estado);
         $this->assertSame(10.0, (float) $orden->cantidad_producida);
     }
+
+    public function test_closing_liberates_the_remaining_reservations(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+        [$corte, $ensamble] = $this->hojaDeRutaDeDosEtapas($producto);
+        $orden = $this->ordenEnCurso($producto);
+        app(GestionReservasService::class)->reservar($orden->id, [$insumo->id => 20]);
+        $parte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $ensamble->id,
+            'cantidad_conformada' => 10,
+        ]);
+        ControlDeCalidad::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => $parte->id,
+            'cantidad_aprobada' => 10,
+            'cantidad_rechazada' => 0,
+        ]);
+
+        // Act
+        $this->service()->cerrar($actor, $orden, 10, '127.0.0.1');
+
+        // Assert
+        $this->assertSame(0, Reserva::query()
+            ->where('orden_de_produccion_id', $orden->id)
+            ->where('estado', EstadoReserva::Vigente->value)
+            ->count());
+        $this->assertDatabaseHas('reservas', [
+            'orden_de_produccion_id' => $orden->id,
+            'estado' => EstadoReserva::Liberada->value,
+        ]);
+    }
 }

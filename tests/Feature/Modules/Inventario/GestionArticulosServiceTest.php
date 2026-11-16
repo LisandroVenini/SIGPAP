@@ -4,13 +4,16 @@ namespace Tests\Feature\Modules\Inventario;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Enums\EstadoArticulo;
+use App\Modules\Inventario\Enums\EstadoReserva;
 use App\Modules\Inventario\Enums\OrigenArticulo;
 use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
+use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Inventario\Models\UnidadDeMedida;
 use App\Modules\Inventario\Queries\ArticulosQuery;
 use App\Modules\Inventario\Queries\DashboardInventarioQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
+use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -380,5 +383,80 @@ class GestionArticulosServiceTest extends TestCase
 
         // Act / Assert
         $this->assertSame([], $service->porSku([]));
+    }
+
+    public function test_cambiar_estado_bloquea_la_baja_con_reservas_vigentes(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $articulo = Articulo::factory()->create([
+            'unidad_de_medida_id' => $this->unidad()->id,
+            'stock_fisico' => 0,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'estado' => EstadoReserva::Vigente->value,
+        ]);
+
+        // Act
+        try {
+            $this->service()->cambiarEstado($actor, $articulo, true);
+            $this->fail('Se esperaba una excepción por reservas vigentes.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('estado', $excepcion->errors());
+        }
+    }
+
+    public function test_cambiar_estado_bloquea_la_baja_con_ordenes_activas(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $articulo = Articulo::factory()->create([
+            'unidad_de_medida_id' => $this->unidad()->id,
+            'stock_fisico' => 0,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        OrdenDeProduccion::factory()->create([
+            'articulo_id' => $articulo->id,
+            'estado' => 'Pendiente',
+        ]);
+
+        // Act
+        try {
+            $this->service()->cambiarEstado($actor, $articulo, true);
+            $this->fail('Se esperaba una excepción por órdenes activas.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('estado', $excepcion->errors());
+        }
+    }
+
+    public function test_actualizar_bloquea_el_cambio_de_clasificacion_con_historial(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $articulo = Articulo::factory()->create([
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'origen' => null,
+            'unidad_de_medida_id' => $this->unidad()->id,
+            'stock_fisico' => 0,
+        ]);
+        OrdenDeProduccion::factory()->create(['articulo_id' => $articulo->id]);
+
+        // Act
+        try {
+            $this->service()->actualizar($actor, $articulo, [
+                'descripcion' => $articulo->descripcion,
+                'tipo' => TipoArticulo::ProductoTerminado->value,
+                'origen' => OrigenArticulo::Fabricado->value,
+                'unidad_de_medida_id' => $articulo->unidad_de_medida_id,
+            ]);
+            $this->fail('Se esperaba una excepción por historial.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('tipo', $excepcion->errors());
+        }
     }
 }

@@ -65,6 +65,7 @@ const props = {
                 stock_disponible: 3,
                 stock_minimo: 10,
                 stock_maximo: 100,
+                fecha_vencimiento: null,
             },
             {
                 id: 2,
@@ -80,6 +81,7 @@ const props = {
                 stock_disponible: 0,
                 stock_minimo: 5,
                 stock_maximo: 50,
+                fecha_vencimiento: null,
             },
         ],
         links: [],

@@ -5,8 +5,8 @@ namespace App\Modules\Produccion\Services;
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
-use App\Modules\Produccion\Models\ControlDeCalidad;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Queries\CalidadQuery;
 use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
 use App\Modules\Usuarios\Models\Usuario;
@@ -20,6 +20,7 @@ class GestionCierreService
         private readonly AuditoriaService $auditoria,
         private readonly GestionRecetasService $recetas,
         private readonly GestionReservasService $reservas,
+        private readonly CalidadQuery $calidad,
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly PartesDiariosQuery $partesDiarios,
         private readonly UsuariosService $usuarios,
@@ -70,17 +71,22 @@ class GestionCierreService
                 ]);
             }
 
+            $cantidadProducidaAnterior = (float) $orden->cantidad_producida;
+
             $orden->estado = EstadoOrdenProduccion::Cerrada->value;
             $orden->cantidad_producida = $unidadesFinales;
             $orden->fecha_fin = now()->toDateString();
             $orden->save();
+
+            // Whatever was not consumed by the daily parts is no longer needed.
+            $this->reservas->liberar($orden->id);
 
             $this->auditoria->registrarEvento(
                 $actor->id,
                 'cerrar_orden_produccion',
                 [
                     'estado' => EstadoOrdenProduccion::EnCurso->value,
-                    'cantidad_producida' => (float) $orden->cantidad_producida,
+                    'cantidad_producida' => $cantidadProducidaAnterior,
                 ],
                 [
                     'estado' => EstadoOrdenProduccion::Cerrada->value,
@@ -228,40 +234,12 @@ class GestionCierreService
 
     private function aprobadasParaCierre(OrdenDeProduccion $orden, ?int $ultimaEtapaId): ?float
     {
-        $controlDeOrden = ControlDeCalidad::query()
-            ->where('orden_de_produccion_id', $orden->id)
-            ->whereNull('parte_diario_id')
-            ->orderByDesc('fecha')
-            ->orderByDesc('id')
-            ->first();
+        $resumen = $this->calidad->aprobadoParaCierre(
+            [$orden->id],
+            $ultimaEtapaId !== null ? [$orden->articulo_id => $ultimaEtapaId] : [],
+        )[$orden->id] ?? ['aprobado' => null, 'tiene_control' => false];
 
-        if ($controlDeOrden !== null) {
-            return (float) $controlDeOrden->cantidad_aprobada;
-        }
-
-        if ($ultimaEtapaId === null) {
-            return null;
-        }
-
-        $tieneControlDeParte = ControlDeCalidad::query()
-            ->where('orden_de_produccion_id', $orden->id)
-            ->whereNotNull('parte_diario_id')
-            ->whereExists(function ($query) use ($ultimaEtapaId): void {
-                $query->selectRaw('1')
-                    ->from('partes_diarios')
-                    ->whereColumn('partes_diarios.id', 'controles_de_calidad.parte_diario_id')
-                    ->where('partes_diarios.etapa_id', $ultimaEtapaId);
-            })
-            ->exists();
-
-        if (! $tieneControlDeParte) {
-            return null;
-        }
-
-        $conformado = $this->partesDiarios->conformadoPorEtapa($orden->id)[$ultimaEtapaId] ?? 0.0;
-        $rechazadas = $this->partesDiarios->rechazadasPorEtapa($orden->id)[$ultimaEtapaId] ?? 0.0;
-
-        return round($conformado - $rechazadas, 2);
+        return $resumen['aprobado'];
     }
 
     /**

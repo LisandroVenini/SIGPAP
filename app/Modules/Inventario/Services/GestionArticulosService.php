@@ -4,12 +4,16 @@ namespace App\Modules\Inventario\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Enums\EstadoArticulo;
+use App\Modules\Inventario\Enums\EstadoReserva;
 use App\Modules\Inventario\Enums\OrigenArticulo;
 use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
+use App\Modules\Inventario\Models\MovimientoDeStock;
+use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Inventario\Models\UnidadDeMedida;
 use App\Modules\Inventario\Queries\ArticulosQuery;
 use App\Modules\Inventario\Queries\DashboardInventarioQuery;
+use App\Modules\Produccion\Services\GestionOrdenesDeProduccionService;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -97,7 +101,7 @@ class GestionArticulosService
     }
 
     /**
-     * @param  array{codigo_sku: string, descripcion: string, tipo: string, origen?: string|null, unidad_de_medida_id: int, stock_minimo?: float|string|null, stock_maximo?: float|string|null}  $datos
+     * @param  array{codigo_sku: string, descripcion: string, tipo: string, origen?: string|null, unidad_de_medida_id: int, stock_minimo?: float|string|null, stock_maximo?: float|string|null, fecha_vencimiento?: string|null}  $datos
      */
     public function crear(Usuario $actor, array $datos, ?string $direccionIp = null): Articulo
     {
@@ -111,6 +115,7 @@ class GestionArticulosService
                 'stock_fisico' => 0,
                 'stock_minimo' => $datos['stock_minimo'] ?? null,
                 'stock_maximo' => $datos['stock_maximo'] ?? null,
+                'fecha_vencimiento' => $datos['fecha_vencimiento'] ?? null,
                 'estado' => EstadoArticulo::Activo->value,
             ]);
 
@@ -129,7 +134,7 @@ class GestionArticulosService
     }
 
     /**
-     * @param  array{descripcion: string, tipo: string, origen?: string|null, unidad_de_medida_id: int, stock_minimo?: float|string|null, stock_maximo?: float|string|null}  $datos
+     * @param  array{descripcion: string, tipo: string, origen?: string|null, unidad_de_medida_id: int, stock_minimo?: float|string|null, stock_maximo?: float|string|null, fecha_vencimiento?: string|null}  $datos
      */
     public function actualizar(Usuario $actor, Articulo $articulo, array $datos, ?string $direccionIp = null): Articulo
     {
@@ -141,15 +146,28 @@ class GestionArticulosService
                 'unidad_de_medida_id' => $articulo->unidad_de_medida_id,
                 'stock_minimo' => $articulo->stock_minimo,
                 'stock_maximo' => $articulo->stock_maximo,
+                'fecha_vencimiento' => $articulo->fecha_vencimiento?->toDateString(),
             ];
+
+            $nuevoOrigen = $this->origenPara($datos);
+            $cambiaClasificacion = $datos['tipo'] !== $articulo->tipo || $nuevoOrigen !== $articulo->origen;
+
+            if ($cambiaClasificacion && $this->tieneHistorial($articulo)) {
+                throw ValidationException::withMessages([
+                    'tipo' => 'No se puede cambiar el tipo ni el origen de un artículo con historial de producción o stock.',
+                ]);
+            }
 
             $articulo->update([
                 'descripcion' => $datos['descripcion'],
                 'tipo' => $datos['tipo'],
-                'origen' => $this->origenPara($datos),
+                'origen' => $nuevoOrigen,
                 'unidad_de_medida_id' => $datos['unidad_de_medida_id'],
                 'stock_minimo' => $datos['stock_minimo'] ?? null,
                 'stock_maximo' => $datos['stock_maximo'] ?? null,
+                'fecha_vencimiento' => array_key_exists('fecha_vencimiento', $datos)
+                    ? ($datos['fecha_vencimiento'] ?: null)
+                    : $articulo->fecha_vencimiento?->toDateString(),
             ]);
 
             $this->auditoria->registrarEvento(
@@ -163,6 +181,7 @@ class GestionArticulosService
                     'unidad_de_medida_id' => $articulo->unidad_de_medida_id,
                     'stock_minimo' => $articulo->stock_minimo,
                     'stock_maximo' => $articulo->stock_maximo,
+                    'fecha_vencimiento' => $articulo->fecha_vencimiento?->toDateString(),
                 ],
                 $direccionIp,
                 Articulo::class,
@@ -185,10 +204,29 @@ class GestionArticulosService
                 ? EstadoArticulo::Inactivo->value
                 : EstadoArticulo::Activo->value;
 
-            if ($nuevoEstado === EstadoArticulo::Inactivo->value && (float) $articulo->stock_fisico > 0 && ! $confirmar) {
-                throw ValidationException::withMessages([
-                    'confirmar' => 'El artículo tiene stock físico. Confirmá la baja para continuar.',
-                ]);
+            if ($nuevoEstado === EstadoArticulo::Inactivo->value) {
+                $tieneReservas = Reserva::query()
+                    ->where('articulo_id', $articulo->id)
+                    ->where('estado', EstadoReserva::Vigente->value)
+                    ->exists();
+
+                if ($tieneReservas) {
+                    throw ValidationException::withMessages([
+                        'estado' => 'El artículo tiene reservas vigentes. Liberá o consumí esas reservas antes de darlo de baja.',
+                    ]);
+                }
+
+                if (app(GestionOrdenesDeProduccionService::class)->tieneOrdenesActivasParaArticulo($articulo->id)) {
+                    throw ValidationException::withMessages([
+                        'estado' => 'El artículo está en órdenes de producción activas. Cerralas o anulalas antes de darlo de baja.',
+                    ]);
+                }
+
+                if ((float) $articulo->stock_fisico > 0 && ! $confirmar) {
+                    throw ValidationException::withMessages([
+                        'confirmar' => 'El artículo tiene stock físico. Confirmá la baja para continuar.',
+                    ]);
+                }
             }
 
             $anterior = ['estado' => $articulo->estado];
@@ -291,6 +329,13 @@ class GestionArticulosService
     /**
      * @param  array{tipo: string, origen?: string|null}  $datos
      */
+    private function tieneHistorial(Articulo $articulo): bool
+    {
+        return MovimientoDeStock::query()->where('articulo_id', $articulo->id)->exists()
+            || Reserva::query()->where('articulo_id', $articulo->id)->exists()
+            || app(GestionOrdenesDeProduccionService::class)->tieneHistorialParaArticulo($articulo->id);
+    }
+
     private function origenPara(array $datos): ?string
     {
         if ($datos['tipo'] !== TipoArticulo::ProductoTerminado->value) {

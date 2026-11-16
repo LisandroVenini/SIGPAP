@@ -7,7 +7,9 @@ use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
+use App\Modules\Produccion\Models\ComponenteDeReceta;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Models\Receta;
 use App\Modules\Produccion\Queries\AvancePorEtapasQuery;
 use App\Modules\Produccion\Queries\CalidadQuery;
 use App\Modules\Produccion\Queries\DashboardProduccionQuery;
@@ -37,6 +39,30 @@ class GestionOrdenesDeProduccionService
         private readonly UsuariosService $usuarios,
         private readonly AvancePorEtapasQuery $avancePorEtapas,
     ) {}
+
+    /**
+     * Whether the article is used by an order that is still in play.
+     */
+    public function tieneOrdenesActivasParaArticulo(int $articuloId): bool
+    {
+        return OrdenDeProduccion::query()
+            ->where('articulo_id', $articuloId)
+            ->whereNotIn('estado', [
+                EstadoOrdenProduccion::Cerrada->value,
+                EstadoOrdenProduccion::Anulada->value,
+            ])
+            ->exists();
+    }
+
+    /**
+     * Whether the article takes part in production history (orders or recipes).
+     */
+    public function tieneHistorialParaArticulo(int $articuloId): bool
+    {
+        return OrdenDeProduccion::query()->where('articulo_id', $articuloId)->exists()
+            || Receta::query()->where('articulo_id', $articuloId)->exists()
+            || ComponenteDeReceta::query()->where('articulo_id', $articuloId)->exists();
+    }
 
     public function puedeGestionar(Usuario $actor): bool
     {

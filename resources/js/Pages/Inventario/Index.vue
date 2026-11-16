@@ -2,7 +2,11 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
+import { hoyISO } from '@/lib/fechas';
 import { confirmar } from '@/composables/useConfirm';
+
+const hoy = hoyISO();
 
 interface Articulo {
     id: number;
@@ -18,6 +22,7 @@ interface Articulo {
     stock_disponible: number;
     stock_minimo: number | null;
     stock_maximo: number | null;
+    fecha_vencimiento: string | null;
 }
 
 interface PaginationLink {
@@ -70,6 +75,7 @@ const form = useForm({
     unidad_de_medida_id: '',
     stock_minimo: '',
     stock_maximo: '',
+    fecha_vencimiento: '',
 });
 
 const esProductoTerminado = computed(() => form.tipo === 'Producto Terminado');
@@ -106,6 +112,7 @@ function abrirEditar(articulo: Articulo): void {
     form.unidad_de_medida_id = String(articulo.unidad_de_medida_id);
     form.stock_minimo = articulo.stock_minimo !== null ? String(articulo.stock_minimo) : '';
     form.stock_maximo = articulo.stock_maximo !== null ? String(articulo.stock_maximo) : '';
+    form.fecha_vencimiento = articulo.fecha_vencimiento ?? '';
     drawerOpen.value = true;
 }
 
@@ -592,6 +599,21 @@ function labelDePagina(label: string): string {
                                 {{ form.errors.stock_maximo }}
                             </p>
                         </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="fecha_vencimiento" class="text-xs font-medium text-steel"
+                            >Vencimiento (opcional)</label
+                        >
+                        <DatePicker
+                            id="fecha_vencimiento"
+                            v-model="form.fecha_vencimiento"
+                            :min="hoy"
+                            :invalid="!!form.errors.fecha_vencimiento"
+                        />
+                        <p v-if="form.errors.fecha_vencimiento" class="text-xs text-oxide">
+                            {{ form.errors.fecha_vencimiento }}
+                        </p>
                     </div>
 
                     <p class="text-[11px] leading-snug text-clay">
