@@ -3,7 +3,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import DatePicker from '@/Components/DatePicker.vue';
-import { hoyISO } from '@/lib/fechas';
+import { hoyISO, sumarDias } from '@/lib/fechas';
 import { confirmar } from '@/composables/useConfirm';
 
 const hoy = hoyISO();
@@ -126,6 +126,8 @@ const props = defineProps<{
 }>();
 
 const page = usePage<SharedProps>();
+
+const vencimientoMaximo = sumarDias(hoyISO(), 30);
 
 const drawerOpen = ref(false);
 const modo = ref<'crear' | 'editar'>('crear');
@@ -903,6 +905,7 @@ function porcentaje(valor: number): string {
                             id="fecha_vencimiento"
                             v-model="form.fecha_vencimiento"
                             :min="hoy"
+                            :max="vencimientoMaximo"
                             required
                         />
                         <p v-if="form.errors.fecha_vencimiento" class="text-xs text-oxide">

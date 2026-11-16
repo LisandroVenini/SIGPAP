@@ -53,14 +53,19 @@ Branch: `feat/validaciones-fechas`. Delivery: `ask-on-risk`.
 
 | ID | Spec | Route | Status |
 | --- | --- | --- | --- |
-| T1 | V1, V2 | inline | pending |
-| T2 | V3 | inline | pending |
-| T3 | V4 | inline | pending |
-| T4 | V5, V6 | inline | pending |
-| T5 | V7, V8 | inline | pending |
-| T6 | V9 | inline | pending |
+| T1 | V1, V2 | inline | done |
+| T2 | V3 | inline | done |
+| T3 | V4 | inline | done |
+| T4 | V5, V6 | inline | done |
+| T5 | V7, V8 | inline | done |
+| T6 | V9 | inline | done |
 
 ## Log
 
 L1 (2026-11-16, pedido del usuario, verbatim):
 "quedo muy bueno el calendario. Sigamos con todas las otras validaciones que dijiste. Arma un plan de implementacion y ejecutalo"
+
+L2 (cierre): implementado por bloques con tests. Backend 639/639 y frontend 196/196. Decisiones tomadas durante la implementación:
+- Posponer una orden más allá de su entrega no se bloquea: el conflicto queda visible en el cronograma y bloquearlo impediría reprogramar.
+- Se descartó validar la intervención contra el alta de la máquina (no existe una fecha de alta de negocio y bloquearía la carga de historial); se mantiene una intervención por máquina y día.
+- Las comparaciones de fechas en los Form Requests usan Carbon en lugar de string, para aceptar formatos no ISO.
