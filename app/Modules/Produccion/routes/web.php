@@ -104,6 +104,10 @@ Route::middleware('web')
             Route::post('hoja-de-ruta/{articulo}/etapas', [HojaDeRutaController::class, 'store'])
                 ->whereNumber('articulo')
                 ->name('hoja-de-ruta.etapas.store');
+            Route::put('hoja-de-ruta/{articulo}/etapas/{etapa}', [HojaDeRutaController::class, 'actualizarEtapa'])
+                ->whereNumber('articulo')
+                ->whereNumber('etapa')
+                ->name('hoja-de-ruta.etapas.update');
             Route::delete('hoja-de-ruta/{articulo}/etapas/{etapa}', [HojaDeRutaController::class, 'destroy'])
                 ->whereNumber('articulo')
                 ->whereNumber('etapa')
@@ -116,8 +120,13 @@ Route::middleware('web')
             Route::post('hoja-de-ruta/{articulo}/receta/componentes', [RecetaController::class, 'store'])
                 ->whereNumber('articulo')
                 ->name('hoja-de-ruta.receta.componentes.store');
+            Route::put('hoja-de-ruta/{articulo}/receta/componentes/{componente}', [RecetaController::class, 'update'])
+                ->whereNumber('articulo')
+                ->whereNumber('componente')
+                ->name('hoja-de-ruta.receta.componentes.update');
             Route::delete('hoja-de-ruta/{articulo}/receta/componentes/{componente}', [RecetaController::class, 'destroy'])
                 ->whereNumber('articulo')
+                ->whereNumber('componente')
                 ->name('hoja-de-ruta.receta.componentes.destroy');
         });
     });

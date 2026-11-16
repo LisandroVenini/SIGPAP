@@ -8,6 +8,7 @@ use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\UnidadDeMedida;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
+use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\Receta;
 use App\Modules\Produccion\Services\GestionRecetasService;
 use App\Modules\Usuarios\Enums\Rol;
@@ -267,5 +268,45 @@ class GestionRecetasServiceTest extends TestCase
 
         // Assert
         $this->assertSame('Mililitro', $detalle['componentes'][0]['unidad']);
+    }
+
+    public function test_updates_the_quantity_of_a_recipe_component(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $insumo = $this->insumoActivo();
+        $componente = app(GestionRecetasService::class)->agregarComponente($actor, $producto->id, $insumo->id, 1);
+
+        // Act
+        app(GestionRecetasService::class)->actualizarCantidad($actor, $producto->id, $componente, 3.5);
+
+        // Assert
+        $this->assertDatabaseHas('componentes_de_receta', [
+            'id' => $componente->id,
+            'cantidad' => 3.5,
+        ]);
+    }
+
+    public function test_blocks_updating_the_recipe_when_the_product_has_active_orders(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $insumo = $this->insumoActivo();
+        $componente = app(GestionRecetasService::class)->agregarComponente($actor, $producto->id, $insumo->id, 1);
+        OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'estado' => 'Pendiente',
+        ]);
+
+        // Act
+        try {
+            app(GestionRecetasService::class)->actualizarCantidad($actor, $producto->id, $componente, 3.5);
+            $this->fail('Se esperaba una excepción por órdenes activas.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('cantidad', $excepcion->errors());
+        }
     }
 }

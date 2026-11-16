@@ -3,6 +3,7 @@
 namespace App\Modules\Produccion\Queries;
 
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
+use App\Modules\Produccion\Models\Etapa;
 use Illuminate\Support\Collection;
 
 class HojaDeRutaQuery
@@ -73,6 +74,45 @@ class HojaDeRutaQuery
                 'nombre' => $fila->nombre,
             ])->values()->all())
             ->all();
+    }
+
+    /**
+     * Route sheet of one product with the stages still available to assign.
+     *
+     * @return array{asignadas: array<int, array{etapa_id:int, etapa:string|null, tiempo_por_unidad:float, orden:int}>, disponibles: array<int, array{id:int, nombre:string}>}
+     */
+    public function detalleDeRuta(int $articuloId): array
+    {
+        $asignadas = AsignacionDeEtapa::query()
+            ->join('etapas', 'etapas.id', '=', 'asignaciones_de_etapa.etapa_id')
+            ->where('asignaciones_de_etapa.articulo_id', $articuloId)
+            ->whereNull('etapas.deleted_at')
+            ->orderBy('asignaciones_de_etapa.orden')
+            ->select(
+                'asignaciones_de_etapa.etapa_id',
+                'etapas.nombre as etapa',
+                'asignaciones_de_etapa.tiempo_por_unidad',
+                'asignaciones_de_etapa.orden',
+            )
+            ->get()
+            ->map(fn ($fila): array => [
+                'etapa_id' => (int) $fila->etapa_id,
+                'etapa' => $fila->etapa,
+                'tiempo_por_unidad' => (float) $fila->tiempo_por_unidad,
+                'orden' => (int) $fila->orden,
+            ])
+            ->values()
+            ->all();
+
+        $disponibles = Etapa::query()
+            ->whereNotIn('id', array_column($asignadas, 'etapa_id'))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre'])
+            ->map(fn (Etapa $etapa): array => ['id' => $etapa->id, 'nombre' => $etapa->nombre])
+            ->values()
+            ->all();
+
+        return ['asignadas' => $asignadas, 'disponibles' => $disponibles];
     }
 
     /**

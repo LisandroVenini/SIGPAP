@@ -193,4 +193,59 @@ class RecetaControllerTest extends TestCase
             ->has('receta.componentes', 1)
             ->has('receta.disponibles'));
     }
+
+    public function test_a_supervisor_can_update_a_componente(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $producto = $this->productoFabricado();
+        $insumo = $this->insumoActivo();
+        $receta = Receta::factory()->create(['articulo_id' => $producto->id]);
+        $componente = ComponenteDeReceta::factory()->create([
+            'receta_id' => $receta->id,
+            'articulo_id' => $insumo->id,
+            'cantidad' => 3,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->put(
+            "/produccion/hoja-de-ruta/{$producto->id}/receta/componentes/{$componente->id}",
+            ['cantidad' => 4.5],
+        );
+
+        // Assert
+        $response->assertRedirect("/produccion/hoja-de-ruta/{$producto->id}");
+        $this->assertDatabaseHas('componentes_de_receta', [
+            'id' => $componente->id,
+            'cantidad' => 4.5,
+        ]);
+    }
+
+    public function test_a_componente_from_another_product_cannot_be_updated(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $producto = $this->productoFabricado();
+        $otroProducto = $this->productoFabricado();
+        $insumo = $this->insumoActivo();
+        $recetaAjena = Receta::factory()->create(['articulo_id' => $otroProducto->id]);
+        $componente = ComponenteDeReceta::factory()->create([
+            'receta_id' => $recetaAjena->id,
+            'articulo_id' => $insumo->id,
+            'cantidad' => 3,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->put(
+            "/produccion/hoja-de-ruta/{$producto->id}/receta/componentes/{$componente->id}",
+            ['cantidad' => 4.5],
+        );
+
+        // Assert
+        $response->assertNotFound();
+        $this->assertDatabaseHas('componentes_de_receta', [
+            'id' => $componente->id,
+            'cantidad' => 3,
+        ]);
+    }
 }

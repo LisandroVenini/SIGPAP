@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { confirmar } from '@/composables/useConfirm';
 
@@ -75,6 +75,58 @@ const insumoSeleccionado = computed(() => {
 });
 
 const unidadSeleccionada = computed(() => insumoSeleccionado.value?.unidad ?? '—');
+
+const tiemposEdicion = ref<Record<number, number | string>>(
+    Object.fromEntries(
+        props.asignadas.map((asignada) => [asignada.etapa_id, asignada.tiempo_por_unidad]),
+    ),
+);
+const cantidadesEdicion = ref<Record<number, number | string>>(
+    Object.fromEntries(
+        props.receta.componentes.map((componente) => [componente.id, componente.cantidad]),
+    ),
+);
+
+// Keep the editable maps in sync when the server adds entries after a visit.
+watch(
+    () => props.asignadas,
+    (asignadas) => {
+        for (const asignada of asignadas) {
+            if (!(asignada.etapa_id in tiemposEdicion.value)) {
+                tiemposEdicion.value[asignada.etapa_id] = asignada.tiempo_por_unidad;
+            }
+        }
+    },
+    { deep: true },
+);
+
+watch(
+    () => props.receta.componentes,
+    (componentes) => {
+        for (const componente of componentes) {
+            if (!(componente.id in cantidadesEdicion.value)) {
+                cantidadesEdicion.value[componente.id] = componente.cantidad;
+            }
+        }
+    },
+    { deep: true },
+);
+
+function guardarTiempo(asignada: Asignada): void {
+    router.put(
+        `/produccion/hoja-de-ruta/${props.producto.id}/etapas/${asignada.etapa_id}`,
+        { tiempo_por_unidad: Number(tiemposEdicion.value[asignada.etapa_id]) },
+        { preserveScroll: true },
+    );
+}
+
+function guardarCantidad(componente: ComponenteDeReceta): void {
+    router.put(
+        `/produccion/hoja-de-ruta/${props.producto.id}/receta/componentes/${componente.id}`,
+        { cantidad: Number(cantidadesEdicion.value[componente.id]) },
+        { preserveScroll: true },
+    );
+}
 
 function asignar(): void {
     form.post(`/produccion/hoja-de-ruta/${props.producto.id}/etapas`, {
@@ -230,8 +282,25 @@ async function quitarComponente(componente: ComponenteDeReceta): Promise<void> {
                                 <td class="px-4 py-2.5 text-sm font-medium text-ink">
                                     {{ asignada.etapa }}
                                 </td>
-                                <td class="px-4 py-2.5 text-right font-mono text-xs text-ink">
-                                    {{ asignada.tiempo_por_unidad }}
+                                <td class="px-4 py-2.5 text-right text-xs">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <input
+                                            v-model="tiemposEdicion[asignada.etapa_id]"
+                                            type="number"
+                                            min="0.01"
+                                            step="0.01"
+                                            class="w-20 rounded-control border border-hairline bg-surface px-2 py-1 text-right font-mono text-xs text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                                            :data-testid="`tiempo-${asignada.etapa_id}`"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="font-medium text-teja hover:underline"
+                                            :data-testid="`guardar-tiempo-${asignada.etapa_id}`"
+                                            @click="guardarTiempo(asignada)"
+                                        >
+                                            Guardar
+                                        </button>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-right text-xs">
                                     <div class="flex items-center justify-end gap-2">
@@ -387,8 +456,25 @@ async function quitarComponente(componente: ComponenteDeReceta): Promise<void> {
                                 <td class="px-4 py-2.5 text-sm text-ink">
                                     {{ componente.unidad ?? '—' }}
                                 </td>
-                                <td class="px-4 py-2.5 text-right font-mono text-xs text-ink">
-                                    {{ componente.cantidad.toFixed(2) }}
+                                <td class="px-4 py-2.5 text-right text-xs">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <input
+                                            v-model="cantidadesEdicion[componente.id]"
+                                            type="number"
+                                            min="0.01"
+                                            step="0.01"
+                                            class="w-20 rounded-control border border-hairline bg-surface px-2 py-1 text-right font-mono text-xs text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                                            :data-testid="`cantidad-${componente.id}`"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="font-medium text-teja hover:underline"
+                                            :data-testid="`guardar-cantidad-${componente.id}`"
+                                            @click="guardarCantidad(componente)"
+                                        >
+                                            Guardar
+                                        </button>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-right text-xs">
                                     <button

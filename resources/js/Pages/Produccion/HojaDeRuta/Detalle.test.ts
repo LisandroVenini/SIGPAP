@@ -194,7 +194,9 @@ describe('Produccion Hoja de Ruta detail page', () => {
         expect(wrapper.text()).toContain('Tablón de pino');
         expect(wrapper.text()).toContain('MP-001');
         expect(wrapper.text()).toContain('Metro');
-        expect(wrapper.text()).toContain('2.50');
+        expect(
+            (wrapper.find('[data-testid="cantidad-100"]').element as HTMLInputElement).value,
+        ).toBe('2.5');
         expect(wrapper.text()).toContain('Barniz natural');
     });
 
@@ -254,5 +256,37 @@ describe('Produccion Hoja de Ruta detail page', () => {
 
         // Assert
         expect(wrapper.find('[data-testid="receta-cantidad-label"]').text()).toContain('Litro');
+    });
+
+    it('updates the time of an assigned stage', async () => {
+        // Arrange
+        const wrapper = mount(Detalle, { props, attachTo: document.body });
+
+        // Act
+        await wrapper.find('[data-testid="tiempo-10"]').setValue('7.5');
+        await wrapper.find('[data-testid="guardar-tiempo-10"]').trigger('click');
+
+        // Assert
+        expect(hoisted.routerPut).toHaveBeenCalledWith(
+            '/produccion/hoja-de-ruta/1/etapas/10',
+            { tiempo_por_unidad: 7.5 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('updates the quantity of a recipe component', async () => {
+        // Arrange
+        const wrapper = mount(Detalle, { props, attachTo: document.body });
+
+        // Act
+        await wrapper.find('[data-testid="cantidad-100"]').setValue('3.25');
+        await wrapper.find('[data-testid="guardar-cantidad-100"]').trigger('click');
+
+        // Assert
+        expect(hoisted.routerPut).toHaveBeenCalledWith(
+            '/produccion/hoja-de-ruta/1/receta/componentes/100',
+            { cantidad: 3.25 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
     });
 });

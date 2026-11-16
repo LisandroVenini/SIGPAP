@@ -48,29 +48,9 @@ class GestionHojaDeRutaService
             return null;
         }
 
-        $asignadas = AsignacionDeEtapa::query()
-            ->with('etapa')
-            ->where('articulo_id', $articuloId)
-            ->ordenadas()
-            ->get()
-            ->map(fn (AsignacionDeEtapa $asignacion): array => [
-                'etapa_id' => $asignacion->etapa_id,
-                'etapa' => $asignacion->etapa?->nombre,
-                'tiempo_por_unidad' => (float) $asignacion->tiempo_por_unidad,
-                'orden' => (int) $asignacion->orden,
-            ])
-            ->values();
-
-        $disponibles = Etapa::query()
-            ->whereNotIn('id', $asignadas->pluck('etapa_id'))
-            ->orderBy('nombre')
-            ->get(['id', 'nombre'])
-            ->map(fn (Etapa $etapa): array => ['id' => $etapa->id, 'nombre' => $etapa->nombre]);
-
         return [
             'producto' => $producto,
-            'asignadas' => $asignadas->all(),
-            'disponibles' => $disponibles->all(),
+            ...$this->query->detalleDeRuta($articuloId),
         ];
     }
 
@@ -112,6 +92,38 @@ class GestionHojaDeRutaService
                 'asignar_etapa_producto',
                 null,
                 ['articulo_id' => $articuloId, 'etapa_id' => $etapaId, 'tiempo_por_unidad' => $tiempoPorUnidad],
+                $direccionIp,
+                AsignacionDeEtapa::class,
+                $asignacion->id,
+            );
+        });
+    }
+
+    public function actualizarTiempo(
+        Usuario $actor,
+        int $articuloId,
+        int $etapaId,
+        float $tiempoPorUnidad,
+        ?string $direccionIp = null,
+    ): void {
+        $this->asegurarSinOrdenesActivas($articuloId);
+
+        DB::transaction(function () use ($actor, $articuloId, $etapaId, $tiempoPorUnidad, $direccionIp): void {
+            $asignacion = AsignacionDeEtapa::query()
+                ->where('articulo_id', $articuloId)
+                ->where('etapa_id', $etapaId)
+                ->firstOrFail();
+
+            $anterior = (float) $asignacion->tiempo_por_unidad;
+
+            $asignacion->tiempo_por_unidad = $tiempoPorUnidad;
+            $asignacion->save();
+
+            $this->auditoria->registrarEvento(
+                $actor->id,
+                'actualizar_tiempo_etapa',
+                ['tiempo_por_unidad' => $anterior],
+                ['tiempo_por_unidad' => $tiempoPorUnidad],
                 $direccionIp,
                 AsignacionDeEtapa::class,
                 $asignacion->id,
