@@ -421,6 +421,21 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(wrapper.text()).toContain('Registrar calidad');
     });
 
+    it('does not offer the modify action for an in-progress order', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ estado: 'En Curso' }),
+            attachTo: document.body,
+        });
+
+        // Act
+        await abrirMenu(wrapper);
+
+        // Assert
+        expect(wrapper.text()).not.toContain('Modificar');
+        expect(wrapper.text()).toContain('Registrar calidad');
+    });
+
     it('does not offer the actions menu for a closed order', () => {
         // Arrange / Act
         const wrapper = mount(Ordenes, {

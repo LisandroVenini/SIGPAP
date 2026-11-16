@@ -525,11 +525,13 @@ interface Accion {
 function accionesDeOrden(orden: Orden): Accion[] {
     const acciones: Accion[] = [];
 
-    acciones.push({
-        key: 'modificar',
-        label: 'Modificar',
-        onClick: (): void => abrirModificar(orden),
-    });
+    if (['Pendiente', 'Pendiente por Insumos'].includes(orden.estado)) {
+        acciones.push({
+            key: 'modificar',
+            label: 'Modificar',
+            onClick: (): void => abrirModificar(orden),
+        });
+    }
 
     if (puedeAnular(orden)) {
         acciones.push({
