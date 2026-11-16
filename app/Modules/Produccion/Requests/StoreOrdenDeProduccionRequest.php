@@ -22,7 +22,7 @@ class StoreOrdenDeProduccionRequest extends FormRequest
     {
         return [
             'planificacion_de_produccion_id' => ['required', 'integer', 'exists:'.PlanificacionDeProduccion::class.',id'],
-            'fecha_entrega' => ['required', 'date'],
+            'fecha_entrega' => ['required', 'date', 'after_or_equal:today'],
             'modo' => ['required', Rule::enum(ModoDeAltaOrden::class)],
             'lineas' => ['required', 'array', 'min:1'],
             'lineas.*.articulo_id' => [

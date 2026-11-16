@@ -160,7 +160,7 @@ class OrdenDeProduccionControllerTest extends TestCase
         // Act
         $response = $this->actingAs($usuario)->post('/produccion/ordenes-de-produccion', [
             'planificacion_de_produccion_id' => $planificacion->id,
-            'fecha_entrega' => '2026-11-15',
+            'fecha_entrega' => now()->addDays(5)->toDateString(),
             'modo' => 'todas',
             'lineas' => [
                 ['articulo_id' => $producto->id, 'cantidad' => 5],
@@ -185,7 +185,7 @@ class OrdenDeProduccionControllerTest extends TestCase
         // Act
         $response = $this->actingAs($usuario)->post('/produccion/ordenes-de-produccion', [
             'planificacion_de_produccion_id' => $planificacion->id,
-            'fecha_entrega' => '2026-11-15',
+            'fecha_entrega' => now()->addDays(5)->toDateString(),
             'modo' => 'solo_disponibles',
             'lineas' => [
                 ['articulo_id' => $producto->id, 'cantidad' => 5],
@@ -228,7 +228,7 @@ class OrdenDeProduccionControllerTest extends TestCase
         // Act
         $response = $this->actingAs($usuario)->put("/produccion/ordenes-de-produccion/{$orden->id}", [
             'cantidad' => 25,
-            'fecha_entrega' => '2026-11-25',
+            'fecha_entrega' => now()->addDays(9)->toDateString(),
         ]);
 
         // Assert
@@ -236,7 +236,7 @@ class OrdenDeProduccionControllerTest extends TestCase
         $this->assertDatabaseHas('ordenes_de_produccion', [
             'id' => $orden->id,
             'cantidad_requerida' => 25,
-            'fecha_entrega' => '2026-11-25',
+            'fecha_entrega' => now()->addDays(9)->toDateString(),
         ]);
     }
 
@@ -507,6 +507,57 @@ class OrdenDeProduccionControllerTest extends TestCase
         $this->assertDatabaseHas('ordenes_de_produccion', [
             'id' => $orden->id,
             'estado' => EstadoOrdenProduccion::PendientePorInsumos->value,
+        ]);
+    }
+
+    public function test_a_delivery_date_before_today_is_rejected_on_creation(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $planificacion = PlanificacionDeProduccion::factory()->create();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 1);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/ordenes-de-produccion', [
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'fecha_entrega' => now()->subDay()->toDateString(),
+            'modo' => 'todas',
+            'lineas' => [
+                ['articulo_id' => $producto->id, 'cantidad' => 5],
+            ],
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_entrega');
+        $this->assertDatabaseCount('ordenes_de_produccion', 0);
+    }
+
+    public function test_an_overdue_order_can_be_edited_without_moving_its_delivery_date(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 1);
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'estado' => EstadoOrdenProduccion::Pendiente->value,
+            'fecha_entrega' => now()->subDays(3)->toDateString(),
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->put("/produccion/ordenes-de-produccion/{$orden->id}", [
+            'cantidad' => 12,
+            'fecha_entrega' => now()->subDays(3)->toDateString(),
+        ]);
+
+        // Assert
+        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $this->assertDatabaseHas('ordenes_de_produccion', [
+            'id' => $orden->id,
+            'cantidad_requerida' => 12,
         ]);
     }
 }
