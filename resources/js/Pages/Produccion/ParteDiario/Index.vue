@@ -2,6 +2,10 @@
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
+import { hoyISO } from '@/lib/fechas';
+
+const hoy = hoyISO();
 
 interface Producto {
     id: number;
@@ -390,14 +394,7 @@ function registrarParte(): void {
                                 <label for="fecha" class="text-xs font-medium text-steel"
                                     >Fecha</label
                                 >
-                                <input
-                                    id="fecha"
-                                    v-model="form.fecha"
-                                    type="date"
-                                    required
-                                    :max="props.fechaHoy"
-                                    class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
-                                />
+                                <DatePicker id="fecha" v-model="form.fecha" :max="hoy" required />
                                 <p v-if="form.errors.fecha" class="text-xs text-oxide">
                                     {{ form.errors.fecha }}
                                 </p>

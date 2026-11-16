@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import DatePicker from '@/Components/DatePicker.vue';
+import { hoyISO } from '@/lib/fechas';
+
+const hoy = hoyISO();
 
 interface LineaSolicitud {
     articulo_id: number;
@@ -155,13 +159,12 @@ function errorPara(indice: number, campo: string): string | undefined {
                                         class="text-xs font-medium text-steel"
                                         >Fecha prometida</label
                                     >
-                                    <input
+                                    <DatePicker
                                         :id="`fecha-${indice}`"
                                         v-model="linea.fecha_prometida"
-                                        :data-testid="`fecha-${indice}`"
-                                        type="date"
+                                        :min="hoy"
                                         required
-                                        class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                                        :data-testid="`fecha-${indice}`"
                                     />
                                     <p
                                         v-if="errorPara(indice, 'fecha_prometida')"

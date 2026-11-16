@@ -2,7 +2,11 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
+import { hoyISO } from '@/lib/fechas';
 import { confirmar } from '@/composables/useConfirm';
+
+const hoy = hoyISO();
 
 interface MaquinariaOption {
     id: number;
@@ -571,12 +575,11 @@ function labelDePagina(label: string): string {
                 >
                     <div class="flex flex-col gap-1.5">
                         <label for="fecha" class="text-xs font-medium text-steel">Fecha</label>
-                        <input
+                        <DatePicker
                             id="fecha"
                             v-model="intervencionForm.fecha"
-                            type="date"
+                            :max="hoy"
                             required
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
                         <p v-if="intervencionForm.errors.fecha" class="text-xs text-oxide">
                             {{ intervencionForm.errors.fecha }}
