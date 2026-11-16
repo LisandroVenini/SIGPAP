@@ -6,25 +6,29 @@ import {
     numeroSemana,
     posicionarSegmento,
     rangoVisible,
-    sumarDias,
 } from './gantt';
 
 describe('cronograma gantt helpers', () => {
-    it('adds days across month and year boundaries', () => {
-        expect(sumarDias('2026-11-29', 3)).toBe('2026-12-02');
-        expect(sumarDias('2026-12-31', 1)).toBe('2027-01-01');
-        expect(sumarDias('2026-11-11', -11)).toBe('2026-10-31');
-    });
-
     it('counts days between two dates', () => {
-        expect(diasEntre('2026-11-01', '2026-11-15')).toBe(14);
-        expect(diasEntre('2026-11-15', '2026-11-01')).toBe(-14);
+        // Act
+        const adelante = diasEntre('2026-11-01', '2026-11-15');
+        const atras = diasEntre('2026-11-15', '2026-11-01');
+
+        // Assert
+        expect(adelante).toBe(14);
+        expect(atras).toBe(-14);
     });
 
     it('finds the monday of the week, including when the date is a sunday', () => {
-        expect(lunesDe('2026-11-11')).toBe('2026-11-09');
-        expect(lunesDe('2026-11-09')).toBe('2026-11-09');
-        expect(lunesDe('2026-11-15')).toBe('2026-11-09');
+        // Act
+        const miercoles = lunesDe('2026-11-11');
+        const lunes = lunesDe('2026-11-09');
+        const domingo = lunesDe('2026-11-15');
+
+        // Assert
+        expect(miercoles).toBe('2026-11-09');
+        expect(lunes).toBe('2026-11-09');
+        expect(domingo).toBe('2026-11-09');
     });
 
     it('builds the day columns with today and weekend flags', () => {
@@ -89,23 +93,37 @@ describe('cronograma gantt helpers', () => {
     });
 
     it('returns null when the segment is outside the window', () => {
+        // Arrange
         const segmento = { etapa: 'Armado', inicio: '2026-12-01', fin: '2026-12-03', dias: 3 };
 
-        expect(posicionarSegmento(segmento, '2026-11-09', 7)).toBeNull();
+        // Act
+        const barra = posicionarSegmento(segmento, '2026-11-09', 7);
+
+        // Assert
+        expect(barra).toBeNull();
     });
 
     it('keeps a single day segment as one column', () => {
+        // Arrange
         const segmento = { etapa: 'Armado', inicio: '2026-11-11', fin: '2026-11-11', dias: 1 };
 
-        expect(posicionarSegmento(segmento, '2026-11-09', 7)).toMatchObject({
-            columna: 3,
-            span: 1,
-        });
+        // Act
+        const barra = posicionarSegmento(segmento, '2026-11-09', 7);
+
+        // Assert
+        expect(barra).toMatchObject({ columna: 3, span: 1 });
     });
 
     it('reports iso week numbers and the visible range label', () => {
-        expect(numeroSemana('2026-01-01')).toBe(1);
-        expect(numeroSemana('2026-11-09')).toBe(numeroSemana('2026-11-15'));
-        expect(rangoVisible('2026-11-09', 7)).toBe('09/11 → 15/11');
+        // Act
+        const primeraSemana = numeroSemana('2026-01-01');
+        const lunes = numeroSemana('2026-11-09');
+        const domingo = numeroSemana('2026-11-15');
+        const rango = rangoVisible('2026-11-09', 7);
+
+        // Assert
+        expect(primeraSemana).toBe(1);
+        expect(lunes).toBe(domingo);
+        expect(rango).toBe('09/11 → 15/11');
     });
 });

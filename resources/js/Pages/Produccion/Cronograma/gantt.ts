@@ -1,3 +1,5 @@
+import { MS_DIA, aUTC, sumarDias } from '@/lib/fechas';
+
 export interface Segmento {
     etapa: string;
     inicio: string;
@@ -40,24 +42,7 @@ export interface Barra {
     recortadaFin: boolean;
 }
 
-const MS_DIA = 86_400_000;
-
-const DIAS_SEMANA = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
-
-/** Parses a `YYYY-MM-DD` string as UTC midnight to keep day math stable. */
-export function aUTC(fecha: string): number {
-    const [anio, mes, dia] = fecha.split('-').map(Number);
-
-    return Date.UTC(anio, mes - 1, dia);
-}
-
-export function aISO(ms: number): string {
-    return new Date(ms).toISOString().slice(0, 10);
-}
-
-export function sumarDias(fecha: string, dias: number): string {
-    return aISO(aUTC(fecha) + dias * MS_DIA);
-}
+const DIAS_CORTOS_DOMINGO = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
 
 export function diasEntre(desde: string, hasta: string): number {
     return Math.round((aUTC(hasta) - aUTC(desde)) / MS_DIA);
@@ -77,7 +62,7 @@ export function columnasDe(desde: string, dias: number, hoy: string): ColumnaDia
 
         return {
             fecha,
-            etiqueta: DIAS_SEMANA[dia],
+            etiqueta: DIAS_CORTOS_DOMINGO[dia],
             numero: Number(fecha.slice(8, 10)),
             esHoy: fecha === hoy,
             esFinDeSemana: dia === 0 || dia === 6,
@@ -114,7 +99,7 @@ export function posicionarSegmento(
     };
 }
 
-export function formatearCorto(fecha: string): string {
+function formatearCorto(fecha: string): string {
     return `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 }
 

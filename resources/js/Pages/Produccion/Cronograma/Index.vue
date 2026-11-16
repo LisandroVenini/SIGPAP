@@ -4,7 +4,8 @@ import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import GanttTimeline from './GanttTimeline.vue';
 import type { FilaCronograma, Horizonte } from './gantt';
-import { HORIZONTES, lunesDe, numeroSemana, rangoVisible, sumarDias } from './gantt';
+import { sumarDias } from '@/lib/fechas';
+import { HORIZONTES, lunesDe, numeroSemana, rangoVisible } from './gantt';
 
 interface Cronograma {
     inicio: string;
