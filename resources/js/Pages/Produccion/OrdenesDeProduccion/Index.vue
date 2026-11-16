@@ -3,6 +3,10 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
+import { hoyISO } from '@/lib/fechas';
+
+const hoy = hoyISO();
 
 interface Producto {
     id: number;
@@ -706,22 +710,16 @@ function labelDePagina(label: string): string {
                         <label for="fecha_desde" class="text-xs font-medium text-steel"
                             >Desde</label
                         >
-                        <input
-                            id="fecha_desde"
-                            v-model="fechaDesde"
-                            type="date"
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
-                        />
+                        <DatePicker id="fecha_desde" v-model="fechaDesde" />
                     </div>
                     <div class="flex flex-col gap-1">
                         <label for="fecha_hasta" class="text-xs font-medium text-steel"
                             >Hasta</label
                         >
-                        <input
+                        <DatePicker
                             id="fecha_hasta"
                             v-model="fechaHasta"
-                            type="date"
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                            :min="fechaDesde || null"
                         />
                     </div>
                     <button
@@ -1127,12 +1125,11 @@ function labelDePagina(label: string): string {
                         <label for="fecha_entrega" class="text-xs font-medium text-steel"
                             >Fecha de entrega</label
                         >
-                        <input
+                        <DatePicker
                             id="fecha_entrega"
                             v-model="formNueva.fecha_entrega"
-                            type="date"
+                            :min="hoy"
                             required
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
                     </div>
 
@@ -1247,12 +1244,11 @@ function labelDePagina(label: string): string {
                         <label for="fecha_entrega_modificar" class="text-xs font-medium text-steel"
                             >Fecha de entrega</label
                         >
-                        <input
+                        <DatePicker
                             id="fecha_entrega_modificar"
                             v-model="formModificar.fecha_entrega"
-                            type="date"
+                            :min="hoy"
                             required
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
                     </div>
 
@@ -1546,11 +1542,10 @@ function labelDePagina(label: string): string {
                         <label for="fecha_prevista_inicio" class="text-xs font-medium text-steel"
                             >Nueva fecha prevista de inicio</label
                         >
-                        <input
+                        <DatePicker
                             id="fecha_prevista_inicio"
                             v-model="formPosponer.fecha_prevista_inicio"
-                            type="date"
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                            :min="hoy"
                         />
                         <div
                             v-if="formPosponer.errors.fecha_prevista_inicio"

@@ -276,7 +276,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
 
         const form = wrapper.find('[data-testid="modificar-orden-form"]');
         await form.find('input[type="number"]').setValue('25');
-        await form.find('input[type="date"]').setValue('2026-11-25');
+        await form.find('#fecha_entrega_modificar').setValue('2026-11-25');
         await form.trigger('submit.prevent');
 
         // Assert
