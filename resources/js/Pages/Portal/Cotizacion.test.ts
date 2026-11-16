@@ -32,7 +32,7 @@ import Cotizacion from './Cotizacion.vue';
 const solicitud = {
     solicitud_id: 5,
     proveedor: 'Aceros del Sur',
-    fecha_vencimiento: '2026-11-12',
+    fecha_vencimiento: '2026-11-30',
     lineas: [
         { articulo_id: 10, articulo: 'Tabla de pino', cantidad_solicitada: 10 },
         { articulo_id: 11, articulo: 'Tornillo', cantidad_solicitada: 25 },
@@ -52,7 +52,7 @@ describe('Portal Cotizacion page', () => {
 
         // Assert
         expect(wrapper.text()).toContain('Aceros del Sur');
-        expect(wrapper.text()).toContain('2026-11-12');
+        expect(wrapper.text()).toContain('2026-11-30');
         expect(wrapper.text()).toContain('Tabla de pino');
         expect(wrapper.text()).toContain('Tornillo');
         expect(wrapper.findAll('[data-testid^="precio-"]')).toHaveLength(2);

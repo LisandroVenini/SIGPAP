@@ -163,6 +163,7 @@ function errorPara(indice: number, campo: string): string | undefined {
                                         :id="`fecha-${indice}`"
                                         v-model="linea.fecha_prometida"
                                         :min="hoy"
+                                        :max="props.solicitud?.fecha_vencimiento ?? null"
                                         required
                                         :data-testid="`fecha-${indice}`"
                                     />
