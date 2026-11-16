@@ -262,4 +262,22 @@ class ParteDiarioControllerTest extends TestCase
         $response->assertSessionHasErrors('fecha');
         $this->assertDatabaseCount('partes_diarios', 0);
     }
+
+    public function test_a_non_existent_stage_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        [$orden] = $this->ordenConHojaDeRuta();
+
+        // Act
+        $response = $this->actingAs($usuario)->post("/produccion/ordenes-de-produccion/{$orden->id}/partes", [
+            'etapa_id' => 999999,
+            'fecha' => now()->toDateString(),
+            'cantidad' => 1,
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('etapa_id');
+        $this->assertDatabaseCount('partes_diarios', 0);
+    }
 }

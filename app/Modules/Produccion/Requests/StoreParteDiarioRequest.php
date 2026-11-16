@@ -20,8 +20,8 @@ class StoreParteDiarioRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'etapa_id' => ['required', 'integer'],
-            'maquinaria_id' => ['nullable', 'integer'],
+            'etapa_id' => ['required', 'integer', 'exists:etapas,id'],
+            'maquinaria_id' => ['nullable', 'integer', 'exists:maquinarias,id'],
             'fecha' => [
                 'required',
                 'date',

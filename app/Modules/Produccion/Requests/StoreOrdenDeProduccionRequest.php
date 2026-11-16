@@ -42,6 +42,7 @@ class StoreOrdenDeProduccionRequest extends FormRequest
             'lineas.*.articulo_id' => [
                 'required',
                 'integer',
+                'distinct',
                 function (string $attribute, mixed $value, Closure $fail): void {
                     if (app(GestionArticulosService::class)->productoTerminadoFabricado((int) $value) === null) {
                         $fail('El producto debe ser un producto terminado de origen Fabricado y estar Activo.');

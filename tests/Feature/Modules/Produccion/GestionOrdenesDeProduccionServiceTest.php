@@ -95,6 +95,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
 
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
+
         // Act
         $resultado = $this->service()->crear(
             $actor,
@@ -134,6 +140,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
 
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
+
         // Act
         $resultado = $this->service()->crear(
             $actor,
@@ -164,6 +176,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $insumo = $this->insumo(['stock_fisico' => 0]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
+
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
 
         // Act
         $resultado = $this->service()->crear(
@@ -259,6 +277,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $insumo = $this->insumo(['stock_fisico' => 100]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
+
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
         $this->service()->crear(
             $actor,
             $planificacion->id,
@@ -292,6 +316,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $insumo = $this->insumo(['stock_fisico' => 100]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
+
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
         $this->service()->crear(
             $actor,
             $planificacion->id,

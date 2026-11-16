@@ -156,6 +156,11 @@ class OrdenDeProduccionControllerTest extends TestCase
         $insumo = $this->insumo(['stock_fisico' => 100]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
 
         // Act
         $response = $this->actingAs($usuario)->post('/produccion/ordenes-de-produccion', [
@@ -181,6 +186,11 @@ class OrdenDeProduccionControllerTest extends TestCase
         $insumo = $this->insumo(['stock_fisico' => 0]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
 
         // Act
         $response = $this->actingAs($usuario)->post('/produccion/ordenes-de-produccion', [
@@ -604,5 +614,75 @@ class OrdenDeProduccionControllerTest extends TestCase
 
         // Assert
         $response->assertSessionHasErrors('fecha_entrega');
+    }
+
+    public function test_a_deleted_operator_cannot_be_assigned(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $orden = OrdenDeProduccion::factory()->create(['estado' => EstadoOrdenProduccion::Asignada->value]);
+        $operario = Operario::factory()->create();
+        $operario->delete();
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->put("/produccion/ordenes-de-produccion/{$orden->id}/recursos", [
+                'operarios' => [$operario->id],
+                'maquinarias' => [],
+            ]);
+
+        // Assert
+        $response->assertSessionHasErrors('operarios.0');
+        $this->assertDatabaseMissing('orden_de_produccion_operario', [
+            'orden_de_produccion_id' => $orden->id,
+            'operario_id' => $operario->id,
+        ]);
+    }
+
+    public function test_a_product_without_route_sheet_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $planificacion = PlanificacionDeProduccion::factory()->create();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 1);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/ordenes-de-produccion', [
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'fecha_entrega' => now()->addDays(5)->toDateString(),
+            'modo' => 'todas',
+            'lineas' => [
+                ['articulo_id' => $producto->id, 'cantidad' => 5],
+            ],
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('lineas');
+        $this->assertDatabaseCount('ordenes_de_produccion', 0);
+    }
+
+    public function test_the_same_product_cannot_appear_twice_in_a_batch(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $planificacion = PlanificacionDeProduccion::factory()->create();
+        $producto = $this->productoFabricado();
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/ordenes-de-produccion', [
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'fecha_entrega' => now()->addDays(5)->toDateString(),
+            'modo' => 'todas',
+            'lineas' => [
+                ['articulo_id' => $producto->id, 'cantidad' => 5],
+                ['articulo_id' => $producto->id, 'cantidad' => 8],
+            ],
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('lineas.1.articulo_id');
+        $this->assertDatabaseCount('ordenes_de_produccion', 0);
     }
 }

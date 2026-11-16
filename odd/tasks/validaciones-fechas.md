@@ -69,3 +69,32 @@ L2 (cierre): implementado por bloques con tests. Backend 639/639 y frontend 196/
 - Posponer una orden más allá de su entrega no se bloquea: el conflicto queda visible en el cronograma y bloquearlo impediría reprogramar.
 - Se descartó validar la intervención contra el alta de la máquina (no existe una fecha de alta de negocio y bloquearía la carga de historial); se mantiene una intervención por máquina y día.
 - Las comparaciones de fechas en los Form Requests usan Carbon en lugar de string, para aceptar formatos no ISO.
+
+## Auditoría de validaciones faltantes (Producción + Inventario)
+
+Hallazgos revisados y resolución:
+
+- Reservas al cerrar una orden: **corregido** (se liberan las remanentes).
+- `reservar` duplicaba reservas: **corregido** (`updateOrCreate`; la disponibilidad ya no cuenta las reservas propias).
+- `liberar` no era atómico: **corregido** (transacción).
+- Baja de artículo con reservas vigentes u órdenes activas: **bloqueada**.
+- Cambio de `tipo`/`origen` de un artículo con historial: **bloqueado**.
+- Operarios dados de baja asignables: **bloqueado** (`exists` con `whereNull(deleted_at)` + `distinct`).
+- Parte diario con máquina no disponible: **bloqueado**.
+- Hoja de ruta modificable con órdenes activas: **bloqueado** en asignar, mover y desasignar.
+- Eliminar una etapa con partes diarios: **bloqueado**.
+- Eliminar máquina/operario con cualquier orden activa: **bloqueado** (antes solo En Curso).
+- "Modificar" visible en estados que el servicio rechaza: **alineado** (solo Pendiente y Pendiente por Insumos).
+- Orden para un producto sin hoja de ruta: **rechazada** en el servicio.
+- Mismo artículo repetido en un lote: **rechazado** (`distinct`).
+- `etapa_id`/`maquinaria_id` del parte sin `exists`: **agregado**.
+- `fecha_vencimiento` del artículo: **incorporada** (alta/edición, no anterior a hoy, borrable, listado y UI).
+- Nombres duplicados de máquina/operario: **rechazados** case-insensitive.
+- Eliminación de artículos: no existe ruta; sin acción.
+
+Decisiones:
+
+- No se valida la intervención contra el alta de la máquina: no hay una fecha de alta de negocio y bloquearía la carga de historial.
+- La consulta de historial Inventario → Producción se resuelve con `app()` al Service público para evitar un ciclo de constructores; no se accede a modelos de otro módulo.
+- Los duplicados de máquina/operario se validan en el request (no índice único) para no volver frágiles las factories con nombres aleatorios.
+- El cierre reutiliza `CalidadQuery` en lugar de duplicar la regla de aprobadas.

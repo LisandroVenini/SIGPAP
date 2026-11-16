@@ -7,6 +7,7 @@ use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
+use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\Receta;
@@ -269,6 +270,16 @@ class GestionOrdenesDeProduccionService
             foreach ($lineas as $linea) {
                 $articuloId = (int) $linea['articulo_id'];
                 $cantidad = (float) $linea['cantidad'];
+
+                $tieneHojaDeRuta = AsignacionDeEtapa::query()
+                    ->where('articulo_id', $articuloId)
+                    ->exists();
+
+                if (! $tieneHojaDeRuta) {
+                    throw ValidationException::withMessages([
+                        'lineas' => 'El producto no tiene hoja de ruta configurada: no se puede producir.',
+                    ]);
+                }
 
                 $necesidades = $this->necesidades($articuloId, $cantidad);
 
