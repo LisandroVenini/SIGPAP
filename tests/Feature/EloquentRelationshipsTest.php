@@ -29,7 +29,7 @@ class EloquentRelationshipsTest extends TestCase
     public function test_articulo_belongs_to_unidad_and_has_movements(): void
     {
         // Arrange
-        $unidad = UnidadDeMedida::create(['nombre' => 'Unidad', 'factor_conversion' => 1]);
+        $unidad = UnidadDeMedida::create(['nombre' => 'Unidad']);
         $articulo = Articulo::create([
             'codigo_sku' => 'SKU-1',
             'descripcion' => 'Artículo',
@@ -162,7 +162,7 @@ class EloquentRelationshipsTest extends TestCase
 
     private function createArticulo(): Articulo
     {
-        $unidad = UnidadDeMedida::create(['nombre' => 'Unidad', 'factor_conversion' => 1]);
+        $unidad = UnidadDeMedida::create(['nombre' => 'Unidad']);
 
         return Articulo::create([
             'codigo_sku' => 'SKU-1',

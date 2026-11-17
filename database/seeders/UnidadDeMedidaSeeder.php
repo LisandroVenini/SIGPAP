@@ -13,20 +13,17 @@ class UnidadDeMedidaSeeder extends Seeder
     public function run(): void
     {
         $unidades = [
-            ['nombre' => 'Unidad', 'factor_conversion' => 1],
-            ['nombre' => 'Kilogramo', 'factor_conversion' => 1],
-            ['nombre' => 'Gramo', 'factor_conversion' => 1],
-            ['nombre' => 'Metro', 'factor_conversion' => 1],
-            ['nombre' => 'Metro cuadrado', 'factor_conversion' => 1],
-            ['nombre' => 'Litro', 'factor_conversion' => 1],
-            ['nombre' => 'Mililitro', 'factor_conversion' => 1],
+            'Unidad',
+            'Kilogramo',
+            'Gramo',
+            'Metro',
+            'Metro cuadrado',
+            'Litro',
+            'Mililitro',
         ];
 
-        foreach ($unidades as $unidad) {
-            UnidadDeMedida::updateOrCreate(
-                ['nombre' => $unidad['nombre']],
-                ['factor_conversion' => $unidad['factor_conversion']],
-            );
+        foreach ($unidades as $nombre) {
+            UnidadDeMedida::firstOrCreate(['nombre' => $nombre]);
         }
     }
 }
