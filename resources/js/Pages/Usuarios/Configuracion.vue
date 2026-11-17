@@ -61,6 +61,13 @@ function submit(): void {
             </div>
 
             <div
+                v-if="form.hasErrors"
+                class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
+            >
+                {{ form.errors.parametros ?? 'Revisá los valores ingresados.' }}
+            </div>
+
+            <div
                 v-if="!props.puedeEditar"
                 class="rounded-control border border-amber/20 bg-amber-wash px-4 py-2.5 text-sm text-amber"
             >

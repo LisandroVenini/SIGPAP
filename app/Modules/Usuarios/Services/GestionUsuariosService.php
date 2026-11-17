@@ -72,9 +72,10 @@ class GestionUsuariosService
      */
     public function actualizar(Usuario $actor, Usuario $usuario, array $datos, ?string $direccionIp = null): Usuario
     {
-        $this->asegurarOperacionPermitida($actor, $usuario, $datos['estado'], $datos['rol']);
-
         return DB::transaction(function () use ($actor, $usuario, $datos, $direccionIp): Usuario {
+            $this->asegurarOperacionPermitida($actor, $usuario, $datos['estado'], $datos['rol']);
+            $this->asegurarAdministradorRestante($usuario, $datos['estado'], $datos['rol']);
+
             $anterior = [
                 'nombre' => $usuario->nombre,
                 'email' => $usuario->email,
@@ -122,9 +123,10 @@ class GestionUsuariosService
             ? EstadoUsuario::Activo->value
             : EstadoUsuario::Inhabilitado->value;
 
-        $this->asegurarOperacionPermitida($actor, $usuario, $nuevoEstado);
-
         return DB::transaction(function () use ($actor, $usuario, $nuevoEstado, $direccionIp): Usuario {
+            $this->asegurarOperacionPermitida($actor, $usuario, $nuevoEstado);
+            $this->asegurarAdministradorRestante($usuario, $nuevoEstado);
+
             $anterior = ['estado' => $usuario->estado];
 
             $usuario->estado = $nuevoEstado;
@@ -169,5 +171,45 @@ class GestionUsuariosService
                 'rol' => 'No podés quitarte el rol de Administrador.',
             ]);
         }
+    }
+
+    /**
+     * The system must always keep one active Administrador: losing every
+     * administrator locks the application out of user and configuration management.
+     */
+    private function asegurarAdministradorRestante(
+        Usuario $usuario,
+        string $nuevoEstado,
+        ?string $nuevoRol = null,
+    ): void {
+        $eraAdministradorActivo = $usuario->hasRole(Rol::Administrador->value)
+            && $usuario->estado === EstadoUsuario::Activo->value;
+
+        if (! $eraAdministradorActivo) {
+            return;
+        }
+
+        $sigueSiendoAdministrador = $nuevoRol === null || $nuevoRol === Rol::Administrador->value;
+        $sigueActivo = $nuevoEstado === EstadoUsuario::Activo->value;
+
+        if ($sigueSiendoAdministrador && $sigueActivo) {
+            return;
+        }
+
+        $hayOtroAdministradorActivo = Usuario::query()
+            ->role(Rol::Administrador->value)
+            ->where('estado', EstadoUsuario::Activo->value)
+            ->whereKeyNot($usuario->getKey())
+            ->exists();
+
+        if ($hayOtroAdministradorActivo) {
+            return;
+        }
+
+        $campo = $nuevoRol !== null && $nuevoRol !== Rol::Administrador->value ? 'rol' : 'estado';
+
+        throw ValidationException::withMessages([
+            $campo => 'Debe quedar al menos un Administrador activo en el sistema.',
+        ]);
     }
 }

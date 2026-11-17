@@ -182,4 +182,43 @@ class ConfiguracionMulticriterioTest extends TestCase
         $response->assertSessionHasErrors('parametros.compras_multicriterio_penalizar_cobertura');
         $this->assertSame('1', $this->valorDe('compras_multicriterio_penalizar_cobertura'));
     }
+
+    public function test_multicriteria_weights_must_add_up_to_one(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+
+        // Act
+        $response = $this->actingAs($admin)->put('/usuarios/configuracion', [
+            'parametros' => [
+                'compras_multicriterio_peso_precio' => '0.5',
+                'compras_multicriterio_peso_entrega' => '0.3',
+                'compras_multicriterio_peso_confiabilidad' => '0.3',
+            ],
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('parametros');
+        $this->assertSame('0.4', $this->valorDe('compras_multicriterio_peso_precio'));
+    }
+
+    public function test_multicriteria_weights_that_add_up_to_one_are_saved(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+
+        // Act
+        $response = $this->actingAs($admin)->put('/usuarios/configuracion', [
+            'parametros' => [
+                'compras_multicriterio_peso_precio' => '0.5',
+                'compras_multicriterio_peso_entrega' => '0.25',
+                'compras_multicriterio_peso_confiabilidad' => '0.25',
+            ],
+        ]);
+
+        // Assert
+        $response->assertSessionHasNoErrors();
+        $this->assertSame('0.5', $this->valorDe('compras_multicriterio_peso_precio'));
+        $this->assertSame('0.25', $this->valorDe('compras_multicriterio_peso_confiabilidad'));
+    }
 }
