@@ -35,6 +35,15 @@ const parametros = {
     ],
     Compras: [
         { id: 2, nombre: 'compras_vigencia_cotizacion_dias', valor: '7', categoria: 'Compras' },
+        { id: 3, nombre: 'compras_ranking_peso_perfecta', valor: '1', categoria: 'Compras' },
+    ],
+    'Motor Predictivo': [
+        {
+            id: 4,
+            nombre: 'predictivo_reentrenamiento',
+            valor: 'domingo_0200',
+            categoria: 'Motor Predictivo',
+        },
     ],
 };
 
@@ -45,7 +54,24 @@ describe('Configuracion page', () => {
         hoisted.form.parametros = {
             prod_turno_manana_inicio: '06:00',
             compras_vigencia_cotizacion_dias: '7',
+            compras_ranking_peso_perfecta: '1',
+            predictivo_reentrenamiento: 'domingo_0200',
         };
+    });
+
+    it('uses number inputs with limits for numeric parameters and text for the rest', () => {
+        // Arrange / Act
+        const wrapper = mount(Configuracion, { props: { parametros, puedeEditar: true } });
+
+        const peso = wrapper.find('input#compras_ranking_peso_perfecta');
+        const reentrenamiento = wrapper.find('input#predictivo_reentrenamiento');
+
+        // Assert
+        expect(peso.attributes('type')).toBe('number');
+        expect(peso.attributes('min')).toBe('0');
+        expect(peso.attributes('max')).toBe('1');
+        expect(peso.attributes('step')).toBe('0.01');
+        expect(reentrenamiento.attributes('type')).toBe('text');
     });
 
     it('renders one section per categoria with its inputs', () => {
