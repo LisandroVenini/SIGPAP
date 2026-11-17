@@ -146,6 +146,58 @@ class IngresoMercanciaControllerTest extends TestCase
         $this->assertSame(0.0, (float) $contexto['articulo']->refresh()->stock_fisico);
     }
 
+    public function test_a_partial_reception_can_be_closed_with_shortages(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoStock);
+        $contexto = $this->contexto(cantidadPedida: 5);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/inventario/ingresos', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-PARCIAL',
+            'entrega_parcial' => true,
+            'confirmar_excedente' => false,
+            'cerrar_con_faltantes' => true,
+            'lineas' => [
+                ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 3],
+            ],
+        ]);
+
+        // Assert
+        $response->assertRedirect('/inventario/ingresos');
+        $orden = $contexto['orden']->refresh();
+        $this->assertSame('Recibida', $orden->estado);
+        $this->assertTrue($orden->entrega_parcial);
+        $this->assertDatabaseHas('incidencias', [
+            'orden_de_compra_id' => $orden->id,
+            'tipo' => 'Faltante',
+        ]);
+    }
+
+    public function test_a_partial_reception_keeps_the_order_open_by_default(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoStock);
+        $contexto = $this->contexto(cantidadPedida: 5);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/inventario/ingresos', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-PARCIAL',
+            'entrega_parcial' => true,
+            'confirmar_excedente' => false,
+            'lineas' => [
+                ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 3],
+            ],
+        ]);
+
+        // Assert
+        $response->assertRedirect('/inventario/ingresos');
+        $this->assertSame('Confirmada', $contexto['orden']->refresh()->estado);
+        $this->assertSame(3.0, (float) $contexto['articulo']->refresh()->stock_fisico);
+    }
+
     public function test_an_stock_manager_can_annul_a_reception(): void
     {
         // Arrange
