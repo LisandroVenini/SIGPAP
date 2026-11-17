@@ -109,6 +109,7 @@ describe('Inventario Ingresos page', () => {
         await wrapper.find('[data-testid="numero-remito"]').setValue('REM-001');
         await wrapper.find('[data-testid="entrega-parcial"]').setValue(true);
         await wrapper.find('[data-testid="confirmar-excedente"]').setValue(true);
+        await wrapper.find('[data-testid="cerrar-con-faltantes"]').setValue(true);
         await wrapper.find('[data-testid="ingreso-form"]').trigger('submit.prevent');
 
         // Assert
@@ -119,6 +120,7 @@ describe('Inventario Ingresos page', () => {
         expect(form.numero_remito).toBe('REM-001');
         expect(form.entrega_parcial).toBe(true);
         expect(form.confirmar_excedente).toBe(true);
+        expect(form.cerrar_con_faltantes).toBe(true);
         expect(form.lineas).toEqual([{ articulo_id: 10, cantidad: 4 }]);
     });
 

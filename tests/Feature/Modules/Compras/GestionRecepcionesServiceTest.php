@@ -71,7 +71,7 @@ class GestionRecepcionesServiceTest extends TestCase
         return compact('proveedor', 'cotizacion', 'articulo', 'orden', 'linea');
     }
 
-    public function test_registrar_recepcion_closes_the_order_and_registers_partial_delivery(): void
+    public function test_a_partial_reception_keeps_the_orden_open(): void
     {
         // Arrange
         $actor = Usuario::factory()->create();
@@ -93,28 +93,88 @@ class GestionRecepcionesServiceTest extends TestCase
 
         // Assert
         $orden = $contexto['orden']->refresh();
+        $this->assertSame('Confirmada', $orden->estado);
+        $this->assertTrue($orden->entrega_parcial);
+        $this->assertDatabaseCount('desempenos_de_proveedor', 0);
+        $this->assertDatabaseCount('incidencias', 0);
+        $this->assertDatabaseHas('eventos_de_auditoria', [
+            'accion' => 'registrar_recepcion_parcial',
+            'usuario_id' => $actor->id,
+            'auditable_id' => $orden->id,
+        ]);
+    }
+
+    public function test_a_later_reception_closes_the_orden_and_registers_the_performance_once(): void
+    {
+        // Arrange
+        $actor = Usuario::factory()->create();
+        $contexto = $this->contexto(
+            fechaConfirmacion: today()->toDateString(),
+            fechaPrometida: today()->addWeek()->toDateString(),
+        );
+
+        $this->service()->registrarRecepcion(
+            $actor,
+            $contexto['orden'],
+            true,
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 4]],
+        );
+
+        // Act
+        $this->service()->registrarRecepcion(
+            $actor,
+            $contexto['orden'],
+            false,
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 6]],
+            '127.0.0.1',
+            [$contexto['articulo']->id => 4.0],
+        );
+
+        // Assert
+        $orden = $contexto['orden']->refresh();
+        $this->assertSame('Recibida', $orden->estado);
+        $this->assertFalse($orden->entrega_parcial);
+        $this->assertDatabaseCount('desempenos_de_proveedor', 1);
+        $this->assertDatabaseCount('incidencias', 0);
+    }
+
+    public function test_closing_with_shortages_uses_the_accumulated_total(): void
+    {
+        // Arrange
+        $actor = Usuario::factory()->create();
+        $contexto = $this->contexto(
+            fechaConfirmacion: today()->toDateString(),
+            fechaPrometida: today()->addWeek()->toDateString(),
+        );
+
+        $this->service()->registrarRecepcion(
+            $actor,
+            $contexto['orden'],
+            true,
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 4]],
+        );
+
+        // Act
+        $this->service()->registrarRecepcion(
+            $actor,
+            $contexto['orden'],
+            true,
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 2]],
+            '127.0.0.1',
+            [$contexto['articulo']->id => 4.0],
+            true,
+        );
+
+        // Assert
+        $orden = $contexto['orden']->refresh();
         $this->assertSame('Recibida', $orden->estado);
         $this->assertTrue($orden->entrega_parcial);
-        $this->assertDatabaseHas('desempenos_de_proveedor', [
-            'proveedor_id' => $contexto['proveedor']->id,
-            'orden_de_compra_id' => $orden->id,
-            'tiempo_entrega_real' => 3,
-            'fecha_registro' => today()->toDateString(),
-        ]);
         $this->assertDatabaseHas('incidencias', [
             'orden_de_compra_id' => $orden->id,
             'tipo' => 'Faltante',
+            'detalle' => 'Se recibieron 6 de 10 unidades de Tabla de pino.',
         ]);
-        $this->assertDatabaseHas('incidencias', [
-            'orden_de_compra_id' => $orden->id,
-            'tipo' => 'Retraso',
-        ]);
-        $this->assertDatabaseHas('eventos_de_auditoria', [
-            'accion' => 'registrar_recepcion_orden',
-            'usuario_id' => $actor->id,
-            'auditable_type' => OrdenDeCompra::class,
-            'auditable_id' => $orden->id,
-        ]);
+        $this->assertDatabaseCount('desempenos_de_proveedor', 1);
     }
 
     public function test_registrar_recepcion_uses_the_emission_date_when_the_order_was_never_confirmed(): void

@@ -21,6 +21,7 @@ class RegistrarIngresoRequest extends FormRequest
             'numero_remito' => ['required', 'string', 'max:255'],
             'entrega_parcial' => ['boolean'],
             'confirmar_excedente' => ['boolean'],
+            'cerrar_con_faltantes' => ['boolean'],
             'lineas' => ['required', 'array', 'min:1'],
             'lineas.*.articulo_id' => ['required', 'integer'],
             'lineas.*.cantidad' => ['required', 'numeric', 'gt:0'],

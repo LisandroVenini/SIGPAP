@@ -26,7 +26,6 @@ class IngresoMercanciaController
         return Inertia::render('Inventario/Ingresos/Index', [
             'ordenesRecepcionables' => $this->recepciones->ordenesRecepcionables(),
             'ingresos' => $this->ingresos->registrados(),
-            'filtros' => [],
         ]);
     }
 
@@ -43,6 +42,7 @@ class IngresoMercanciaController
             (bool) $request->validated('entrega_parcial', false),
             (bool) $request->validated('confirmar_excedente', false),
             $request->ip(),
+            (bool) $request->validated('cerrar_con_faltantes', false),
         );
 
         return redirect()

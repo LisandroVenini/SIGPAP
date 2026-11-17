@@ -79,8 +79,7 @@ class IngresoMercanciaControllerTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Inventario/Ingresos/Index')
             ->has('ordenesRecepcionables', 1)
-            ->where('ordenesRecepcionables.0.numero_oc', $contexto['orden']->numero_oc)
-            ->has('filtros'));
+            ->where('ordenesRecepcionables.0.numero_oc', $contexto['orden']->numero_oc));
     }
 
     public function test_an_stock_manager_can_register_a_reception(): void

@@ -48,7 +48,6 @@ type SharedProps = {
 const props = defineProps<{
     ordenesRecepcionables: OrdenRecepcionable[];
     ingresos: IngresoRegistrado[];
-    filtros: Record<string, string | null>;
 }>();
 
 const page = usePage<SharedProps>();
@@ -58,12 +57,14 @@ const form = useForm<{
     numero_remito: string;
     entrega_parcial: boolean;
     confirmar_excedente: boolean;
+    cerrar_con_faltantes: boolean;
     lineas: LineaRecibida[];
 }>({
     numero_oc: '',
     numero_remito: '',
     entrega_parcial: false,
     confirmar_excedente: false,
+    cerrar_con_faltantes: false,
     lineas: [],
 });
 
@@ -293,6 +294,16 @@ async function anularIngreso(ingreso: IngresoRegistrado): Promise<void> {
                             class="h-4 w-4 rounded border-hairline text-teja focus:ring-teja/40"
                         />
                         Confirmar excedente
+                    </label>
+
+                    <label class="flex items-center gap-2 text-sm text-ink">
+                        <input
+                            v-model="form.cerrar_con_faltantes"
+                            data-testid="cerrar-con-faltantes"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-hairline text-teja focus:ring-teja/40"
+                        />
+                        Cerrar recepción con faltantes
                     </label>
                 </div>
 
