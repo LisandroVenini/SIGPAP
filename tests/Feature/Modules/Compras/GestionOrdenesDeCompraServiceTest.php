@@ -295,6 +295,26 @@ class GestionOrdenesDeCompraServiceTest extends TestCase
         $this->assertDatabaseCount('lineas_de_orden_de_compra', 1);
     }
 
+    public function test_updates_reject_an_empty_line_list(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($actor, $orden, []);
+
+            $this->fail('An empty line list should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lineas', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('lineas_de_orden_de_compra', 1);
+    }
+
     public function test_updates_are_rejected_when_the_orden_is_not_emitted(): void
     {
         // Arrange

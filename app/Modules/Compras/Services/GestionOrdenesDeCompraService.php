@@ -434,6 +434,12 @@ class GestionOrdenesDeCompraService
      */
     private function validarLineas(array $lineas): void
     {
+        if ($lineas === []) {
+            throw ValidationException::withMessages([
+                'lineas' => 'La orden debe tener al menos un artículo.',
+            ]);
+        }
+
         $vistos = [];
 
         foreach (array_values($lineas) as $indice => $linea) {
