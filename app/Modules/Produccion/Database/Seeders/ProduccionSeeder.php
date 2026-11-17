@@ -485,7 +485,9 @@ class ProduccionSeeder extends Seeder
                 ->values()
                 ->all();
 
-            $maquinariaId = $orden->maquinarias()->value('maquinarias.id');
+            $maquinariaId = $orden->maquinarias()
+                ->where('maquinarias.estado_operativo', EstadoMaquinaria::Disponible->value)
+                ->value('maquinarias.id');
             $cantidades = [];
 
             for ($indice = 0; $indice < $plan['completas'] && isset($etapas[$indice]); $indice++) {
