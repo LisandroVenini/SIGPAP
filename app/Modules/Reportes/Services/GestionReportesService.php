@@ -22,6 +22,8 @@ class GestionReportesService
         'compras' => ['titulo' => 'Compras', 'permiso' => 'compras.gestionar'],
     ];
 
+    public const LIMITE_FILAS = 50000;
+
     /**
      * Human readable headers in the same order as each query row.
      *
@@ -116,6 +118,12 @@ class GestionReportesService
             'inventario' => $this->inventario->reportePorFecha($desde, $hasta),
             'compras' => $this->compras->reportePorFechaDeEmision($desde, $hasta),
         };
+
+        if (count($filas) > self::LIMITE_FILAS) {
+            throw ValidationException::withMessages([
+                'exportar' => 'El reporte supera el máximo de 50.000 filas. Acotá el rango de fechas.',
+            ]);
+        }
 
         return [
             'tipo' => $tipo,

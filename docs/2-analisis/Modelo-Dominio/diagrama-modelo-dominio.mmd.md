@@ -91,7 +91,6 @@ classDiagram
     }
     class UnidadDeMedida {
         nombre
-        factorConversion
     }
 
     %% ===================== Proveedores y Compras =====================

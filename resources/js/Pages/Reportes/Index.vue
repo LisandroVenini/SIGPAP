@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
 
 type FiltrosReporte = {
     tipo?: string | null;
@@ -110,23 +111,16 @@ function valoresDe(fila: FilaReporte): (string | number | null)[] {
 
                     <div class="flex flex-col gap-1">
                         <label for="desde" class="text-xs font-medium text-steel">Desde</label>
-                        <input
-                            id="desde"
-                            v-model="desde"
-                            data-testid="desde"
-                            type="date"
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
-                        />
+                        <DatePicker id="desde" v-model="desde" data-testid="desde" />
                     </div>
 
                     <div class="flex flex-col gap-1">
                         <label for="hasta" class="text-xs font-medium text-steel">Hasta</label>
-                        <input
+                        <DatePicker
                             id="hasta"
                             v-model="hasta"
+                            :min="desde || null"
                             data-testid="hasta"
-                            type="date"
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
                     </div>
 

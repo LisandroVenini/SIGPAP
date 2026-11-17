@@ -141,7 +141,6 @@
 | Concepto | Atributo – Descripción |
 | --- | --- |
 | UnidadDeMedida | nombre: denominación de la unidad (metro, kilogramo, litro, unidad). |
-| UnidadDeMedida | factorConversion: factor que relaciona la unidad con su unidad base. |
 
 ## Proveedores y Compras
 
