@@ -135,6 +135,7 @@ const fechaDesde = ref(props.filtros.fecha_desde ?? '');
 const fechaHasta = ref(props.filtros.fecha_hasta ?? '');
 
 const drawerAbierto = ref<Drawer>('cerrado');
+const accionEnVuelo = ref(false);
 const ordenActiva = ref<Orden | null>(null);
 const filaExpandida = ref<number | null>(null);
 const menuAbierto = ref<number | null>(null);
@@ -229,6 +230,21 @@ onBeforeUnmount(() => {
     window.removeEventListener('scroll', cerrarMenuPorScroll, true);
     menusPorOrden.clear();
     botonesMenuPorOrden.clear();
+});
+
+const erroresDelDrawer = computed<Record<string, string>>(() => {
+    switch (drawerAbierto.value) {
+        case 'nueva':
+            return formNueva.errors;
+        case 'modificar':
+            return formModificar.errors;
+        case 'anular':
+            return formAnular.errors;
+        case 'asignar':
+            return formAsignar.errors;
+        default:
+            return {};
+    }
 });
 
 const formNueva = useForm({
@@ -423,11 +439,20 @@ function guardarAsignacion(): void {
 }
 
 function iniciarOrden(orden: Orden): void {
+    if (accionEnVuelo.value) {
+        return;
+    }
+
+    accionEnVuelo.value = true;
+
     router.post(
         `/produccion/ordenes-de-produccion/${orden.id}/iniciar`,
         {},
         {
             preserveScroll: true,
+            onFinish: () => {
+                accionEnVuelo.value = false;
+            },
         },
     );
 }
@@ -472,15 +497,20 @@ function guardarPosposicion(): void {
 }
 
 function guardarReanudacion(): void {
-    if (!ordenActiva.value) {
+    if (!ordenActiva.value || accionEnVuelo.value) {
         return;
     }
+
+    accionEnVuelo.value = true;
 
     router.post(
         `/produccion/ordenes-de-produccion/${ordenActiva.value.id}/reanudar`,
         {},
         {
             preserveScroll: true,
+            onFinish: () => {
+                accionEnVuelo.value = false;
+            },
         },
     );
 }
@@ -695,6 +725,13 @@ function labelDePagina(label: string): string {
                 class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
             >
                 {{ page.props.errors.insumos }}
+            </div>
+
+            <div
+                v-if="page.props.errors.recursos"
+                class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
+            >
+                {{ page.props.errors.recursos }}
             </div>
 
             <div class="rounded-panel border border-hairline bg-surface p-4 shadow-diffused">
@@ -1115,6 +1152,19 @@ function labelDePagina(label: string): string {
                     >
                         Cerrar
                     </button>
+                </div>
+
+                <div
+                    v-if="Object.keys(erroresDelDrawer).length > 0"
+                    class="mb-4 flex flex-col gap-1 rounded-control border border-oxide/20 bg-oxide/5 px-3 py-2"
+                >
+                    <p
+                        v-for="(error, campo) in erroresDelDrawer"
+                        :key="campo"
+                        class="text-xs text-oxide"
+                    >
+                        {{ error }}
+                    </p>
                 </div>
 
                 <form

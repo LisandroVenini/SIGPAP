@@ -365,6 +365,36 @@ describe('Produccion OrdenesDeProduccion page', () => {
         );
     });
 
+    it('does not post iniciar twice while the first request is in flight', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, {
+            props: ordenCon({ estado: 'Asignada' }),
+            attachTo: document.body,
+        });
+
+        // Act
+        await ejecutarAccionDeOrden(wrapper, 'Iniciar');
+        await ejecutarAccionDeOrden(wrapper, 'Iniciar');
+
+        // Assert
+        expect(hoisted.routerPost).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the resources error returned by the backend', () => {
+        // Arrange
+        hoisted.page.props.errors = {
+            recursos: 'La orden no tiene operarios disponibles.',
+        };
+
+        // Act
+        const wrapper = mount(Ordenes, { props, attachTo: document.body });
+
+        // Assert
+        expect(wrapper.text()).toContain('La orden no tiene operarios disponibles.');
+
+        hoisted.page.props.errors = {};
+    });
+
     it('disables unavailable machinery in the assignment drawer', async () => {
         // Arrange
         const wrapper = mount(Ordenes, { props, attachTo: document.body });
