@@ -149,7 +149,6 @@ class DatabaseSchemaTest extends TestCase
     {
         return DB::table('unidades_de_medida')->insertGetId([
             'nombre' => 'Unidad',
-            'factor_conversion' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);

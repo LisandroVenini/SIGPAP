@@ -24,17 +24,7 @@ class UnidadDeMedida extends Model
     /**
      * @var array<int, string>
      */
-    protected $fillable = ['nombre', 'factor_conversion'];
-
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'factor_conversion' => 'decimal:6',
-        ];
-    }
+    protected $fillable = ['nombre'];
 
     public function articulos(): HasMany
     {
