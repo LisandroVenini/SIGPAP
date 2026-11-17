@@ -3,9 +3,11 @@
 namespace Tests\Feature\Modules\Inventario;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Inventario\Enums\EstadoReserva;
 use App\Modules\Inventario\Enums\MotivoAjuste;
 use App\Modules\Inventario\Enums\TipoMovimientoStock;
 use App\Modules\Inventario\Models\Articulo;
+use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Inventario\Services\GestionAjustesService;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,5 +70,31 @@ class GestionAjustesServiceTest extends TestCase
         // Act / Assert
         $this->expectException(ValidationException::class);
         $this->service()->ajustar($actor, $articulo, 5, MotivoAjuste::Auditoria->value);
+    }
+
+    public function test_ajustar_rechaza_un_stock_por_debajo_de_lo_reservado(): void
+    {
+        // Arrange
+        $actor = Usuario::factory()->create();
+        $articulo = Articulo::factory()->create();
+        $articulo->stock_fisico = 10;
+        $articulo->save();
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'cantidad' => 8,
+            'estado' => EstadoReserva::Vigente->value,
+        ]);
+
+        // Act / Assert
+        try {
+            $this->service()->ajustar($actor, $articulo, 5, MotivoAjuste::Merma->value);
+
+            $this->fail('An adjustment below the reserved quantity should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('nuevo_stock', $exception->errors());
+        }
+
+        $this->assertSame(10.0, (float) $articulo->refresh()->stock_fisico);
+        $this->assertDatabaseCount('movimientos_de_stock', 0);
     }
 }

@@ -153,4 +153,48 @@ class ArticuloControllerTest extends TestCase
 
         $this->assertSame('Inactivo', $articulo->refresh()->estado);
     }
+
+    public function test_a_past_expiration_date_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoStock);
+        $unidad = $this->unidad();
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/inventario/articulos', [
+            'codigo_sku' => 'MP-VENC',
+            'descripcion' => 'Insumo vencido',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'unidad_de_medida_id' => $unidad->id,
+            'fecha_vencimiento' => now()->subDay()->toDateString(),
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_vencimiento');
+        $this->assertDatabaseMissing('articulos', ['codigo_sku' => 'MP-VENC']);
+    }
+
+    public function test_a_future_expiration_date_is_stored(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoStock);
+        $unidad = $this->unidad();
+        $vencimiento = now()->addMonth()->toDateString();
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/inventario/articulos', [
+            'codigo_sku' => 'MP-VIG',
+            'descripcion' => 'Insumo vigente',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'unidad_de_medida_id' => $unidad->id,
+            'fecha_vencimiento' => $vencimiento,
+        ]);
+
+        // Assert
+        $response->assertRedirect('/inventario/articulos');
+        $this->assertDatabaseHas('articulos', [
+            'codigo_sku' => 'MP-VIG',
+            'fecha_vencimiento' => $vencimiento,
+        ]);
+    }
 }

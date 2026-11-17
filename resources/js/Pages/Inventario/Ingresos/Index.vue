@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface ArticuloResumen {
     id: number;
@@ -26,6 +27,15 @@ interface OrdenRecepcionable {
     lineas: LineaOrden[];
 }
 
+interface IngresoRegistrado {
+    orden_id: number;
+    numero_oc: string;
+    numero_remito: string;
+    fecha: string | null;
+    lineas: number;
+    unidades: number;
+}
+
 interface LineaRecibida {
     articulo_id: number;
     cantidad: number;
@@ -37,7 +47,7 @@ type SharedProps = {
 
 const props = defineProps<{
     ordenesRecepcionables: OrdenRecepcionable[];
-    filtros: Record<string, string | null>;
+    ingresos: IngresoRegistrado[];
 }>();
 
 const page = usePage<SharedProps>();
@@ -47,12 +57,14 @@ const form = useForm<{
     numero_remito: string;
     entrega_parcial: boolean;
     confirmar_excedente: boolean;
+    cerrar_con_faltantes: boolean;
     lineas: LineaRecibida[];
 }>({
     numero_oc: '',
     numero_remito: '',
     entrega_parcial: false,
     confirmar_excedente: false,
+    cerrar_con_faltantes: false,
     lineas: [],
 });
 
@@ -80,6 +92,24 @@ function enviar(): void {
     }));
 
     form.post('/inventario/ingresos', { preserveScroll: true });
+}
+async function anularIngreso(ingreso: IngresoRegistrado): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Anular ingreso',
+        mensaje: `¿Anular el ingreso del remito "${ingreso.numero_remito}" de la orden ${ingreso.numero_oc}? El stock se revierte y la orden vuelve a quedar pendiente de recepción.`,
+        confirmar: 'Anular ingreso',
+        peligro: true,
+    });
+
+    if (!confirmado) {
+        return;
+    }
+
+    router.post(
+        '/inventario/ingresos/anular',
+        { numero_oc: ingreso.numero_oc, numero_remito: ingreso.numero_remito },
+        { preserveScroll: true },
+    );
 }
 </script>
 
@@ -265,6 +295,16 @@ function enviar(): void {
                         />
                         Confirmar excedente
                     </label>
+
+                    <label class="flex items-center gap-2 text-sm text-ink">
+                        <input
+                            v-model="form.cerrar_con_faltantes"
+                            data-testid="cerrar-con-faltantes"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-hairline text-teja focus:ring-teja/40"
+                        />
+                        Cerrar recepción con faltantes
+                    </label>
                 </div>
 
                 <div v-if="form.errors.lineas" class="text-xs text-oxide">
@@ -281,6 +321,93 @@ function enviar(): void {
                     </button>
                 </div>
             </form>
+
+            <div
+                class="overflow-hidden rounded-panel border border-hairline bg-surface shadow-diffused"
+            >
+                <div class="border-b border-hairline bg-workshop px-4 py-2.5">
+                    <h3 class="text-[0.6875rem] font-semibold tracking-wider text-steel uppercase">
+                        Ingresos registrados
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="border-b border-hairline">
+                            <tr>
+                                <th
+                                    class="px-4 py-2 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Orden
+                                </th>
+                                <th
+                                    class="px-4 py-2 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Remito
+                                </th>
+                                <th
+                                    class="px-4 py-2 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Fecha
+                                </th>
+                                <th
+                                    class="px-4 py-2 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Líneas
+                                </th>
+                                <th
+                                    class="px-4 py-2 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Unidades
+                                </th>
+                                <th
+                                    class="px-4 py-2 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                >
+                                    Acciones
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-hairline">
+                            <tr
+                                v-for="ingreso in props.ingresos"
+                                :key="`${ingreso.numero_oc}-${ingreso.numero_remito}`"
+                                class="hover:bg-teja-wash/30"
+                            >
+                                <td class="num px-4 py-2.5 text-xs font-medium text-ink">
+                                    {{ ingreso.numero_oc }}
+                                </td>
+                                <td class="px-4 py-2.5 text-xs text-steel">
+                                    {{ ingreso.numero_remito }}
+                                </td>
+                                <td class="num px-4 py-2.5 text-xs text-steel">
+                                    {{ ingreso.fecha ?? '—' }}
+                                </td>
+                                <td class="num px-4 py-2.5 text-right text-xs text-steel">
+                                    {{ ingreso.lineas }}
+                                </td>
+                                <td class="num px-4 py-2.5 text-right text-xs text-steel">
+                                    {{ ingreso.unidades }}
+                                </td>
+                                <td class="px-4 py-2.5 text-right text-xs">
+                                    <button
+                                        type="button"
+                                        class="font-medium text-steel hover:text-oxide"
+                                        :data-testid="`anular-ingreso-${ingreso.numero_remito}`"
+                                        @click="anularIngreso(ingreso)"
+                                    >
+                                        Anular
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div
+                    v-if="props.ingresos.length === 0"
+                    class="px-4 py-8 text-center text-sm text-steel"
+                >
+                    No hay ingresos registrados.
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>

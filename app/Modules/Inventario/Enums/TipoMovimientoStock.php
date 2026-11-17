@@ -8,6 +8,7 @@ enum TipoMovimientoStock: string
     case Consumo = 'Consumo';
     case Salida = 'Salida';
     case Ajuste = 'Ajuste';
+    case AnulacionIngreso = 'Anulación de ingreso';
 
     /**
      * @return array<int, string>

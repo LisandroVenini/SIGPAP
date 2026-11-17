@@ -31,6 +31,7 @@ class UpdateArticuloRequest extends FormRequest
             'unidad_de_medida_id' => ['required', 'integer', 'exists:unidades_de_medida,id'],
             'stock_minimo' => ['nullable', 'numeric', 'min:0'],
             'stock_maximo' => ['nullable', 'numeric', 'min:0', 'gte:stock_minimo'],
+            'fecha_vencimiento' => ['nullable', 'date', 'after_or_equal:today'],
         ];
     }
 }

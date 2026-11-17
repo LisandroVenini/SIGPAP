@@ -55,11 +55,18 @@ class GestionReservasService
                 ->lockForUpdate()
                 ->pluck('stock_fisico', 'id');
 
-            $disponibles = $this->calcularDisponibles(
-                $articuloIds,
-                $stock,
-                $this->query->comprometidoPorArticulo($articuloIds),
-            );
+            $comprometidoGlobal = $this->query->comprometidoPorArticulo($articuloIds);
+            $comprometidoPropio = $this->query->comprometidoDeOrden($ordenDeProduccionId);
+            $comprometidoAjeno = [];
+
+            foreach ($articuloIds as $articuloId) {
+                $comprometidoAjeno[$articuloId] = round(max(
+                    0.0,
+                    ($comprometidoGlobal[$articuloId] ?? 0.0) - ($comprometidoPropio[$articuloId] ?? 0.0),
+                ), 2);
+            }
+
+            $disponibles = $this->calcularDisponibles($articuloIds, $stock, $comprometidoAjeno);
 
             $faltantes = [];
 
@@ -75,13 +82,17 @@ class GestionReservasService
                 return ['faltantes' => $faltantes, 'cubierto' => false];
             }
 
+            // Re-running the reservation sets the current need instead of
+            // accumulating duplicate rows for the same order and article.
             foreach ($cantidades as $articuloId => $cantidad) {
-                Reserva::query()->create([
-                    'articulo_id' => $articuloId,
-                    'orden_de_produccion_id' => $ordenDeProduccionId,
-                    'cantidad' => $cantidad,
-                    'estado' => EstadoReserva::Vigente->value,
-                ]);
+                Reserva::query()->updateOrCreate(
+                    [
+                        'articulo_id' => $articuloId,
+                        'orden_de_produccion_id' => $ordenDeProduccionId,
+                        'estado' => EstadoReserva::Vigente->value,
+                    ],
+                    ['cantidad' => $cantidad],
+                );
             }
 
             return ['faltantes' => [], 'cubierto' => true];
@@ -90,10 +101,12 @@ class GestionReservasService
 
     public function liberar(int $ordenDeProduccionId): void
     {
-        Reserva::query()
-            ->where('orden_de_produccion_id', $ordenDeProduccionId)
-            ->where('estado', EstadoReserva::Vigente->value)
-            ->update(['estado' => EstadoReserva::Liberada->value]);
+        DB::transaction(function () use ($ordenDeProduccionId): void {
+            Reserva::query()
+                ->where('orden_de_produccion_id', $ordenDeProduccionId)
+                ->where('estado', EstadoReserva::Vigente->value)
+                ->update(['estado' => EstadoReserva::Liberada->value]);
+        });
     }
 
     /**
