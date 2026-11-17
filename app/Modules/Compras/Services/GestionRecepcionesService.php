@@ -102,14 +102,14 @@ class GestionRecepcionesService
 
             foreach ($lineas as $linea) {
                 $articuloId = (int) $linea->articulo_id;
-                $totales[$articuloId] = ($acumuladas[$articuloId] ?? 0.0) + ($recibidas[$articuloId] ?? 0.0);
+                $totales[$articuloId] = round(($acumuladas[$articuloId] ?? 0.0) + ($recibidas[$articuloId] ?? 0.0), 2);
             }
 
             $quedanFaltantes = $lineas->contains(
                 fn ($linea): bool => ($totales[(int) $linea->articulo_id] ?? 0.0) < (float) $linea->cantidad,
             );
 
-            if ($quedanFaltantes !== $entregaParcial) {
+            if (! $cerrarConFaltantes && $quedanFaltantes !== $entregaParcial) {
                 throw ValidationException::withMessages([
                     'entrega_parcial' => $quedanFaltantes
                         ? 'Quedan artículos pendientes: la entrega debe registrarse como parcial.'

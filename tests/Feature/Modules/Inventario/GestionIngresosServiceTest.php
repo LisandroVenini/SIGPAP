@@ -316,6 +316,88 @@ class GestionIngresosServiceTest extends TestCase
         $this->assertSame(6.0, (float) $contexto['articulo']->refresh()->stock_fisico);
     }
 
+    public function test_decimal_partial_receptions_are_not_rejected_by_float_rounding(): void
+    {
+        // Arrange
+        $actor = Usuario::factory()->create();
+        $contexto = $this->contexto(cantidadPedida: 0.30);
+
+        $this->service()->registrar(
+            $actor,
+            $contexto['orden']->numero_oc,
+            'REM-1',
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 0.10]],
+            true,
+            false,
+        );
+
+        // Act
+        $this->service()->registrar(
+            $actor,
+            $contexto['orden']->numero_oc,
+            'REM-2',
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 0.20]],
+            false,
+            false,
+        );
+
+        // Assert
+        $this->assertSame('Recibida', $contexto['orden']->refresh()->estado);
+    }
+
+    public function test_final_decimal_delivery_completing_the_order_is_not_flagged_as_partial(): void
+    {
+        // Arrange
+        $actor = Usuario::factory()->create();
+        $contexto = $this->contexto(cantidadPedida: 0.10);
+
+        $this->service()->registrar(
+            $actor,
+            $contexto['orden']->numero_oc,
+            'REM-1',
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 0.09]],
+            true,
+            false,
+        );
+
+        // Act
+        $this->service()->registrar(
+            $actor,
+            $contexto['orden']->numero_oc,
+            'REM-2',
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 0.01]],
+            false,
+            false,
+        );
+
+        // Assert
+        $this->assertSame('Recibida', $contexto['orden']->refresh()->estado);
+    }
+
+    public function test_closing_with_shortages_accepts_a_complete_flag(): void
+    {
+        // Arrange
+        $actor = Usuario::factory()->create();
+        $contexto = $this->contexto(cantidadPedida: 5);
+
+        // Act
+        $this->service()->registrar(
+            $actor,
+            $contexto['orden']->numero_oc,
+            'REM-1',
+            [['articulo_id' => $contexto['articulo']->id, 'cantidad' => 3]],
+            false,
+            false,
+            null,
+            true,
+        );
+
+        // Assert
+        $orden = $contexto['orden']->refresh();
+        $this->assertSame('Recibida', $orden->estado);
+        $this->assertTrue($orden->entrega_parcial);
+    }
+
     public function test_anulling_a_partial_reception_reverts_stock_and_keeps_the_order_open(): void
     {
         // Arrange

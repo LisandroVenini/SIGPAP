@@ -26,15 +26,6 @@ class UnidadDeMedida extends Model
      */
     protected $fillable = ['nombre'];
 
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-        ];
-    }
-
     public function articulos(): HasMany
     {
         return $this->hasMany(Articulo::class);

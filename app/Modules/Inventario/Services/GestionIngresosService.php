@@ -212,10 +212,6 @@ class GestionIngresosService
     }
 
     /**
-     * @param  array<int, array{articulo_id: int, cantidad: float, precio_pactado: float}>  $lineasOrden
-     * @param  array<int, array{articulo_id: int, cantidad: float|int|string}>  $lineas
-     */
-    /**
      * Net received quantity per article, discounting annulled receipts.
      *
      * @return array<int, float>
@@ -269,9 +265,9 @@ class GestionIngresosService
                 ]);
             }
 
-            $total = ($acumuladas[$articuloId] ?? 0.0) + $cantidad;
+            $total = round(($acumuladas[$articuloId] ?? 0.0) + $cantidad, 2);
 
-            if (! $confirmarExcedente && $total > (float) $pedidas->get($articuloId)['cantidad']) {
+            if (! $confirmarExcedente && $total > round((float) $pedidas->get($articuloId)['cantidad'], 2)) {
                 throw ValidationException::withMessages([
                     'lineas' => 'El total recibido supera la cantidad pedida. Confirmá el excedente para continuar.',
                 ]);
