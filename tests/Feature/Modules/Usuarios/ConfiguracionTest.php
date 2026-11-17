@@ -93,4 +93,22 @@ class ConfiguracionTest extends TestCase
             'accion' => 'actualizar_parametro',
         ]);
     }
+
+    public function test_the_shipped_defaults_can_be_saved_from_the_configuration_page(): void
+    {
+        // Arrange
+        $this->seed([RoleSeeder::class, ParametroGlobalSeeder::class]);
+        $admin = Usuario::factory()->create();
+        $admin->assignRole(Rol::Administrador->value);
+        $parametros = ParametroGlobal::query()->pluck('valor', 'nombre')->all();
+
+        // Act
+        $response = $this->actingAs($admin)->put('/usuarios/configuracion', [
+            'parametros' => $parametros,
+        ]);
+
+        // Assert
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+    }
 }

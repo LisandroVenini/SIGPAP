@@ -182,13 +182,6 @@ class GestionUsuariosService
         string $nuevoEstado,
         ?string $nuevoRol = null,
     ): void {
-        $eraAdministradorActivo = $usuario->hasRole(Rol::Administrador->value)
-            && $usuario->estado === EstadoUsuario::Activo->value;
-
-        if (! $eraAdministradorActivo) {
-            return;
-        }
-
         $sigueSiendoAdministrador = $nuevoRol === null || $nuevoRol === Rol::Administrador->value;
         $sigueActivo = $nuevoEstado === EstadoUsuario::Activo->value;
 
@@ -197,14 +190,23 @@ class GestionUsuariosService
         }
 
         // Locking every active administrator serializes concurrent demotions, so two
-        // requests cannot both conclude that another administrator remains.
-        $hayOtroAdministradorActivo = Usuario::query()
+        // requests cannot both conclude that another administrator remains. The locked
+        // rows are also the fresh source of truth for the target's state and role.
+        $administradoresActivos = Usuario::query()
             ->role(Rol::Administrador->value)
             ->where('estado', EstadoUsuario::Activo->value)
             ->orderBy('id')
             ->lockForUpdate()
-            ->get()
-            ->contains(fn (Usuario $otro): bool => ! $otro->is($usuario));
+            ->get();
+
+        $bloqueado = $administradoresActivos->firstWhere('id', $usuario->getKey());
+
+        if ($bloqueado === null) {
+            return;
+        }
+
+        $hayOtroAdministradorActivo = $administradoresActivos
+            ->contains(fn (Usuario $otro): bool => ! $otro->is($bloqueado));
 
         if ($hayOtroAdministradorActivo) {
             return;

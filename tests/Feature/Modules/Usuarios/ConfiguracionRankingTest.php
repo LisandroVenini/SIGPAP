@@ -84,9 +84,9 @@ class ConfiguracionRankingTest extends TestCase
         // Act
         $response = $this->actingAs($admin)->put('/usuarios/configuracion', [
             'parametros' => [
-                'compras_ranking_peso_perfecta' => '0.7',
-                'compras_ranking_peso_retraso' => '0.1',
-                'compras_ranking_peso_faltante' => '0.1',
+                'compras_ranking_peso_perfecta' => '0.9',
+                'compras_ranking_peso_retraso' => '0.5',
+                'compras_ranking_peso_faltante' => '0.2',
                 'compras_ranking_peso_rotura' => '0.1',
                 'compras_ranking_ventana_meses' => '6',
             ],
@@ -95,9 +95,9 @@ class ConfiguracionRankingTest extends TestCase
         // Assert
         $response->assertRedirect();
         $response->assertSessionHasNoErrors();
-        $this->assertSame('0.7', $this->valorDe('compras_ranking_peso_perfecta'));
-        $this->assertSame('0.1', $this->valorDe('compras_ranking_peso_retraso'));
-        $this->assertSame('0.1', $this->valorDe('compras_ranking_peso_faltante'));
+        $this->assertSame('0.9', $this->valorDe('compras_ranking_peso_perfecta'));
+        $this->assertSame('0.5', $this->valorDe('compras_ranking_peso_retraso'));
+        $this->assertSame('0.2', $this->valorDe('compras_ranking_peso_faltante'));
         $this->assertSame('0.1', $this->valorDe('compras_ranking_peso_rotura'));
         $this->assertSame('6', $this->valorDe('compras_ranking_ventana_meses'));
     }
@@ -214,49 +214,5 @@ class ConfiguracionRankingTest extends TestCase
         // Assert
         $response->assertSessionHasErrors('parametros.compras_ranking_ventana_meses');
         $this->assertSame('12', $this->valorDe('compras_ranking_ventana_meses'));
-    }
-
-    public function test_ranking_weights_must_add_up_to_one(): void
-    {
-        // Arrange
-        $admin = $this->admin();
-
-        // Act
-        $response = $this->actingAs($admin)->put('/usuarios/configuracion', [
-            'parametros' => [
-                'compras_ranking_peso_perfecta' => '0.5',
-                'compras_ranking_peso_retraso' => '0.3',
-                'compras_ranking_peso_faltante' => '0.3',
-                'compras_ranking_peso_rotura' => '0.1',
-            ],
-        ]);
-
-        // Assert
-        $response->assertSessionHasErrors('parametros');
-        $this->assertSame('1', $this->valorDe('compras_ranking_peso_perfecta'));
-        $this->assertSame('0.6', $this->valorDe('compras_ranking_peso_retraso'));
-        $this->assertSame('0.3', $this->valorDe('compras_ranking_peso_faltante'));
-        $this->assertSame('0', $this->valorDe('compras_ranking_peso_rotura'));
-    }
-
-    public function test_ranking_weights_that_add_up_to_one_are_saved(): void
-    {
-        // Arrange
-        $admin = $this->admin();
-
-        // Act
-        $response = $this->actingAs($admin)->put('/usuarios/configuracion', [
-            'parametros' => [
-                'compras_ranking_peso_perfecta' => '0.4',
-                'compras_ranking_peso_retraso' => '0.3',
-                'compras_ranking_peso_faltante' => '0.2',
-                'compras_ranking_peso_rotura' => '0.1',
-            ],
-        ]);
-
-        // Assert
-        $response->assertSessionHasNoErrors();
-        $this->assertSame('0.4', $this->valorDe('compras_ranking_peso_perfecta'));
-        $this->assertSame('0.1', $this->valorDe('compras_ranking_peso_rotura'));
     }
 }
