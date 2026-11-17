@@ -70,6 +70,7 @@ class GestionCotizacionesService
             $this->validarLineas($lineas);
             $this->validarFechasPrometidas($solicitud, $lineas);
             $this->validarArticulosDeLaSolicitud($solicitud, $lineas);
+            $this->validarCantidadesOfertadas($solicitud, $lineas);
 
             $usuarioId = $this->usuarioDeAuditoria($solicitud, $actor);
 
@@ -170,6 +171,28 @@ class GestionCotizacionesService
             throw ValidationException::withMessages([
                 'lineas' => 'La cotización debe incluir exactamente los artículos solicitados.',
             ]);
+        }
+    }
+
+    /**
+     * A supplier cannot offer more units than the factory requested: the excess
+     * would inflate coverage and the comparison totals.
+     *
+     * @param  array<int, array{articulo_id: int, cantidad_ofertada: float|int|string}>  $lineas
+     */
+    private function validarCantidadesOfertadas(SolicitudDeCotizacion $solicitud, array $lineas): void
+    {
+        $solicitadas = $solicitud->lineas()
+            ->pluck('cantidad_solicitada', 'articulo_id');
+
+        foreach (array_values($lineas) as $indice => $linea) {
+            $solicitada = (float) ($solicitadas[(int) $linea['articulo_id']] ?? 0);
+
+            if ((float) $linea['cantidad_ofertada'] > $solicitada) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.cantidad_ofertada" => 'La cantidad ofertada no puede superar la cantidad solicitada.',
+                ]);
+            }
         }
     }
 

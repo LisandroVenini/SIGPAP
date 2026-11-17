@@ -424,4 +424,27 @@ class PortalCotizacionControllerTest extends TestCase
         $response->assertSessionHasErrors('lineas.0.fecha_prometida');
         $this->assertDatabaseCount('cotizaciones', 0);
     }
+
+    public function test_a_quote_cannot_offer_more_than_the_requested_quantity(): void
+    {
+        // Arrange
+        $contexto = $this->solicitudConToken(today()->addWeek()->toDateString());
+        $payload = [
+            'lineas' => [
+                [
+                    'articulo_id' => $contexto['articulo']->id,
+                    'precio_unitario' => 120.5,
+                    'cantidad_ofertada' => 11,
+                    'fecha_prometida' => today()->addDays(5)->toDateString(),
+                ],
+            ],
+        ];
+
+        // Act
+        $response = $this->post("/portal/cotizaciones/{$contexto['token']}", $payload);
+
+        // Assert
+        $response->assertSessionHasErrors('lineas.0.cantidad_ofertada');
+        $this->assertDatabaseCount('cotizaciones', 0);
+    }
 }

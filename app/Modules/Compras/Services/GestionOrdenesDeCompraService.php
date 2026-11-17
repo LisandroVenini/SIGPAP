@@ -207,6 +207,7 @@ class GestionOrdenesDeCompraService
             $anterior = ['lineas' => $orden->lineas()->count()];
 
             $this->validarLineas($lineas);
+            $this->validarArticulosDeLaCotizacion($orden, $lineas);
 
             $orden->lineas()->delete();
 
@@ -398,13 +399,60 @@ class GestionOrdenesDeCompraService
     }
 
     /**
-     * Domain invariant: an order line cannot have a non-positive quantity or a negative price.
+     * An order created from a quote may only keep articles that were quoted: swapping
+     * an article would order something the supplier never offered.
      *
-     * @param  array<int, array{cantidad: float|string, precio_pactado: float|string}>  $lineas
+     * @param  array<int, array{articulo_id: int}>  $lineas
+     */
+    private function validarArticulosDeLaCotizacion(OrdenDeCompra $orden, array $lineas): void
+    {
+        if ($orden->cotizacion_id === null) {
+            return;
+        }
+
+        $permitidos = $orden->cotizacion()
+            ->firstOrFail()
+            ->lineas()
+            ->pluck('articulo_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        foreach (array_values($lineas) as $indice => $linea) {
+            if (! in_array((int) $linea['articulo_id'], $permitidos, true)) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.articulo_id" => 'El artículo debe pertenecer a la cotización de origen.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Domain invariant: an order line cannot repeat an article, have a non-positive
+     * quantity or a negative price.
+     *
+     * @param  array<int, array{articulo_id: int, cantidad: float|string, precio_pactado: float|string}>  $lineas
      */
     private function validarLineas(array $lineas): void
     {
+        $vistos = [];
+
         foreach (array_values($lineas) as $indice => $linea) {
+            $articuloId = (int) ($linea['articulo_id'] ?? 0);
+
+            if ($articuloId <= 0) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.articulo_id" => 'El artículo es obligatorio.',
+                ]);
+            }
+
+            if (in_array($articuloId, $vistos, true)) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.articulo_id" => 'El artículo está repetido en la orden.',
+                ]);
+            }
+
+            $vistos[] = $articuloId;
+
             if ((float) ($linea['cantidad'] ?? 0) <= 0) {
                 throw ValidationException::withMessages([
                     "lineas.{$indice}.cantidad" => 'La cantidad debe ser mayor a 0.',

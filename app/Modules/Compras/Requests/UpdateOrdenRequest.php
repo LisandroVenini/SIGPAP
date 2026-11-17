@@ -22,7 +22,7 @@ class UpdateOrdenRequest extends FormRequest
     {
         return [
             'lineas' => ['required', 'array', 'min:1'],
-            'lineas.*.articulo_id' => ['required', 'integer', 'exists:articulos,id'],
+            'lineas.*.articulo_id' => ['required', 'integer', 'exists:articulos,id', 'distinct'],
             'lineas.*.cantidad' => ['required', 'numeric', 'gt:0'],
             'lineas.*.precio_pactado' => ['required', 'numeric', 'min:0'],
         ];
