@@ -29,6 +29,8 @@ use Illuminate\Validation\ValidationException;
 
 class GestionOrdenesDeCompraService
 {
+    private const DIAS_VIGENCIA_TOKEN = 30;
+
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly UsuariosService $usuarios,
@@ -312,7 +314,7 @@ class GestionOrdenesDeCompraService
                 ->lockForUpdate()
                 ->first();
 
-            if ($orden === null || $orden->estado !== EstadoOrdenDeCompra::Emitida->value) {
+            if ($orden === null || $orden->estado !== EstadoOrdenDeCompra::Emitida->value || $this->tokenVencido($orden)) {
                 throw (new ModelNotFoundException)->setModel(OrdenDeCompra::class);
             }
 
@@ -367,7 +369,7 @@ class GestionOrdenesDeCompraService
             ->where('estado', EstadoOrdenDeCompra::Emitida->value)
             ->first();
 
-        if ($orden === null) {
+        if ($orden === null || $this->tokenVencido($orden)) {
             return null;
         }
 
@@ -380,6 +382,15 @@ class GestionOrdenesDeCompraService
                 fn (LineaOrdenCompra $linea): float => (float) $linea->cantidad * (float) $linea->precio_pactado,
             ),
         ];
+    }
+
+    /**
+     * The supplier link stays valid for 30 days from the emission date.
+     */
+    private function tokenVencido(OrdenDeCompra $orden): bool
+    {
+        return $orden->fecha_emision !== null
+            && $orden->fecha_emision->copy()->addDays(self::DIAS_VIGENCIA_TOKEN)->lt(today());
     }
 
     private function siguienteNumeroOc(): string
