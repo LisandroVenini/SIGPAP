@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { enableAutoUnmount, mount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 
 enableAutoUnmount(afterEach);
 
 const hoisted = vi.hoisted(() => {
     const post = vi.fn();
+    const routerPost = vi.fn();
 
     function makeForm(initial: Record<string, unknown>) {
         const form = {
@@ -17,7 +18,7 @@ const hoisted = vi.hoisted(() => {
         return form;
     }
 
-    return { post, makeForm };
+    return { post, routerPost, makeForm };
 });
 
 vi.mock('@inertiajs/vue3', () => ({
@@ -25,6 +26,11 @@ vi.mock('@inertiajs/vue3', () => ({
     Link: { props: ['href'], template: '<a :href="href"><slot /></a>' },
     useForm: (initial: Record<string, unknown>) => hoisted.makeForm(initial),
     usePage: () => ({ props: { flash: { success: null } } }),
+    router: { post: hoisted.routerPost },
+}));
+
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
 }));
 
 vi.mock('../../../Layouts/AppLayout.vue', () => ({
@@ -54,6 +60,16 @@ const props = {
                     precio_pactado: 120.5,
                 },
             ],
+        },
+    ],
+    ingresos: [
+        {
+            orden_id: 1,
+            numero_oc: 'OC-2026-0001',
+            numero_remito: 'REM-001',
+            fecha: '2026-11-03',
+            lineas: 1,
+            unidades: 5,
         },
     ],
     filtros: {},
@@ -104,5 +120,24 @@ describe('Inventario Ingresos page', () => {
         expect(form.entrega_parcial).toBe(true);
         expect(form.confirmar_excedente).toBe(true);
         expect(form.lineas).toEqual([{ articulo_id: 10, cantidad: 4 }]);
+    });
+
+    it('lists the registered receipts and annuls one after confirming', async () => {
+        // Arrange
+        const wrapper = mount(Ingresos, { props });
+
+        // Assert: the receipt is listed
+        expect(wrapper.text()).toContain('REM-001');
+
+        // Act
+        await wrapper.find('[data-testid="anular-ingreso-REM-001"]').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(hoisted.routerPost).toHaveBeenCalledWith(
+            '/inventario/ingresos/anular',
+            { numero_oc: 'OC-2026-0001', numero_remito: 'REM-001' },
+            expect.objectContaining({ preserveScroll: true }),
+        );
     });
 });

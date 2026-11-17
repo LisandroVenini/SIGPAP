@@ -3,6 +3,7 @@
 namespace App\Modules\Inventario\Controllers;
 
 use App\Modules\Compras\Services\GestionRecepcionesService;
+use App\Modules\Inventario\Requests\AnularIngresoRequest;
 use App\Modules\Inventario\Requests\RegistrarIngresoRequest;
 use App\Modules\Inventario\Services\GestionIngresosService;
 use App\Modules\Usuarios\Models\Usuario;
@@ -24,6 +25,7 @@ class IngresoMercanciaController
 
         return Inertia::render('Inventario/Ingresos/Index', [
             'ordenesRecepcionables' => $this->recepciones->ordenesRecepcionables(),
+            'ingresos' => $this->ingresos->registrados(),
             'filtros' => [],
         ]);
     }
@@ -46,5 +48,22 @@ class IngresoMercanciaController
         return redirect()
             ->route('inventario.ingresos.index')
             ->with('success', 'Ingreso registrado.');
+    }
+
+    public function anular(AnularIngresoRequest $request): RedirectResponse
+    {
+        /** @var Usuario $actor */
+        $actor = $request->user();
+
+        $this->ingresos->anular(
+            $actor,
+            $request->validated('numero_oc'),
+            $request->validated('numero_remito'),
+            $request->ip(),
+        );
+
+        return redirect()
+            ->route('inventario.ingresos.index')
+            ->with('success', 'Ingreso anulado.');
     }
 }

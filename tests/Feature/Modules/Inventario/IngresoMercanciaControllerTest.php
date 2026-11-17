@@ -146,4 +146,87 @@ class IngresoMercanciaControllerTest extends TestCase
         $response->assertSessionHasErrors('numero_remito');
         $this->assertSame(0.0, (float) $contexto['articulo']->refresh()->stock_fisico);
     }
+
+    public function test_an_stock_manager_can_annul_a_reception(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoStock);
+        $contexto = $this->contexto();
+        $this->actingAs($usuario)->post('/inventario/ingresos', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-001',
+            'lineas' => [
+                ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 5],
+            ],
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/inventario/ingresos/anular', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-001',
+        ]);
+
+        // Assert
+        $response->assertRedirect('/inventario/ingresos');
+        $response->assertSessionHas('success', 'Ingreso anulado.');
+        $this->assertSame(0.0, (float) $contexto['articulo']->refresh()->stock_fisico);
+        $this->assertSame('Confirmada', $contexto['orden']->refresh()->estado);
+        $this->assertDatabaseHas('movimientos_de_stock', [
+            'articulo_id' => $contexto['articulo']->id,
+            'tipo' => 'Anulación de ingreso',
+            'cantidad' => 5,
+            'numero_remito' => 'REM-001',
+        ]);
+    }
+
+    public function test_annulling_a_reception_without_stock_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoStock);
+        $contexto = $this->contexto();
+        $this->actingAs($usuario)->post('/inventario/ingresos', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-001',
+            'lineas' => [
+                ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 5],
+            ],
+        ]);
+        $contexto['articulo']->update(['stock_fisico' => 2]);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/inventario/ingresos/anular', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-001',
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('stock');
+        $this->assertSame(2.0, (float) $contexto['articulo']->refresh()->stock_fisico);
+        $this->assertSame('Recibida', $contexto['orden']->refresh()->estado);
+    }
+
+    public function test_annulling_an_unknown_remito_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoStock);
+        $contexto = $this->contexto();
+        $this->actingAs($usuario)->post('/inventario/ingresos', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-001',
+            'lineas' => [
+                ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 5],
+            ],
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/inventario/ingresos/anular', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-999',
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('numero_remito');
+        $this->assertSame(5.0, (float) $contexto['articulo']->refresh()->stock_fisico);
+        $this->assertSame('Recibida', $contexto['orden']->refresh()->estado);
+    }
 }

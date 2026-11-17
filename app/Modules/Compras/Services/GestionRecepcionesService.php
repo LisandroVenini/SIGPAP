@@ -156,6 +156,88 @@ class GestionRecepcionesService
     }
 
     /**
+     * Minimal purchase order data by number, for other modules that need its id.
+     *
+     * @return array{id:int, numero_oc:string, estado:string}|null
+     */
+    public function ordenPorNumero(string $numeroOc): ?array
+    {
+        $orden = OrdenDeCompra::query()
+            ->where('numero_oc', $numeroOc)
+            ->first(['id', 'numero_oc', 'estado']);
+
+        return $orden === null
+            ? null
+            : ['id' => $orden->id, 'numero_oc' => $orden->numero_oc, 'estado' => $orden->estado];
+    }
+
+    /**
+     * Resolve the numbers of several purchase orders without exposing the model.
+     *
+     * @param  array<int, int>  $ordenIds
+     * @return array<int, string>
+     */
+    public function numerosDeOrden(array $ordenIds): array
+    {
+        if ($ordenIds === []) {
+            return [];
+        }
+
+        return OrdenDeCompra::query()
+            ->whereKey($ordenIds)
+            ->pluck('numero_oc', 'id')
+            ->mapWithKeys(fn (string $numero, int|string $id): array => [(int) $id => $numero])
+            ->all();
+    }
+
+    /**
+     * Undo a reception so the order can be received again.
+     */
+    public function revertirRecepcionPorNumero(
+        Usuario $actor,
+        string $numeroOc,
+        ?string $direccionIp = null,
+    ): void {
+        DB::transaction(function () use ($actor, $numeroOc, $direccionIp): void {
+            $orden = OrdenDeCompra::query()
+                ->where('numero_oc', $numeroOc)
+                ->lockForUpdate()
+                ->first();
+
+            if ($orden === null || $orden->estado !== EstadoOrdenDeCompra::Recibida->value) {
+                throw ValidationException::withMessages([
+                    'numero_oc' => 'La orden de compra no está recibida.',
+                ]);
+            }
+
+            $anterior = ['estado' => $orden->estado, 'entrega_parcial' => (bool) $orden->entrega_parcial];
+
+            $orden->update([
+                'estado' => EstadoOrdenDeCompra::Confirmada->value,
+                'entrega_parcial' => false,
+            ]);
+
+            Incidencia::create([
+                'orden_de_compra_id' => $orden->id,
+                'proveedor_id' => $orden->proveedor_id,
+                'tipo' => TipoIncidencia::AnulacionRecepcion->value,
+                'detalle' => 'Se anuló la recepción registrada.',
+                'fecha' => today()->toDateString(),
+            ]);
+
+            $this->auditoria->registrarEvento(
+                $actor->id,
+                'revertir_recepcion_orden',
+                $anterior,
+                ['estado' => EstadoOrdenDeCompra::Confirmada->value, 'entrega_parcial' => false],
+                $direccionIp,
+                OrdenDeCompra::class,
+                $orden->id,
+            );
+        });
+    }
+
+    /**
      * Close the reception by order number so another module never queries this module's model.
      *
      * @param  array<int, array{articulo_id: int, cantidad: float|int|string}>  $lineasRecibidas

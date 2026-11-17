@@ -7,7 +7,9 @@ use App\Modules\Compras\Services\GestionRecepcionesService;
 use App\Modules\Inventario\Enums\TipoMovimientoStock;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\MovimientoDeStock;
+use App\Modules\Inventario\Queries\IngresosRegistradosQuery;
 use App\Modules\Usuarios\Models\Usuario;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -16,7 +18,103 @@ class GestionIngresosService
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly GestionRecepcionesService $recepciones,
+        private readonly IngresosRegistradosQuery $ingresosRegistrados,
     ) {}
+
+    /**
+     * Registered receipts, with the purchase order number resolved by its owner module.
+     *
+     * @return Collection<int, array{orden_id:int, numero_oc:string, numero_remito:string, fecha:string|null, lineas:int, unidades:float}>
+     */
+    public function registrados(): Collection
+    {
+        $grupos = $this->ingresosRegistrados->listar();
+        $numeros = $this->recepciones->numerosDeOrden($grupos->pluck('orden_id')->unique()->values()->all());
+
+        return $grupos->map(fn (array $grupo): array => [
+            ...$grupo,
+            'numero_oc' => $numeros[$grupo['orden_id']] ?? '—',
+        ]);
+    }
+
+    /**
+     * Undo a registered receipt: reverse the stock and let the purchase order be
+     * received again.
+     */
+    public function anular(
+        Usuario $actor,
+        string $numeroOc,
+        string $numeroRemito,
+        ?string $direccionIp = null,
+    ): void {
+        DB::transaction(function () use ($actor, $numeroOc, $numeroRemito, $direccionIp): void {
+            $orden = $this->recepciones->ordenPorNumero($numeroOc);
+
+            if ($orden === null || $orden['estado'] !== 'Recibida') {
+                throw ValidationException::withMessages([
+                    'numero_oc' => 'La orden de compra no está recibida.',
+                ]);
+            }
+
+            $movimientos = MovimientoDeStock::query()
+                ->where('orden_de_compra_id', $orden['id'])
+                ->where('numero_remito', $numeroRemito)
+                ->where('tipo', TipoMovimientoStock::Ingreso->value)
+                ->lockForUpdate()
+                ->get();
+
+            if ($movimientos->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'numero_remito' => 'No hay un ingreso registrado con ese remito para la orden indicada.',
+                ]);
+            }
+
+            foreach ($movimientos as $movimiento) {
+                $articulo = Articulo::query()
+                    ->whereKey($movimiento->articulo_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $stockAnterior = (float) $articulo->stock_fisico;
+                $stockNuevo = round($stockAnterior - (float) $movimiento->cantidad, 2);
+
+                if ($stockNuevo < 0) {
+                    throw ValidationException::withMessages([
+                        'stock' => "El artículo {$articulo->descripcion} no tiene stock suficiente para anular el ingreso.",
+                    ]);
+                }
+
+                $articulo->stock_fisico = $stockNuevo;
+                $articulo->save();
+
+                MovimientoDeStock::create([
+                    'articulo_id' => $articulo->id,
+                    'orden_de_compra_id' => $movimiento->orden_de_compra_id,
+                    'tipo' => TipoMovimientoStock::AnulacionIngreso->value,
+                    'cantidad' => (float) $movimiento->cantidad,
+                    'fecha' => today()->toDateString(),
+                    'motivo' => 'Anulación de ingreso',
+                    'numero_remito' => $numeroRemito,
+                ]);
+
+                $this->auditoria->registrarEvento(
+                    $actor->id,
+                    'anular_ingreso_mercancia',
+                    ['stock_fisico' => $stockAnterior],
+                    [
+                        'stock_fisico' => $stockNuevo,
+                        'numero_remito' => $numeroRemito,
+                        'orden_de_compra' => $numeroOc,
+                    ],
+                    $direccionIp,
+                    Articulo::class,
+                    $articulo->id,
+                );
+            }
+
+            $this->recepciones->revertirRecepcionPorNumero($actor, $numeroOc, $direccionIp);
+        });
+    }
 
     /**
      * Register the physical reception of merchandise against a purchase order.

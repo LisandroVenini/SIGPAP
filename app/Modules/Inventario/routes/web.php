@@ -30,5 +30,6 @@ Route::middleware('web')
 
             Route::get('ingresos', [IngresoMercanciaController::class, 'index'])->name('ingresos.index');
             Route::post('ingresos', [IngresoMercanciaController::class, 'store'])->name('ingresos.store');
+            Route::post('ingresos/anular', [IngresoMercanciaController::class, 'anular'])->name('ingresos.anular');
         });
     });
