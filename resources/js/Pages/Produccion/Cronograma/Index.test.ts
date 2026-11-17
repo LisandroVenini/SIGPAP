@@ -46,6 +46,16 @@ const props = {
                 etapa_actual: 'Corte',
                 avance: 0,
                 dias_totales: 5,
+                historial: [
+                    {
+                        prioridad_anterior: 2,
+                        prioridad_nueva: 1,
+                        motivo: 'Urgencia comercial',
+                        detalle: null,
+                        fecha: '2026-11-10 09:30:00',
+                        usuario: 'Supervisor Demo',
+                    },
+                ],
                 etapas: [
                     {
                         etapa: 'Corte',
@@ -75,6 +85,7 @@ const props = {
                 etapa_actual: 'Armado',
                 avance: 40,
                 dias_totales: 3,
+                historial: [],
                 etapas: [
                     {
                         etapa: 'Armado',
@@ -97,6 +108,7 @@ const props = {
                 etapa_actual: 'Encolado',
                 avance: 0,
                 dias_totales: 3,
+                historial: [],
                 etapas: [
                     {
                         etapa: 'Encolado',
@@ -214,5 +226,18 @@ describe('Produccion Cronograma page', () => {
         expect(wrapper.find('[data-testid="fila-orden-2"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="fila-orden-1"]').exists()).toBe(false);
         expect(wrapper.text()).not.toContain('Silla de pino');
+    });
+
+    it('shows the priority history of the selected order in the drawer', async () => {
+        // Arrange
+        const wrapper = mount(Cronograma, { props, attachTo: document.body });
+
+        // Act
+        await wrapper.find('[data-testid="reordenar-orden-1"]').trigger('click');
+
+        // Assert
+        expect(wrapper.find('[data-testid="historial-prioridad"]').text()).toContain(
+            'Supervisor Demo',
+        );
     });
 });

@@ -280,6 +280,50 @@ function guardar(): void {
 
                 <p class="mt-3 text-sm text-steel">{{ filaActiva?.producto }}</p>
 
+                <section class="mt-4" data-testid="historial-prioridad">
+                    <h4 class="text-xs font-semibold tracking-wider text-steel uppercase">
+                        Historial de prioridad
+                    </h4>
+                    <p
+                        v-if="!filaActiva?.historial.length"
+                        class="mt-2 rounded-control bg-workshop px-3 py-2 text-xs text-steel"
+                    >
+                        Sin cambios de prioridad registrados.
+                    </p>
+                    <div v-else class="mt-2 overflow-x-auto rounded-control border border-hairline">
+                        <table class="w-full text-left text-xs">
+                            <thead
+                                class="border-b border-hairline bg-workshop text-[0.625rem] tracking-wider text-steel uppercase"
+                            >
+                                <tr>
+                                    <th class="px-2 py-1.5">Fecha</th>
+                                    <th class="px-2 py-1.5 text-right">Cambio</th>
+                                    <th class="px-2 py-1.5">Motivo</th>
+                                    <th class="px-2 py-1.5">Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-hairline">
+                                <tr
+                                    v-for="(registro, indice) in filaActiva.historial"
+                                    :key="indice"
+                                >
+                                    <td class="num px-2 py-1.5 text-steel">
+                                        {{ registro.fecha ?? '—' }}
+                                    </td>
+                                    <td class="num px-2 py-1.5 text-right text-ink">
+                                        {{ registro.prioridad_anterior ?? '—' }} →
+                                        {{ registro.prioridad_nueva }}
+                                    </td>
+                                    <td class="px-2 py-1.5 text-steel">{{ registro.motivo }}</td>
+                                    <td class="px-2 py-1.5 text-steel">
+                                        {{ registro.usuario ?? '—' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <form
                     class="mt-4 flex flex-col gap-4"
                     data-testid="reordenar-form"

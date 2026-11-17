@@ -8,6 +8,15 @@ export interface Segmento {
     producida: number;
 }
 
+export interface RegistroDePrioridad {
+    prioridad_anterior: number | null;
+    prioridad_nueva: number;
+    motivo: string;
+    detalle: string | null;
+    fecha: string | null;
+    usuario: string | null;
+}
+
 export interface FilaCronograma {
     orden_id: number;
     producto: string;
@@ -21,6 +30,7 @@ export interface FilaCronograma {
     avance: number;
     dias_totales: number;
     etapas: Segmento[];
+    historial: RegistroDePrioridad[];
 }
 
 export const HORIZONTES = [7, 14, 30] as const;
