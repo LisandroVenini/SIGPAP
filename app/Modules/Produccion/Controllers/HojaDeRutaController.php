@@ -6,6 +6,7 @@ use App\Modules\Produccion\Requests\AsignarEtapaRequest;
 use App\Modules\Produccion\Requests\DesasignarEtapaRequest;
 use App\Modules\Produccion\Requests\GestionarHojaDeRutaRequest;
 use App\Modules\Produccion\Requests\MoverEtapaRequest;
+use App\Modules\Produccion\Requests\UpdateAsignacionEtapaRequest;
 use App\Modules\Produccion\Services\GestionHojaDeRutaService;
 use App\Modules\Produccion\Services\GestionRecetasService;
 use App\Modules\Usuarios\Models\Usuario;
@@ -63,6 +64,24 @@ class HojaDeRutaController
         return redirect()
             ->route('produccion.hoja-de-ruta.show', $articulo)
             ->with('success', 'Etapa asignada a la hoja de ruta.');
+    }
+
+    public function actualizarEtapa(UpdateAsignacionEtapaRequest $request, int $articulo, int $etapa): RedirectResponse
+    {
+        /** @var Usuario $actor */
+        $actor = $request->user();
+
+        $this->hoja->actualizarTiempo(
+            $actor,
+            $articulo,
+            $etapa,
+            (float) $request->validated('tiempo_por_unidad'),
+            $request->ip(),
+        );
+
+        return redirect()
+            ->route('produccion.hoja-de-ruta.show', $articulo)
+            ->with('success', 'Tiempo de la etapa actualizado.');
     }
 
     public function destroy(DesasignarEtapaRequest $request, int $articulo, int $etapa): RedirectResponse

@@ -68,7 +68,9 @@ class GestionCotizacionesService
             }
 
             $this->validarLineas($lineas);
+            $this->validarFechasPrometidas($solicitud, $lineas);
             $this->validarArticulosDeLaSolicitud($solicitud, $lineas);
+            $this->validarCantidadesOfertadas($solicitud, $lineas);
 
             $usuarioId = $this->usuarioDeAuditoria($solicitud, $actor);
 
@@ -172,6 +174,52 @@ class GestionCotizacionesService
         }
     }
 
+    /**
+     * A supplier cannot offer more units than the factory requested: the excess
+     * would inflate coverage and the comparison totals.
+     *
+     * @param  array<int, array{articulo_id: int, cantidad_ofertada: float|int|string}>  $lineas
+     */
+    private function validarCantidadesOfertadas(SolicitudDeCotizacion $solicitud, array $lineas): void
+    {
+        $solicitadas = $solicitud->lineas()
+            ->pluck('cantidad_solicitada', 'articulo_id');
+
+        foreach (array_values($lineas) as $indice => $linea) {
+            $solicitada = (float) ($solicitadas[(int) $linea['articulo_id']] ?? 0);
+
+            if ((float) $linea['cantidad_ofertada'] > $solicitada) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.cantidad_ofertada" => 'La cantidad ofertada no puede superar la cantidad solicitada.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * The promised date must fall inside the request window.
+     *
+     * @param  array<int, array{articulo_id: int, precio_unitario: float|int|string, cantidad_ofertada: float|int|string, fecha_prometida: string}>  $lineas
+     */
+    private function validarFechasPrometidas(SolicitudDeCotizacion $solicitud, array $lineas): void
+    {
+        $inicio = $solicitud->fecha;
+        $vencimiento = $solicitud->fecha_vencimiento;
+
+        foreach ($lineas as $indice => $linea) {
+            $fecha = Carbon::parse($linea['fecha_prometida'] ?? null);
+
+            if ($fecha->lt($inicio) || $fecha->gt($vencimiento)) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.fecha_prometida" => "La fecha prometida debe estar entre el {$inicio->toDateString()} y el {$vencimiento->toDateString()}.",
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  array<int, array{articulo_id: int, precio_unitario: float|int|string, cantidad_ofertada: float|int|string, fecha_prometida: string}>  $lineas
+     */
     private function validarLineas(array $lineas): void
     {
         foreach ($lineas as $indice => $linea) {

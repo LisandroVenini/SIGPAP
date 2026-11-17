@@ -46,6 +46,10 @@ vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Proveedores from './Index.vue';
 
 const props = {
@@ -133,10 +137,6 @@ describe('Compras Proveedores page', () => {
 
     it('deactivates a supplier after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Proveedores, { props });
 
         // Act

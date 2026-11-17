@@ -375,4 +375,72 @@ class GestionProveedoresServiceTest extends TestCase
         $this->assertSame('Inactivo', $proveedor->refresh()->estado);
         $this->assertDatabaseCount('eventos_de_auditoria', 1);
     }
+
+    public function test_does_not_deactivate_a_supplier_with_pending_purchase_orders(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $proveedor = Proveedor::factory()->create(['estado' => 'Activo']);
+        OrdenDeCompraFactory::new()->create([
+            'proveedor_id' => $proveedor->id,
+            'cotizacion_id' => null,
+            'estado' => 'Confirmada',
+        ]);
+
+        // Act / Assert
+        try {
+            $this->service()->darDeBaja($actor, $proveedor, '127.0.0.1');
+
+            $this->fail('A supplier with pending orders should not be deactivated.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('proveedor', $exception->errors());
+        }
+
+        $this->assertSame('Activo', $proveedor->refresh()->estado);
+        $this->assertDatabaseCount('eventos_de_auditoria', 0);
+    }
+
+    public function test_does_not_deactivate_a_supplier_with_quote_requests_in_progress(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $proveedor = Proveedor::factory()->create(['estado' => 'Activo']);
+        $solicitud = SolicitudDeCotizacionFactory::new()->create([
+            'estado' => 'Enviada',
+        ]);
+        $solicitud->proveedores()->attach($proveedor->id);
+
+        // Act / Assert
+        try {
+            $this->service()->darDeBaja($actor, $proveedor, '127.0.0.1');
+
+            $this->fail('A supplier with a pending quote request should not be deactivated.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('proveedor', $exception->errors());
+        }
+
+        $this->assertSame('Activo', $proveedor->refresh()->estado);
+    }
+
+    public function test_deactivates_a_supplier_with_only_closed_operations(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $proveedor = Proveedor::factory()->create(['estado' => 'Activo']);
+        OrdenDeCompraFactory::new()->create([
+            'proveedor_id' => $proveedor->id,
+            'cotizacion_id' => null,
+            'estado' => 'Recibida',
+        ]);
+        $solicitud = SolicitudDeCotizacionFactory::new()->create([
+            'estado' => 'Adjudicada',
+        ]);
+        $solicitud->proveedores()->attach($proveedor->id);
+
+        // Act
+        $this->service()->darDeBaja($actor, $proveedor, '127.0.0.1');
+
+        // Assert
+        $this->assertSame('Inactivo', $proveedor->refresh()->estado);
+    }
 }

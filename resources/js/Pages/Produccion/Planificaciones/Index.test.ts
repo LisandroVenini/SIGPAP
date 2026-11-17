@@ -41,6 +41,10 @@ vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Planificaciones from './Index.vue';
 
 const props = {
@@ -121,10 +125,6 @@ describe('Produccion Planificaciones page', () => {
 
     it('deletes a planificacion after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Planificaciones, { props });
 
         // Act

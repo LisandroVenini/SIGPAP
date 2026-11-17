@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Maquinaria {
     id: number;
@@ -102,8 +103,15 @@ function guardar(): void {
     });
 }
 
-function eliminar(maquinaria: Maquinaria): void {
-    if (!window.confirm(`¿Eliminar la maquinaria "${maquinaria.nombre}"?`)) {
+async function eliminar(maquinaria: Maquinaria): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Eliminar maquinaria',
+        mensaje: `¿Eliminar la maquinaria "${maquinaria.nombre}"?`,
+        confirmar: 'Eliminar',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 

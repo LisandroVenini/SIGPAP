@@ -3,6 +3,7 @@
 use App\Modules\Inventario\Controllers\AjusteInventarioController;
 use App\Modules\Inventario\Controllers\ArticuloController;
 use App\Modules\Inventario\Controllers\IngresoMercanciaController;
+use App\Modules\Inventario\Controllers\UnidadDeMedidaController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')
@@ -18,7 +19,17 @@ Route::middleware('web')
             Route::get('ajustes', [AjusteInventarioController::class, 'index'])->name('ajustes.index');
             Route::patch('articulos/{articulo}/ajuste', [AjusteInventarioController::class, 'store'])->name('ajustes.store');
 
+            Route::get('unidades-de-medida', [UnidadDeMedidaController::class, 'index'])->name('unidades-de-medida.index');
+            Route::post('unidades-de-medida', [UnidadDeMedidaController::class, 'store'])->name('unidades-de-medida.store');
+            Route::put('unidades-de-medida/{unidad}', [UnidadDeMedidaController::class, 'update'])
+                ->whereNumber('unidad')
+                ->name('unidades-de-medida.update');
+            Route::delete('unidades-de-medida/{unidad}', [UnidadDeMedidaController::class, 'destroy'])
+                ->whereNumber('unidad')
+                ->name('unidades-de-medida.destroy');
+
             Route::get('ingresos', [IngresoMercanciaController::class, 'index'])->name('ingresos.index');
             Route::post('ingresos', [IngresoMercanciaController::class, 'store'])->name('ingresos.store');
+            Route::post('ingresos/anular', [IngresoMercanciaController::class, 'anular'])->name('ingresos.anular');
         });
     });

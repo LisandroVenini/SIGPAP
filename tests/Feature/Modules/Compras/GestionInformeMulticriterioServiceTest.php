@@ -18,6 +18,7 @@ use Database\Factories\SolicitudDeDisponibilidadFactory;
 use Database\Seeders\ParametroGlobalSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class GestionInformeMulticriterioServiceTest extends TestCase
@@ -193,6 +194,21 @@ class GestionInformeMulticriterioServiceTest extends TestCase
         $this->assertSame(60.0, $b['confiabilidad']);
 
         $this->assertSame($fixture['a']['cotizacion']->id, $informe['recomendada_id']);
+    }
+
+    public function test_an_invalid_parameter_logs_a_warning_and_uses_the_default(): void
+    {
+        // Arrange
+        $fixture = $this->fixtureDelEjemplo();
+        ParametroGlobal::where('nombre', 'compras_multicriterio_peso_precio')->update(['valor' => 'no-numerico']);
+        Log::spy();
+
+        // Act
+        $informe = $this->service()->paraSolicitud($fixture['solicitud']->id);
+
+        // Assert
+        Log::shouldHaveReceived('warning')->once();
+        $this->assertSame(0.4, $informe['parametros']['pesos']['precio']);
     }
 
     public function test_weights_that_do_not_add_up_to_one_are_normalized(): void

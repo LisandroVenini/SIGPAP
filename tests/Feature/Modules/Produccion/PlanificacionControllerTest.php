@@ -72,8 +72,8 @@ class PlanificacionControllerTest extends TestCase
         // Act
         $response = $this->actingAs($usuario)->post('/produccion/planificaciones', [
             'nombre' => 'Semana 12',
-            'fecha_inicio' => '2026-11-02',
-            'fecha_fin' => '2026-11-08',
+            'fecha_inicio' => now()->addDay()->toDateString(),
+            'fecha_fin' => now()->addDays(7)->toDateString(),
             'observaciones' => 'Turno completo',
         ]);
 
@@ -90,8 +90,8 @@ class PlanificacionControllerTest extends TestCase
         // Act
         $response = $this->actingAs($usuario)->post('/produccion/planificaciones', [
             'nombre' => 'Semana invertida',
-            'fecha_inicio' => '2026-11-08',
-            'fecha_fin' => '2026-11-02',
+            'fecha_inicio' => now()->addDays(10)->toDateString(),
+            'fecha_fin' => now()->addDays(2)->toDateString(),
         ]);
 
         // Assert
@@ -108,8 +108,8 @@ class PlanificacionControllerTest extends TestCase
         // Act
         $response = $this->actingAs($usuario)->put("/produccion/planificaciones/{$planificacion->id}", [
             'nombre' => 'Semana 12 ajustada',
-            'fecha_inicio' => '2026-11-02',
-            'fecha_fin' => '2026-11-09',
+            'fecha_inicio' => now()->addDay()->toDateString(),
+            'fecha_fin' => now()->addDays(9)->toDateString(),
             'observaciones' => null,
         ]);
 
@@ -151,5 +151,104 @@ class PlanificacionControllerTest extends TestCase
         $response->assertRedirect('/produccion/planificaciones');
         $response->assertSessionHasErrors('planificacion');
         $this->assertDatabaseHas('planificaciones_de_produccion', ['id' => $planificacion->id]);
+    }
+
+    public function test_a_start_date_before_today_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/planificaciones', [
+            'nombre' => 'Semana pasada',
+            'fecha_inicio' => now()->subDay()->toDateString(),
+            'fecha_fin' => now()->addDays(5)->toDateString(),
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_inicio');
+        $this->assertDatabaseCount('planificaciones_de_produccion', 0);
+    }
+
+    public function test_an_end_date_before_today_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/planificaciones', [
+            'nombre' => 'Semana vieja',
+            'fecha_inicio' => now()->subDays(10)->toDateString(),
+            'fecha_fin' => now()->subDay()->toDateString(),
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors(['fecha_inicio', 'fecha_fin']);
+        $this->assertDatabaseCount('planificaciones_de_produccion', 0);
+    }
+
+    public function test_a_historical_planificacion_can_be_edited_without_moving_its_dates(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        $planificacion = PlanificacionDeProduccion::factory()->create([
+            'nombre' => 'Semana pasada',
+            'fecha_inicio' => now()->subDays(14)->toDateString(),
+            'fecha_fin' => now()->subDays(8)->toDateString(),
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->put("/produccion/planificaciones/{$planificacion->id}", [
+            'nombre' => 'Semana pasada (corregida)',
+            'fecha_inicio' => now()->subDays(14)->toDateString(),
+            'fecha_fin' => now()->subDays(8)->toDateString(),
+            'observaciones' => 'Se corrigió el nombre.',
+        ]);
+
+        // Assert
+        $response->assertRedirect('/produccion/planificaciones');
+        $this->assertDatabaseHas('planificaciones_de_produccion', [
+            'id' => $planificacion->id,
+            'nombre' => 'Semana pasada (corregida)',
+        ]);
+    }
+
+    public function test_an_overlapping_planificacion_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        PlanificacionDeProduccion::factory()->create([
+            'nombre' => 'Semana en curso',
+            'fecha_inicio' => now()->toDateString(),
+            'fecha_fin' => now()->addDays(10)->toDateString(),
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/planificaciones', [
+            'nombre' => 'Semana superpuesta',
+            'fecha_inicio' => now()->addDays(2)->toDateString(),
+            'fecha_fin' => now()->addDays(5)->toDateString(),
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_inicio');
+        $this->assertDatabaseMissing('planificaciones_de_produccion', ['nombre' => 'Semana superpuesta']);
+    }
+
+    public function test_a_planificacion_longer_than_ninety_days_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/planificaciones', [
+            'nombre' => 'Trimestre largo',
+            'fecha_inicio' => now()->addDay()->toDateString(),
+            'fecha_fin' => now()->addDays(120)->toDateString(),
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha_fin');
+        $this->assertDatabaseMissing('planificaciones_de_produccion', ['nombre' => 'Trimestre largo']);
     }
 }

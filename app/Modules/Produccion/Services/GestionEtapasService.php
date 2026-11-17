@@ -4,6 +4,7 @@ namespace App\Modules\Produccion\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Produccion\Models\Etapa;
+use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -103,6 +104,12 @@ class GestionEtapasService
     public function eliminar(Usuario $actor, Etapa $etapa, ?string $direccionIp = null): void
     {
         DB::transaction(function () use ($actor, $etapa, $direccionIp): void {
+            if (ParteDiario::query()->where('etapa_id', $etapa->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'etapa' => 'La etapa tiene partes diarios registrados y no se puede eliminar.',
+                ]);
+            }
+
             if ($etapa->asignacionesDeEtapa()->exists()) {
                 throw ValidationException::withMessages([
                     'etapa' => 'La etapa está asignada a uno o más productos. Desasignala antes de eliminarla.',

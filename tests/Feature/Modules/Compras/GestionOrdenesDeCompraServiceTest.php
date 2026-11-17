@@ -220,12 +220,11 @@ class GestionOrdenesDeCompraServiceTest extends TestCase
         $actor = $this->actor();
         $contexto = $this->contexto();
         $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
-        $nuevoArticulo = Articulo::factory()->create(['descripcion' => 'Tornillo']);
 
         // Act
         $this->service()->actualizar($actor, $orden, [
             [
-                'articulo_id' => $nuevoArticulo->id,
+                'articulo_id' => $contexto['articulo']->id,
                 'cantidad' => 3,
                 'precio_pactado' => 15.75,
             ],
@@ -235,7 +234,7 @@ class GestionOrdenesDeCompraServiceTest extends TestCase
         $this->assertDatabaseCount('lineas_de_orden_de_compra', 1);
         $this->assertDatabaseHas('lineas_de_orden_de_compra', [
             'orden_de_compra_id' => $orden->id,
-            'articulo_id' => $nuevoArticulo->id,
+            'articulo_id' => $contexto['articulo']->id,
             'cantidad' => 3,
             'precio_pactado' => 15.75,
         ]);
@@ -245,6 +244,75 @@ class GestionOrdenesDeCompraServiceTest extends TestCase
             'auditable_type' => OrdenDeCompra::class,
             'auditable_id' => $orden->id,
         ]);
+    }
+
+    public function test_updates_reject_articles_outside_the_source_quote(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+        $ajeno = Articulo::factory()->create(['descripcion' => 'Tornillo']);
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($actor, $orden, [
+                ['articulo_id' => $ajeno->id, 'cantidad' => 3, 'precio_pactado' => 15.75],
+            ]);
+
+            $this->fail('An article outside the source quote should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lineas.0.articulo_id', $exception->errors());
+        }
+
+        $this->assertDatabaseHas('lineas_de_orden_de_compra', [
+            'orden_de_compra_id' => $orden->id,
+            'articulo_id' => $contexto['articulo']->id,
+        ]);
+    }
+
+    public function test_updates_reject_duplicate_articles(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($actor, $orden, [
+                ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 1, 'precio_pactado' => 10],
+                ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 2, 'precio_pactado' => 20],
+            ]);
+
+            $this->fail('A duplicated article should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lineas.1.articulo_id', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('lineas_de_orden_de_compra', 1);
+    }
+
+    public function test_updates_reject_an_empty_line_list(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($actor, $orden, []);
+
+            $this->fail('An empty line list should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lineas', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('lineas_de_orden_de_compra', 1);
     }
 
     public function test_updates_are_rejected_when_the_orden_is_not_emitted(): void
@@ -302,6 +370,65 @@ class GestionOrdenesDeCompraServiceTest extends TestCase
         }
 
         $this->assertDatabaseCount('lineas_de_orden_de_compra', 1);
+    }
+
+    public function test_annulling_an_emitted_orden_frees_the_adjudication(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Act
+        $this->service()->anular($actor, $orden, 'Proveedor sin stock', '127.0.0.1');
+
+        // Assert
+        $this->assertSame('Anulada', $orden->refresh()->estado);
+        $this->assertSame('Enviada', $contexto['solicitud']->refresh()->estado);
+        $this->assertDatabaseMissing('lineas_de_cotizacion', [
+            'cotizacion_id' => $contexto['cotizacion']->id,
+            'adjudicada' => true,
+        ]);
+        $this->assertDatabaseHas('eventos_de_auditoria', [
+            'accion' => 'anular_orden_compra',
+            'usuario_id' => $actor->id,
+            'auditable_id' => $orden->id,
+        ]);
+    }
+
+    public function test_an_annulled_orden_allows_emitting_again(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $primera = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+        $this->service()->anular($actor, $primera);
+
+        // Act
+        $segunda = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Assert
+        $this->assertNotSame($primera->id, $segunda->id);
+        $this->assertSame('Emitida', $segunda->estado);
+        $this->assertSame('Adjudicada', $contexto['solicitud']->refresh()->estado);
+    }
+
+    public function test_annulling_an_orden_without_a_source_quote_keeps_working(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $orden = OrdenDeCompraFactory::new()->create([
+            'cotizacion_id' => null,
+            'estado' => 'Emitida',
+        ]);
+
+        // Act
+        $this->service()->anular($actor, $orden);
+
+        // Assert
+        $this->assertSame('Anulada', $orden->refresh()->estado);
     }
 
     public function test_annuls_an_emitted_orden_and_audits_it(): void

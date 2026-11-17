@@ -14,12 +14,14 @@ use App\Modules\Produccion\Models\ComponenteDeReceta;
 use App\Modules\Produccion\Models\Etapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Produccion\Models\Receta;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class ParteDiarioControllerTest extends TestCase
@@ -133,7 +135,7 @@ class ParteDiarioControllerTest extends TestCase
 
         // Act
         $response = $this->actingAs($usuario)
-            ->from('/produccion/ordenes-de-produccion')
+            ->from('/produccion/partes-diarios')
             ->post("/produccion/ordenes-de-produccion/{$orden->id}/partes", [
                 'etapa_id' => $corte->id,
                 'maquinaria_id' => null,
@@ -143,7 +145,7 @@ class ParteDiarioControllerTest extends TestCase
             ]);
 
         // Assert
-        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertRedirect("/produccion/partes-diarios?orden={$orden->id}");
         $response->assertSessionHas('success', 'Parte diario registrado.');
         $this->assertDatabaseHas('partes_diarios', [
             'orden_de_produccion_id' => $orden->id,
@@ -165,7 +167,7 @@ class ParteDiarioControllerTest extends TestCase
 
         // Act
         $response = $this->actingAs($usuario)
-            ->from('/produccion/ordenes-de-produccion')
+            ->from('/produccion/partes-diarios')
             ->post("/produccion/ordenes-de-produccion/{$orden->id}/partes", [
                 'etapa_id' => $corte->id,
                 'maquinaria_id' => $maquinaria->id,
@@ -175,12 +177,109 @@ class ParteDiarioControllerTest extends TestCase
             ]);
 
         // Assert
-        $response->assertRedirect('/produccion/ordenes-de-produccion');
+        $response->assertRedirect("/produccion/partes-diarios?orden={$orden->id}");
         $this->assertDatabaseHas('partes_diarios', [
             'orden_de_produccion_id' => $orden->id,
             'etapa_id' => $corte->id,
             'maquinaria_id' => $maquinaria->id,
             'cantidad_conformada' => 3,
         ]);
+    }
+
+    public function test_guests_are_redirected_to_login_from_the_daily_part_section(): void
+    {
+        // Act
+        $response = $this->get('/produccion/partes-diarios');
+
+        // Assert
+        $response->assertRedirect('/login');
+    }
+
+    public function test_users_without_permission_cannot_open_the_daily_part_section(): void
+    {
+        // Arrange
+        $usuario = Usuario::factory()->create();
+
+        // Act
+        $response = $this->actingAs($usuario)->get('/produccion/partes-diarios');
+
+        // Assert
+        $response->assertForbidden();
+    }
+
+    public function test_supervisor_sees_in_progress_orders_with_stage_progress_and_todays_partes(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        [$orden, $corte] = $this->ordenConHojaDeRuta();
+        OrdenDeProduccion::factory()->create(['estado' => EstadoOrdenProduccion::Pendiente->value]);
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'maquinaria_id' => null,
+            'fecha' => now()->toDateString(),
+            'cantidad_conformada' => 4,
+        ]);
+
+        // Act
+        $response = $this->actingAs($usuario)->get("/produccion/partes-diarios?orden={$orden->id}");
+
+        // Assert
+        $response->assertOk();
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Produccion/ParteDiario/Index')
+            ->where('ordenSeleccionadaId', $orden->id)
+            ->where('fechaHoy', now()->toDateString())
+            ->has('ordenes', 1)
+            ->where('ordenes.0.id', $orden->id)
+            ->where('ordenes.0.cantidad_requerida', 10)
+            ->has('ordenes.0.etapas', 1)
+            ->where('ordenes.0.etapas.0.etapa_id', $corte->id)
+            ->where('ordenes.0.etapas.0.producida', 4)
+            ->where('ordenes.0.etapas.0.rechazadas', 0)
+            ->where('ordenes.0.etapas.0.faltante', 6)
+            ->has('ordenes.0.maquinarias')
+            ->has('ordenes.0.partes_hoy', 1)
+            ->where('ordenes.0.partes_hoy.0.cantidad', 4)
+            ->has('ordenes.0.partes_historial', 1)
+            ->has('ordenes.0.controles', 0));
+    }
+
+    public function test_a_parte_before_the_order_start_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        [$orden, $corte] = $this->ordenConHojaDeRuta();
+        $orden->fecha_inicio = now()->subDays(2)->toDateString();
+        $orden->save();
+
+        // Act
+        $response = $this->actingAs($usuario)->post("/produccion/ordenes-de-produccion/{$orden->id}/partes", [
+            'etapa_id' => $corte->id,
+            'fecha' => now()->subDays(5)->toDateString(),
+            'cantidad' => 1,
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('fecha');
+        $this->assertDatabaseCount('partes_diarios', 0);
+    }
+
+    public function test_a_non_existent_stage_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        [$orden] = $this->ordenConHojaDeRuta();
+
+        // Act
+        $response = $this->actingAs($usuario)->post("/produccion/ordenes-de-produccion/{$orden->id}/partes", [
+            'etapa_id' => 999999,
+            'fecha' => now()->toDateString(),
+            'cantidad' => 1,
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('etapa_id');
+        $this->assertDatabaseCount('partes_diarios', 0);
     }
 }

@@ -41,6 +41,10 @@ vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Maquinarias from './Index.vue';
 
 const props = {
@@ -124,10 +128,6 @@ describe('Produccion Maquinarias page', () => {
 
     it('deletes a machine after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Maquinarias, { props });
 
         // Act

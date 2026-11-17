@@ -12,6 +12,7 @@ use Database\Factories\SolicitudDeDisponibilidadFactory;
 use Database\Seeders\ParametroGlobalSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class GestionRankingServiceTest extends TestCase
@@ -281,6 +282,24 @@ class GestionRankingServiceTest extends TestCase
             'rotura' => 1.0,
         ], $resultado['parametros']['pesos']);
         $this->assertSame(1, $resultado['parametros']['ventana_meses']);
+    }
+
+    public function test_an_invalid_weight_logs_a_warning_and_uses_the_default(): void
+    {
+        // Arrange
+        $this->seed(ParametroGlobalSeeder::class);
+        ParametroGlobal::where('nombre', 'compras_ranking_peso_retraso')->update(['valor' => 'no-numerico']);
+        Log::spy();
+
+        $proveedor = $this->proveedor('Aceros del Sur');
+        $this->entrega($proveedor);
+
+        // Act
+        $resultado = $this->service()->listar();
+
+        // Assert
+        Log::shouldHaveReceived('warning')->once();
+        $this->assertSame(0.6, $resultado['parametros']['pesos']['retraso']);
     }
 
     public function test_the_window_is_capped_at_sixty_months(): void

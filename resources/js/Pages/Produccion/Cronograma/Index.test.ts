@@ -30,7 +30,8 @@ import Cronograma from './Index.vue';
 
 const props = {
     cronograma: {
-        inicio: '2026-11-01',
+        inicio: '2026-11-11',
+        hoy: '2026-11-11',
         dias: 14,
         filas: [
             {
@@ -41,7 +42,36 @@ const props = {
                 fecha_entrega: '2026-11-10',
                 reubicable: true,
                 conflicto_entrega: true,
-                etapas: [{ etapa: 'Corte', inicio: '2026-11-01', fin: '2026-11-02', dias: 2 }],
+                cantidad_requerida: 10,
+                etapa_actual: 'Corte',
+                avance: 0,
+                dias_totales: 5,
+                historial: [
+                    {
+                        prioridad_anterior: 2,
+                        prioridad_nueva: 1,
+                        motivo: 'Urgencia comercial',
+                        detalle: null,
+                        fecha: '2026-11-10 09:30:00',
+                        usuario: 'Supervisor Demo',
+                    },
+                ],
+                etapas: [
+                    {
+                        etapa: 'Corte',
+                        inicio: '2026-11-10',
+                        fin: '2026-11-12',
+                        dias: 3,
+                        producida: 0,
+                    },
+                    {
+                        etapa: 'Lijado',
+                        inicio: '2026-11-13',
+                        fin: '2026-11-14',
+                        dias: 2,
+                        producida: 0,
+                    },
+                ],
             },
             {
                 orden_id: 2,
@@ -51,7 +81,43 @@ const props = {
                 fecha_entrega: '2026-11-20',
                 reubicable: false,
                 conflicto_entrega: false,
-                etapas: [{ etapa: 'Armado', inicio: '2026-11-03', fin: '2026-11-04', dias: 2 }],
+                cantidad_requerida: 4,
+                etapa_actual: 'Armado',
+                avance: 40,
+                dias_totales: 3,
+                historial: [],
+                etapas: [
+                    {
+                        etapa: 'Armado',
+                        inicio: '2026-11-13',
+                        fin: '2026-11-15',
+                        dias: 3,
+                        producida: 2,
+                    },
+                ],
+            },
+            {
+                orden_id: 3,
+                producto: 'Aparador de guatambú',
+                estado: 'Pendiente',
+                prioridad: 3,
+                fecha_entrega: '2026-12-20',
+                reubicable: true,
+                conflicto_entrega: false,
+                cantidad_requerida: 6,
+                etapa_actual: 'Encolado',
+                avance: 0,
+                dias_totales: 3,
+                historial: [],
+                etapas: [
+                    {
+                        etapa: 'Encolado',
+                        inicio: '2026-12-01',
+                        fin: '2026-12-03',
+                        dias: 3,
+                        producida: 0,
+                    },
+                ],
             },
         ],
     },
@@ -63,26 +129,36 @@ describe('Produccion Cronograma page', () => {
         hoisted.put.mockClear();
     });
 
-    it('renders the orders and the delivery conflict', () => {
+    it('renders the gantt rows and the delivery conflict banner', () => {
         // Arrange / Act
         const wrapper = mount(Cronograma, { props });
 
         // Assert
         expect(wrapper.text()).toContain('Silla de pino');
         expect(wrapper.text()).toContain('Corte');
-        expect(wrapper.findAll('[data-testid="conflicto-entrega"]')).toHaveLength(1);
+        expect(wrapper.find('[data-testid="banner-conflictos"]').text()).toContain('#1');
     });
 
-    it('disables reordering for an in-progress order', () => {
+    it('draws a bar for every stage inside the window and drops the ones outside', () => {
         // Arrange / Act
         const wrapper = mount(Cronograma, { props });
 
         // Assert
-        const botones = wrapper.findAll('button').filter((b) => b.text() === 'Reordenar');
+        expect(wrapper.findAll('[data-testid="barra-orden-1"]')).toHaveLength(2);
+        expect(wrapper.findAll('[data-testid="barra-orden-2"]')).toHaveLength(1);
+        expect(wrapper.findAll('[data-testid="barra-orden-3"]')).toHaveLength(0);
+    });
 
-        expect(botones).toHaveLength(2);
-        expect(botones[0].attributes('disabled')).toBeUndefined();
-        expect(botones[1].attributes('disabled')).toBeDefined();
+    it('blocks reordering for an in-progress order', () => {
+        // Arrange / Act
+        const wrapper = mount(Cronograma, { props });
+
+        // Assert
+        const reordenable = wrapper.find('[data-testid="reordenar-orden-1"]');
+        const bloqueada = wrapper.find('[data-testid="reordenar-orden-2"]');
+
+        expect(reordenable.attributes('disabled')).toBeUndefined();
+        expect(bloqueada.attributes('disabled')).toBeDefined();
     });
 
     it('sends the priority change with its motive', async () => {
@@ -90,9 +166,7 @@ describe('Produccion Cronograma page', () => {
         const wrapper = mount(Cronograma, { props, attachTo: document.body });
 
         // Act
-        const reordenar = wrapper.findAll('button').find((button) => button.text() === 'Reordenar');
-        await reordenar?.trigger('click');
-
+        await wrapper.find('[data-testid="reordenar-orden-1"]').trigger('click');
         await wrapper.find('#prioridad').setValue('1');
         await wrapper.find('[data-testid="reordenar-form"]').trigger('submit.prevent');
 
@@ -105,6 +179,65 @@ describe('Produccion Cronograma page', () => {
                 confirmar_conflicto: false,
             }),
             expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('moves the visible window by week and returns to today', async () => {
+        // Arrange
+        const wrapper = mount(Cronograma, { props });
+
+        expect(wrapper.find('[data-testid="rango-ventana"]').text()).toBe('09/11 → 22/11');
+
+        // Act
+        await wrapper.find('[aria-label="Semana siguiente"]').trigger('click');
+
+        // Assert
+        expect(wrapper.find('[data-testid="rango-ventana"]').text()).toBe('16/11 → 29/11');
+
+        // Act
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Hoy')
+            ?.trigger('click');
+
+        // Assert
+        expect(wrapper.find('[data-testid="rango-ventana"]').text()).toBe('09/11 → 22/11');
+    });
+
+    it('narrows the window when the horizon changes', async () => {
+        // Arrange
+        const wrapper = mount(Cronograma, { props });
+
+        // Act
+        await wrapper.find('[data-testid="horizonte-7"]').trigger('click');
+
+        // Assert
+        expect(wrapper.find('[data-testid="rango-ventana"]').text()).toBe('09/11 → 15/11');
+    });
+
+    it('filters the rows by order estado', async () => {
+        // Arrange
+        const wrapper = mount(Cronograma, { props });
+
+        // Act
+        await wrapper.find('[data-testid="filtro-estado"]').setValue('En Curso');
+
+        // Assert
+        expect(wrapper.find('[data-testid="fila-orden-2"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="fila-orden-1"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('Silla de pino');
+    });
+
+    it('shows the priority history of the selected order in the drawer', async () => {
+        // Arrange
+        const wrapper = mount(Cronograma, { props, attachTo: document.body });
+
+        // Act
+        await wrapper.find('[data-testid="reordenar-orden-1"]').trigger('click');
+
+        // Assert
+        expect(wrapper.find('[data-testid="historial-prioridad"]').text()).toContain(
+            'Supervisor Demo',
         );
     });
 });

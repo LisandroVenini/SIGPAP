@@ -7,7 +7,11 @@ use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\ModoDeAltaOrden;
+use App\Modules\Produccion\Models\AsignacionDeEtapa;
+use App\Modules\Produccion\Models\ComponenteDeReceta;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Models\Receta;
+use App\Modules\Produccion\Queries\AvancePorEtapasQuery;
 use App\Modules\Produccion\Queries\CalidadQuery;
 use App\Modules\Produccion\Queries\DashboardProduccionQuery;
 use App\Modules\Produccion\Queries\HojaDeRutaQuery;
@@ -34,7 +38,32 @@ class GestionOrdenesDeProduccionService
         private readonly PartesDiariosQuery $partesDiarios,
         private readonly ReporteProduccionQuery $reporteProduccion,
         private readonly UsuariosService $usuarios,
+        private readonly AvancePorEtapasQuery $avancePorEtapas,
     ) {}
+
+    /**
+     * Whether the article is used by an order that is still in play.
+     */
+    public function tieneOrdenesActivasParaArticulo(int $articuloId): bool
+    {
+        return OrdenDeProduccion::query()
+            ->where('articulo_id', $articuloId)
+            ->whereNotIn('estado', [
+                EstadoOrdenProduccion::Cerrada->value,
+                EstadoOrdenProduccion::Anulada->value,
+            ])
+            ->exists();
+    }
+
+    /**
+     * Whether the article takes part in production history (orders or recipes).
+     */
+    public function tieneHistorialParaArticulo(int $articuloId): bool
+    {
+        return OrdenDeProduccion::query()->where('articulo_id', $articuloId)->exists()
+            || Receta::query()->where('articulo_id', $articuloId)->exists()
+            || ComponenteDeReceta::query()->where('articulo_id', $articuloId)->exists();
+    }
 
     public function puedeGestionar(Usuario $actor): bool
     {
@@ -120,6 +149,12 @@ class GestionOrdenesDeProduccionService
         $partesPorOrden = $this->partesDiarios->porOrdenes($ordenIds);
         $conformadoPorOrden = $this->partesDiarios->conformadoPorOrdenes($ordenIds);
         $aprobadasParaCierre = $this->calidad->aprobadoParaCierre($ordenIds, $ultimasEtapas);
+        $etapasDetallePorOrden = $this->avancePorEtapas->porOrdenes(
+            $resultados->pluck('articulo_id', 'id')->all(),
+            $resultados->pluck('cantidad_requerida', 'id')
+                ->map(fn ($cantidad): float => (float) $cantidad)
+                ->all(),
+        );
 
         return $resultados->through(function (OrdenDeProduccion $orden) use (
             $resumenes,
@@ -130,6 +165,7 @@ class GestionOrdenesDeProduccionService
             $partesPorOrden,
             $conformadoPorOrden,
             $aprobadasParaCierre,
+            $etapasDetallePorOrden,
         ): array {
             $partes = $partesPorOrden[$orden->id] ?? collect();
             $conformadoPorEtapa = $conformadoPorOrden[$orden->id] ?? [];
@@ -180,6 +216,7 @@ class GestionOrdenesDeProduccionService
                 'maquinaria_ids' => $orden->maquinarias->pluck('id')->values()->all(),
                 'etapas' => $etapasPorArticulo[$orden->articulo_id] ?? [],
                 'etapas_con_ids' => $etapasConIdPorArticulo[$orden->articulo_id] ?? [],
+                'etapas_detalle' => $etapasDetallePorOrden[$orden->id] ?? [],
                 'partes' => $partes->all(),
                 'conformado_primera_etapa' => $conformadoPrimeraEtapa,
                 'conformado_ultima_etapa' => $conformadoUltimaEtapa,
@@ -233,6 +270,16 @@ class GestionOrdenesDeProduccionService
             foreach ($lineas as $linea) {
                 $articuloId = (int) $linea['articulo_id'];
                 $cantidad = (float) $linea['cantidad'];
+
+                $tieneHojaDeRuta = AsignacionDeEtapa::query()
+                    ->where('articulo_id', $articuloId)
+                    ->exists();
+
+                if (! $tieneHojaDeRuta) {
+                    throw ValidationException::withMessages([
+                        'lineas' => 'El producto no tiene hoja de ruta configurada: no se puede producir.',
+                    ]);
+                }
 
                 $necesidades = $this->necesidades($articuloId, $cantidad);
 

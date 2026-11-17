@@ -3,12 +3,16 @@
 namespace App\Modules\Produccion\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Inventario\Services\GestionReservasService;
+use App\Modules\Produccion\Enums\EstadoMaquinaria;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\ParteDiario;
+use App\Modules\Produccion\Queries\AvancePorEtapasQuery;
+use App\Modules\Produccion\Queries\CalidadQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
@@ -24,11 +28,65 @@ class GestionPartesDiariosService
         private readonly GestionReservasService $reservas,
         private readonly PartesDiariosQuery $query,
         private readonly UsuariosService $usuarios,
+        private readonly AvancePorEtapasQuery $avancePorEtapas,
+        private readonly GestionArticulosService $articulos,
+        private readonly CalidadQuery $calidad,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
     {
         return $this->usuarios->autorizar($actor, 'produccion.gestionar');
+    }
+
+    /**
+     * Orders in progress with everything the daily-part panel needs to render.
+     *
+     * @return array<int, array{id:int, producto: array<string, mixed>|null, cantidad_requerida:float, etapas: array<int, array{etapa_id:int, nombre:string, producida:float, rechazadas:float, faltante:float}>, maquinarias: array<int, array{id:int, nombre:string}>, partes_hoy: array<int, mixed>, partes_historial: array<int, mixed>, controles: array<int, array{id:int, fecha:string|null, etapa:string|null, aprobada:float, rechazada:float, motivo:string|null}>}>
+     */
+    public function ordenesEnCursoParaCarga(string $fecha): array
+    {
+        $ordenes = OrdenDeProduccion::query()
+            ->where('estado', EstadoOrdenProduccion::EnCurso->value)
+            ->with('maquinarias')
+            ->orderBy('fecha_entrega')
+            ->orderBy('id')
+            ->get();
+
+        if ($ordenes->isEmpty()) {
+            return [];
+        }
+
+        $resumenes = $this->articulos->resumenesDeArticulos(
+            $ordenes->pluck('articulo_id')->unique()->filter()->all(),
+        );
+        $etapasPorOrden = $this->avancePorEtapas->porOrdenes(
+            $ordenes->pluck('articulo_id', 'id')->all(),
+            $ordenes->pluck('cantidad_requerida', 'id')
+                ->map(fn ($cantidad): float => (float) $cantidad)
+                ->all(),
+        );
+        $ordenIds = $ordenes->pluck('id')->all();
+        $partesPorOrden = $this->query->porOrdenes($ordenIds, $fecha);
+        $historialPorOrden = $this->query->porOrdenes($ordenIds);
+        $controlesPorOrden = $this->calidad->controlesPorOrdenes($ordenIds);
+
+        return $ordenes->map(fn (OrdenDeProduccion $orden): array => [
+            'id' => $orden->id,
+            'producto' => $resumenes[$orden->articulo_id] ?? null,
+            'cantidad_requerida' => (float) $orden->cantidad_requerida,
+            'etapas' => $etapasPorOrden[$orden->id] ?? [],
+            'maquinarias' => $orden->maquinarias
+                ->sortBy('nombre')
+                ->map(fn (Maquinaria $maquinaria): array => [
+                    'id' => $maquinaria->id,
+                    'nombre' => $maquinaria->nombre,
+                ])
+                ->values()
+                ->all(),
+            'partes_hoy' => $partesPorOrden[$orden->id] ?? [],
+            'partes_historial' => $historialPorOrden[$orden->id] ?? [],
+            'controles' => $controlesPorOrden[$orden->id] ?? [],
+        ])->values()->all();
     }
 
     public function registrar(
@@ -92,6 +150,20 @@ class GestionPartesDiariosService
                 ]);
             }
 
+            $etapasOrdenadas = $asignaciones->keys()->values()->all();
+            $posicion = array_search($etapaId, $etapasOrdenadas, true);
+
+            if ($posicion !== false && $posicion > 0) {
+                $etapaAnterior = $etapasOrdenadas[$posicion - 1];
+                $conformadoAnterior = $conformadoPorEtapa[$etapaAnterior] ?? 0.0;
+
+                if (round(($conformadoEnEtapa + $cantidad) - $conformadoAnterior, 2) > 0) {
+                    throw ValidationException::withMessages([
+                        'etapa' => "La etapa anterior tiene {$conformadoAnterior} unidades conformadas: no se pueden registrar más de esas en esta etapa.",
+                    ]);
+                }
+            }
+
             $parte = ParteDiario::query()
                 ->where('orden_de_produccion_id', $orden->id)
                 ->where('etapa_id', $etapaId)
@@ -125,6 +197,13 @@ class GestionPartesDiariosService
 
             if ($maquinariaId !== null) {
                 $maquinaria = Maquinaria::query()->whereKey($maquinariaId)->lockForUpdate()->firstOrFail();
+
+                if ($maquinaria->estado_operativo !== EstadoMaquinaria::Disponible->value) {
+                    throw ValidationException::withMessages([
+                        'maquinaria' => 'La maquinaria no está disponible: no se puede registrar producción con ella.',
+                    ]);
+                }
+
                 $maquinaria->desgaste_acumulado = round((float) $maquinaria->desgaste_acumulado + $cantidad, 2);
                 $maquinaria->save();
 

@@ -39,6 +39,7 @@ class ArticulosQuery
                 'stock_disponible' => (float) $articulo->stock_fisico - (float) ($articulo->stock_comprometido ?? 0),
                 'stock_minimo' => $articulo->stock_minimo !== null ? (float) $articulo->stock_minimo : null,
                 'stock_maximo' => $articulo->stock_maximo !== null ? (float) $articulo->stock_maximo : null,
+                'fecha_vencimiento' => $articulo->fecha_vencimiento?->toDateString(),
             ]);
     }
 

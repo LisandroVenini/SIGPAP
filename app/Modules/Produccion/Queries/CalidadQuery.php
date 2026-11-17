@@ -13,6 +13,16 @@ class CalidadQuery
     ) {}
 
     /**
+     * Accumulated rejected units for one order, across all its quality controls.
+     */
+    public function rechazadasAcumuladas(int $ordenId): float
+    {
+        return (float) ControlDeCalidad::query()
+            ->where('orden_de_produccion_id', $ordenId)
+            ->sum('cantidad_rechazada');
+    }
+
+    /**
      * Return the approved quantity that can be used to close each order.
      *
      * The calculation follows these rules, in order:
@@ -86,6 +96,38 @@ class CalidadQuery
         }
 
         return $resultado;
+    }
+
+    /**
+     * Quality controls of several orders with the stage they belong to.
+     *
+     * @param  array<int, int>  $ordenIds
+     * @return array<int, array<int, array{id:int, fecha:string|null, etapa:string|null, aprobada:float, rechazada:float, motivo:string|null}>>
+     */
+    public function controlesPorOrdenes(array $ordenIds): array
+    {
+        if ($ordenIds === []) {
+            return [];
+        }
+
+        return ControlDeCalidad::query()
+            ->leftJoin('partes_diarios', 'partes_diarios.id', '=', 'controles_de_calidad.parte_diario_id')
+            ->leftJoin('etapas', 'etapas.id', '=', 'partes_diarios.etapa_id')
+            ->whereIn('controles_de_calidad.orden_de_produccion_id', $ordenIds)
+            ->orderByDesc('controles_de_calidad.fecha')
+            ->orderByDesc('controles_de_calidad.id')
+            ->select('controles_de_calidad.*', 'etapas.nombre as etapa')
+            ->get()
+            ->groupBy('orden_de_produccion_id')
+            ->map(fn ($grupo) => $grupo->map(fn ($control): array => [
+                'id' => (int) $control->id,
+                'fecha' => $control->fecha?->toDateString(),
+                'etapa' => $control->etapa,
+                'aprobada' => (float) $control->cantidad_aprobada,
+                'rechazada' => (float) $control->cantidad_rechazada,
+                'motivo' => $control->motivo_rechazo,
+            ])->values()->all())
+            ->all();
     }
 
     /**

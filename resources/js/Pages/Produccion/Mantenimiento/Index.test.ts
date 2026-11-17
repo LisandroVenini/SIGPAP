@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { enableAutoUnmount, mount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 
 enableAutoUnmount(afterEach);
 
@@ -39,6 +39,10 @@ vi.mock('@inertiajs/vue3', () => ({
 
 vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
+}));
+
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
 }));
 
 import Mantenimiento from './Index.vue';
@@ -168,6 +172,42 @@ describe('Produccion Mantenimiento page', () => {
             '/produccion/planes-de-mantenimiento',
             expect.any(Object),
             expect.any(Object),
+        );
+    });
+
+    it('opens the edit drawer for an intervention and puts the changes', async () => {
+        // Arrange
+        const wrapper = mount(Mantenimiento, { props, attachTo: document.body });
+
+        // Act
+        await wrapper.find('[data-testid="editar-intervencion-1"]').trigger('click');
+
+        // Assert
+        expect(wrapper.text()).toContain('Editar intervención');
+        expect((wrapper.find('#fecha').element as HTMLInputElement).value).toBe('01/11/2026');
+
+        // Act
+        await wrapper.find('[data-testid="intervencion-form"]').trigger('submit.prevent');
+
+        // Assert
+        expect(hoisted.put).toHaveBeenCalledWith(
+            '/produccion/maquinarias/10/mantenimientos/1',
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('deletes an intervention after confirming', async () => {
+        // Arrange
+        const wrapper = mount(Mantenimiento, { props, attachTo: document.body });
+
+        // Act
+        await wrapper.find('[data-testid="eliminar-intervencion-1"]').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(hoisted.routerDelete).toHaveBeenCalledWith(
+            '/produccion/maquinarias/10/mantenimientos/1',
+            expect.objectContaining({ preserveScroll: true }),
         );
     });
 });

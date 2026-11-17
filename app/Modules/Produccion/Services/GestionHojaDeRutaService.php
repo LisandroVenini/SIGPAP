@@ -48,29 +48,9 @@ class GestionHojaDeRutaService
             return null;
         }
 
-        $asignadas = AsignacionDeEtapa::query()
-            ->with('etapa')
-            ->where('articulo_id', $articuloId)
-            ->ordenadas()
-            ->get()
-            ->map(fn (AsignacionDeEtapa $asignacion): array => [
-                'etapa_id' => $asignacion->etapa_id,
-                'etapa' => $asignacion->etapa?->nombre,
-                'tiempo_por_unidad' => (float) $asignacion->tiempo_por_unidad,
-                'orden' => (int) $asignacion->orden,
-            ])
-            ->values();
-
-        $disponibles = Etapa::query()
-            ->whereNotIn('id', $asignadas->pluck('etapa_id'))
-            ->orderBy('nombre')
-            ->get(['id', 'nombre'])
-            ->map(fn (Etapa $etapa): array => ['id' => $etapa->id, 'nombre' => $etapa->nombre]);
-
         return [
             'producto' => $producto,
-            'asignadas' => $asignadas->all(),
-            'disponibles' => $disponibles->all(),
+            ...$this->query->detalleDeRuta($articuloId),
         ];
     }
 
@@ -86,6 +66,8 @@ class GestionHojaDeRutaService
                 'articulo' => 'Solo los productos terminados de origen Fabricado tienen hoja de ruta.',
             ]);
         }
+
+        $this->asegurarSinOrdenesActivas($articuloId);
 
         if (AsignacionDeEtapa::query()->where('articulo_id', $articuloId)->where('etapa_id', $etapaId)->exists()) {
             throw ValidationException::withMessages([
@@ -117,18 +99,41 @@ class GestionHojaDeRutaService
         });
     }
 
+    public function actualizarTiempo(
+        Usuario $actor,
+        int $articuloId,
+        int $etapaId,
+        float $tiempoPorUnidad,
+        ?string $direccionIp = null,
+    ): void {
+        $this->asegurarSinOrdenesActivas($articuloId);
+
+        DB::transaction(function () use ($actor, $articuloId, $etapaId, $tiempoPorUnidad, $direccionIp): void {
+            $asignacion = AsignacionDeEtapa::query()
+                ->where('articulo_id', $articuloId)
+                ->where('etapa_id', $etapaId)
+                ->firstOrFail();
+
+            $anterior = (float) $asignacion->tiempo_por_unidad;
+
+            $asignacion->tiempo_por_unidad = $tiempoPorUnidad;
+            $asignacion->save();
+
+            $this->auditoria->registrarEvento(
+                $actor->id,
+                'actualizar_tiempo_etapa',
+                ['tiempo_por_unidad' => $anterior],
+                ['tiempo_por_unidad' => $tiempoPorUnidad],
+                $direccionIp,
+                AsignacionDeEtapa::class,
+                $asignacion->id,
+            );
+        });
+    }
+
     public function desasignar(Usuario $actor, int $articuloId, int $etapaId, ?string $direccionIp = null): void
     {
-        $enCurso = OrdenDeProduccion::query()
-            ->where('articulo_id', $articuloId)
-            ->where('estado', EstadoOrdenProduccion::EnCurso->value)
-            ->exists();
-
-        if ($enCurso) {
-            throw ValidationException::withMessages([
-                'articulo' => 'Existen órdenes de producción en curso con esta hoja de ruta. No se puede desasignar.',
-            ]);
-        }
+        $this->asegurarSinOrdenesActivas($articuloId);
 
         $asignacion = AsignacionDeEtapa::query()
             ->where('articulo_id', $articuloId)
@@ -165,6 +170,8 @@ class GestionHojaDeRutaService
         string $direccion,
         ?string $direccionIp = null,
     ): void {
+        $this->asegurarSinOrdenesActivas($articuloId);
+
         $asignaciones = AsignacionDeEtapa::query()
             ->where('articulo_id', $articuloId)
             ->ordenadas()
@@ -243,6 +250,23 @@ class GestionHojaDeRutaService
             if ((int) $asignacion->orden !== $ordenEsperado) {
                 $asignacion->update(['orden' => $ordenEsperado]);
             }
+        }
+    }
+
+    private function asegurarSinOrdenesActivas(int $articuloId): void
+    {
+        $activas = OrdenDeProduccion::query()
+            ->where('articulo_id', $articuloId)
+            ->whereNotIn('estado', [
+                EstadoOrdenProduccion::Cerrada->value,
+                EstadoOrdenProduccion::Anulada->value,
+            ])
+            ->exists();
+
+        if ($activas) {
+            throw ValidationException::withMessages([
+                'articulo' => 'El producto tiene órdenes de producción activas: no se puede modificar su hoja de ruta.',
+            ]);
         }
     }
 }

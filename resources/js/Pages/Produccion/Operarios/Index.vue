@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Operario {
     id: number;
@@ -101,8 +102,15 @@ function guardar(): void {
     });
 }
 
-function eliminar(operario: Operario): void {
-    if (!window.confirm(`¿Dar de baja a ${operario.nombre} ${operario.apellido}?`)) {
+async function eliminar(operario: Operario): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Dar de baja operario',
+        mensaje: `¿Dar de baja a ${operario.nombre} ${operario.apellido}?`,
+        confirmar: 'Dar de baja',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 

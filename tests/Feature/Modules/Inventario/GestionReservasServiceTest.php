@@ -430,4 +430,20 @@ class GestionReservasServiceTest extends TestCase
 
         $this->assertSame(2.0, (float) $articulo->refresh()->stock_fisico);
     }
+
+    public function test_reserving_twice_does_not_duplicate_the_order_reservations(): void
+    {
+        // Arrange
+        $orden = $this->orden();
+        $articulo = $this->articulo(10);
+
+        // Act
+        $this->service()->reservar($orden->id, [$articulo->id => 4.0]);
+        $resultado = $this->service()->reservar($orden->id, [$articulo->id => 4.0]);
+
+        // Assert
+        $this->assertTrue($resultado['cubierto']);
+        $this->assertSame(1, Reserva::query()->where('estado', EstadoReserva::Vigente->value)->count());
+        $this->assertSame(6.0, $this->service()->disponibles([$articulo->id])[$articulo->id]);
+    }
 }

@@ -19,8 +19,8 @@ class StorePlanificacionRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
-            'fecha_inicio' => ['required', 'date'],
-            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
+            'fecha_inicio' => ['required', 'date', 'after_or_equal:today'],
+            'fecha_fin' => ['required', 'date', 'after_or_equal:today', 'after_or_equal:fecha_inicio'],
             'observaciones' => ['nullable', 'string'],
         ];
     }

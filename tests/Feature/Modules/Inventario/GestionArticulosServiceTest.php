@@ -4,13 +4,16 @@ namespace Tests\Feature\Modules\Inventario;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Enums\EstadoArticulo;
+use App\Modules\Inventario\Enums\EstadoReserva;
 use App\Modules\Inventario\Enums\OrigenArticulo;
 use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
+use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Inventario\Models\UnidadDeMedida;
 use App\Modules\Inventario\Queries\ArticulosQuery;
 use App\Modules\Inventario\Queries\DashboardInventarioQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
+use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -347,5 +350,160 @@ class GestionArticulosServiceTest extends TestCase
 
         // Assert
         $this->assertSame([$conComodin->id], $coincidencias);
+    }
+
+    public function test_por_sku_returns_the_matching_articles_keyed_by_sku(): void
+    {
+        // Arrange
+        $madera = Articulo::factory()->create([
+            'codigo_sku' => 'MP-001',
+            'descripcion' => 'Madera de pino',
+            'tipo' => TipoArticulo::MateriaPrima->value,
+        ]);
+        Articulo::factory()->create([
+            'codigo_sku' => 'PT-001',
+            'descripcion' => 'Silla',
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+        ]);
+        $service = $this->service();
+
+        // Act
+        $articulos = $service->porSku(['MP-001', 'NO-EXISTE']);
+
+        // Assert
+        $this->assertSame(['MP-001'], array_keys($articulos));
+        $this->assertSame($madera->id, $articulos['MP-001']['id']);
+        $this->assertSame('Madera de pino', $articulos['MP-001']['descripcion']);
+    }
+
+    public function test_por_sku_returns_an_empty_array_without_skus(): void
+    {
+        // Arrange
+        $service = $this->service();
+
+        // Act / Assert
+        $this->assertSame([], $service->porSku([]));
+    }
+
+    public function test_cambiar_estado_bloquea_la_baja_con_reservas_vigentes(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $articulo = Articulo::factory()->create([
+            'unidad_de_medida_id' => $this->unidad()->id,
+            'stock_fisico' => 0,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'estado' => EstadoReserva::Vigente->value,
+        ]);
+
+        // Act
+        try {
+            $this->service()->cambiarEstado($actor, $articulo, true);
+            $this->fail('Se esperaba una excepción por reservas vigentes.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('estado', $excepcion->errors());
+        }
+    }
+
+    public function test_cambiar_estado_bloquea_la_baja_con_ordenes_activas(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $articulo = Articulo::factory()->create([
+            'unidad_de_medida_id' => $this->unidad()->id,
+            'stock_fisico' => 0,
+            'estado' => EstadoArticulo::Activo->value,
+        ]);
+        OrdenDeProduccion::factory()->create([
+            'articulo_id' => $articulo->id,
+            'estado' => 'Pendiente',
+        ]);
+
+        // Act
+        try {
+            $this->service()->cambiarEstado($actor, $articulo, true);
+            $this->fail('Se esperaba una excepción por órdenes activas.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('estado', $excepcion->errors());
+        }
+    }
+
+    public function test_actualizar_bloquea_el_cambio_de_clasificacion_con_historial(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $articulo = Articulo::factory()->create([
+            'tipo' => TipoArticulo::MateriaPrima->value,
+            'origen' => null,
+            'unidad_de_medida_id' => $this->unidad()->id,
+            'stock_fisico' => 0,
+        ]);
+        OrdenDeProduccion::factory()->create(['articulo_id' => $articulo->id]);
+
+        // Act
+        try {
+            $this->service()->actualizar($actor, $articulo, [
+                'descripcion' => $articulo->descripcion,
+                'tipo' => TipoArticulo::ProductoTerminado->value,
+                'origen' => OrigenArticulo::Fabricado->value,
+                'unidad_de_medida_id' => $articulo->unidad_de_medida_id,
+            ]);
+            $this->fail('Se esperaba una excepción por historial.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('tipo', $excepcion->errors());
+        }
+    }
+
+    public function test_actualizar_bloquea_el_cambio_de_unidad_con_historial(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $unidad = $this->unidad();
+        $otraUnidad = UnidadDeMedida::factory()->create();
+        $articulo = Articulo::factory()->create(['unidad_de_medida_id' => $unidad->id]);
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'estado' => EstadoReserva::Vigente->value,
+        ]);
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($actor, $articulo, [
+                'descripcion' => $articulo->descripcion,
+                'tipo' => $articulo->tipo,
+                'unidad_de_medida_id' => $otraUnidad->id,
+            ]);
+
+            $this->fail('Changing the unit of an article with history should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('unidad_de_medida_id', $exception->errors());
+        }
+
+        $this->assertSame($unidad->id, $articulo->refresh()->unidad_de_medida_id);
+    }
+
+    public function test_actualizar_permite_cambiar_la_unidad_sin_historial(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $unidad = $this->unidad();
+        $otraUnidad = UnidadDeMedida::factory()->create();
+        $articulo = Articulo::factory()->create(['unidad_de_medida_id' => $unidad->id]);
+
+        // Act
+        $this->service()->actualizar($actor, $articulo, [
+            'descripcion' => $articulo->descripcion,
+            'tipo' => $articulo->tipo,
+            'unidad_de_medida_id' => $otraUnidad->id,
+        ]);
+
+        // Assert
+        $this->assertSame($otraUnidad->id, $articulo->refresh()->unidad_de_medida_id);
     }
 }

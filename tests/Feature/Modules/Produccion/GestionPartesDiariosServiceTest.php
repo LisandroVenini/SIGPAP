@@ -17,6 +17,7 @@ use App\Modules\Produccion\Models\ControlDeCalidad;
 use App\Modules\Produccion\Models\Etapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
 use App\Modules\Produccion\Models\Receta;
 use App\Modules\Produccion\Services\GestionPartesDiariosService;
@@ -176,6 +177,15 @@ class GestionPartesDiariosServiceTest extends TestCase
         [$corte, $ensamble] = $this->hojaDeRutaDeDosEtapas($producto);
         $orden = $this->ordenEnCurso($producto);
         app(GestionReservasService::class)->reservar($orden->id, [$insumo->id => 20]);
+
+        // Stage one is loaded directly so the flow is satisfied without consuming.
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'maquinaria_id' => null,
+            'fecha' => '2026-10-31',
+            'cantidad_conformada' => 5,
+        ]);
 
         // Act
         $parte = $this->service()->registrar(
@@ -630,6 +640,92 @@ class GestionPartesDiariosServiceTest extends TestCase
             'articulo_id' => $insumo->id,
             'cantidad' => 12,
             'estado' => EstadoReserva::Consumida->value,
+        ]);
+    }
+
+    public function test_rejects_a_later_stage_beyond_the_previous_conformed_quantity(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+        [$corte, $ensamble] = $this->hojaDeRutaDeDosEtapas($producto);
+        $orden = $this->ordenEnCurso($producto);
+        app(GestionReservasService::class)->reservar($orden->id, [$insumo->id => 20]);
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'maquinaria_id' => null,
+            'fecha' => '2026-10-31',
+            'cantidad_conformada' => 3,
+        ]);
+
+        // Act
+        try {
+            $this->service()->registrar(
+                $actor,
+                $orden,
+                $ensamble->id,
+                null,
+                '2026-11-01',
+                5,
+                null,
+                '127.0.0.1'
+            );
+            $this->fail('Se esperaba una excepción de validación por falta de unidades de la etapa anterior.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('etapa', $excepcion->errors());
+        }
+
+        $this->assertDatabaseMissing('partes_diarios', [
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $ensamble->id,
+        ]);
+    }
+
+    public function test_rejects_a_part_with_a_machine_that_is_not_available(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $insumo = $this->insumo(['stock_fisico' => 100]);
+        $producto = $this->productoFabricado();
+        $this->recetaConComponente($producto, $insumo, 2);
+        $etapa = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapa->id,
+            'orden' => 1,
+        ]);
+        $orden = $this->ordenEnCurso($producto);
+        app(GestionReservasService::class)->reservar($orden->id, [$insumo->id => 20]);
+        $maquinaria = Maquinaria::factory()->create([
+            'estado_operativo' => EstadoMaquinaria::EnMantenimiento->value,
+        ]);
+        $orden->maquinarias()->attach($maquinaria->id);
+
+        // Act
+        try {
+            $this->service()->registrar(
+                $actor,
+                $orden,
+                $etapa->id,
+                $maquinaria->id,
+                now()->toDateString(),
+                2,
+                null,
+                '127.0.0.1'
+            );
+            $this->fail('Se esperaba una excepción por máquina no disponible.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('maquinaria', $excepcion->errors());
+        }
+
+        $this->assertDatabaseMissing('partes_diarios', [
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $etapa->id,
         ]);
     }
 }

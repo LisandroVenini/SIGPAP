@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Proveedor {
     id: number;
@@ -112,8 +113,15 @@ function guardar(): void {
     });
 }
 
-function darDeBaja(proveedor: Proveedor): void {
-    if (!window.confirm(`¿Dar de baja al proveedor "${proveedor.razon_social}"?`)) {
+async function darDeBaja(proveedor: Proveedor): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Dar de baja proveedor',
+        mensaje: `¿Dar de baja al proveedor "${proveedor.razon_social}"?`,
+        confirmar: 'Dar de baja',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 
