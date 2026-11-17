@@ -28,6 +28,39 @@ const form = useForm({
     ) as Record<string, string>,
 });
 
+interface ReglaNumerica {
+    min: number;
+    max?: number;
+    step: number;
+}
+
+const PARAMETROS_NUMERICOS: Record<string, ReglaNumerica> = {
+    prod_tolerancia_desvio_dias: { min: 0, step: 1 },
+    prod_umbral_calidad: { min: 0, max: 100, step: 0.01 },
+    compras_vigencia_cotizacion_dias: { min: 1, step: 1 },
+    compras_minimo_cotizaciones: { min: 1, step: 1 },
+    compras_umbral_aprobacion_gerente: { min: 0, step: 0.01 },
+    compras_ranking_peso_perfecta: { min: 0, max: 1, step: 0.01 },
+    compras_ranking_peso_retraso: { min: 0, max: 1, step: 0.01 },
+    compras_ranking_peso_faltante: { min: 0, max: 1, step: 0.01 },
+    compras_ranking_peso_rotura: { min: 0, max: 1, step: 0.01 },
+    compras_ranking_ventana_meses: { min: 1, max: 60, step: 1 },
+    compras_multicriterio_peso_precio: { min: 0, max: 1, step: 0.01 },
+    compras_multicriterio_peso_entrega: { min: 0, max: 1, step: 0.01 },
+    compras_multicriterio_peso_confiabilidad: { min: 0, max: 1, step: 0.01 },
+    compras_multicriterio_confiabilidad_sin_historial: { min: 0, max: 100, step: 0.01 },
+    compras_multicriterio_penalizar_cobertura: { min: 0, max: 1, step: 1 },
+    predictivo_intervalo_recalculo_min: { min: 1, max: 1440, step: 1 },
+    predictivo_ventana_entrenamiento_meses: { min: 1, max: 60, step: 1 },
+    predictivo_confianza_minima: { min: 0, max: 100, step: 0.01 },
+    seguridad_expiracion_sesion_min: { min: 1, max: 1440, step: 1 },
+    seguridad_intentos_fallidos: { min: 1, max: 20, step: 1 },
+};
+
+function reglaNumerica(nombre: string): ReglaNumerica | null {
+    return PARAMETROS_NUMERICOS[nombre] ?? null;
+}
+
 function humanize(nombre: string): string {
     const texto = nombre.replace(/_/g, ' ');
 
@@ -96,7 +129,10 @@ function submit(): void {
                             <input
                                 :id="parametro.nombre"
                                 v-model="form.parametros[parametro.nombre]"
-                                type="text"
+                                :type="reglaNumerica(parametro.nombre) ? 'number' : 'text'"
+                                :min="reglaNumerica(parametro.nombre)?.min"
+                                :max="reglaNumerica(parametro.nombre)?.max"
+                                :step="reglaNumerica(parametro.nombre)?.step"
                                 :disabled="!props.puedeEditar"
                                 class="w-full rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink transition-all focus:border-teja focus:ring-2 focus:ring-teja/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-workshop/40"
                             />
