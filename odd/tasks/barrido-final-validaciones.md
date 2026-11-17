@@ -25,24 +25,29 @@ Objetivo: cerrar los 16 hallazgos del último barrido transversal (A1, M1–M6, 
 
 | ID | Specs | Ruta | Estado |
 |---|---|---|---|
-| T1 | S1 | inline | pendiente |
-| T2 | S2 | inline | pendiente |
-| T3 | S3 | inline | pendiente |
-| T4 | S4 | inline | pendiente |
-| T5 | S5 | inline | pendiente |
-| T6 | S6 | inline | pendiente |
-| T7 | S7 | inline | pendiente |
-| T8 | S8 | inline | pendiente |
-| T9 | S9 | inline | pendiente |
-| T10 | S10 | inline | pendiente |
-| T11 | S11 | inline | pendiente |
-| T12 | S12 | inline | pendiente |
-| T13 | S13 | inline | pendiente |
-| T14 | S14 | inline | pendiente |
-| T15 | S15 | inline | pendiente |
+| T1 | S1 | inline | hecho b15d787 |
+| T2 | S2 | inline | hecho b15d787 |
+| T3 | S3 | inline | hecho 57379c4 |
+| T4 | S4 | inline | hecho 5e8b04a |
+| T5 | S5 | inline | hecho 5e8b04a |
+| T6 | S6 | inline | hecho 32f1dcc |
+| T7 | S7 | inline | hecho 10ef751 |
+| T8 | S8 | inline | hecho (commit parametros) |
+| T9 | S9 | inline | hecho b15d787 |
+| T10 | S10 | inline | hecho (commit auditoria) |
+| T11 | S11 | inline | hecho (commit auditoria) |
+| T12 | S12 | inline | ya cubierto por useConfirm |
+| T13 | S13 | inline | ya cubierto (test existente) |
+| T14 | S14 | inline | hecho (commit compras log) |
+| T15 | S15 | inline | hecho 50cd04e |
 | T16 | S16 | — | decisión documentada |
 
 ## Log
 
 - **L1**: "perfecto, vamos con A1, m1, ..., M6, y los 9 hallazgos de bajo riesgo".
 - **L2**: decisiones tomadas: M2 usa una ventana fija de 30 días; M6 no cierra con faltantes salvo pedido explícito del usuario (checkbox "cerrar recepción"); B2 elimina el campo en vez de simular una conversión inexistente; B3 usa un trigger en PostgreSQL; B9 no cambia código (el período de planificación no acota la entrega).
+
+- **L3**: M5 implementado: errores visibles en los drawers (nueva/modificar/anular/asignar), guard de reentrada en iniciar/reanudar y error `recursos` renderizado.
+- **L4**: B5 verificado como ya cubierto: `useConfirm` resuelve la confirmación previa como `false` al abrir otra, así que un doble click no produce dos requests.
+- **L5**: B6 verificado como ya cubierto: existen tests de throttle para ambos portales públicos.
+- **L6**: B9 sin cambio de código: el período de planificación no acota la fecha de entrega; se documenta como decisión.
