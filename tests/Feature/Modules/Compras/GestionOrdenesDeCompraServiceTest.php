@@ -372,6 +372,65 @@ class GestionOrdenesDeCompraServiceTest extends TestCase
         $this->assertDatabaseCount('lineas_de_orden_de_compra', 1);
     }
 
+    public function test_annulling_an_emitted_orden_frees_the_adjudication(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Act
+        $this->service()->anular($actor, $orden, 'Proveedor sin stock', '127.0.0.1');
+
+        // Assert
+        $this->assertSame('Anulada', $orden->refresh()->estado);
+        $this->assertSame('Enviada', $contexto['solicitud']->refresh()->estado);
+        $this->assertDatabaseMissing('lineas_de_cotizacion', [
+            'cotizacion_id' => $contexto['cotizacion']->id,
+            'adjudicada' => true,
+        ]);
+        $this->assertDatabaseHas('eventos_de_auditoria', [
+            'accion' => 'anular_orden_compra',
+            'usuario_id' => $actor->id,
+            'auditable_id' => $orden->id,
+        ]);
+    }
+
+    public function test_an_annulled_orden_allows_emitting_again(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        $primera = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+        $this->service()->anular($actor, $primera);
+
+        // Act
+        $segunda = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Assert
+        $this->assertNotSame($primera->id, $segunda->id);
+        $this->assertSame('Emitida', $segunda->estado);
+        $this->assertSame('Adjudicada', $contexto['solicitud']->refresh()->estado);
+    }
+
+    public function test_annulling_an_orden_without_a_source_quote_keeps_working(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $orden = OrdenDeCompraFactory::new()->create([
+            'cotizacion_id' => null,
+            'estado' => 'Emitida',
+        ]);
+
+        // Act
+        $this->service()->anular($actor, $orden);
+
+        // Assert
+        $this->assertSame('Anulada', $orden->refresh()->estado);
+    }
+
     public function test_annuls_an_emitted_orden_and_audits_it(): void
     {
         // Arrange

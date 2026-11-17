@@ -249,16 +249,59 @@ class GestionOrdenesDeCompraService
 
             $orden->update(['estado' => EstadoOrdenDeCompra::Anulada->value]);
 
+            $adjudicacionLiberada = $this->liberarAdjudicacion($orden);
+
             $this->auditoria->registrarEvento(
                 $actor->id,
                 'anular_orden_compra',
                 $anterior,
-                ['estado' => EstadoOrdenDeCompra::Anulada->value, 'motivo' => $motivo],
+                [
+                    'estado' => EstadoOrdenDeCompra::Anulada->value,
+                    'motivo' => $motivo,
+                    'adjudicacion_liberada' => $adjudicacionLiberada,
+                ],
                 $direccionIp,
                 OrdenDeCompra::class,
                 $orden->id,
             );
         });
+    }
+
+    /**
+     * Annulling the order must free the adjudicated quote: otherwise the solicitud stays
+     * Adjudicada forever and no other quote can be chosen.
+     */
+    private function liberarAdjudicacion(OrdenDeCompra $orden): bool
+    {
+        if ($orden->cotizacion_id === null) {
+            return false;
+        }
+
+        $cotizacion = Cotizacion::query()
+            ->whereKey($orden->cotizacion_id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($cotizacion === null) {
+            return false;
+        }
+
+        $cotizacion->lineas()->update(['adjudicada' => false]);
+
+        $solicitud = SolicitudDeCotizacion::query()
+            ->whereKey($cotizacion->solicitud_de_cotizacion_id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($solicitud === null) {
+            return false;
+        }
+
+        if ($solicitud->estado === EstadoSolicitudDeCotizacion::Adjudicada->value) {
+            $solicitud->update(['estado' => EstadoSolicitudDeCotizacion::Enviada->value]);
+        }
+
+        return true;
     }
 
     public function confirmar(string $token, bool $aceptada, ?string $motivo = null, ?string $direccionIp = null): void
