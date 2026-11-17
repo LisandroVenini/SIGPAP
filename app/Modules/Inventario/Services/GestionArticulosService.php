@@ -151,10 +151,19 @@ class GestionArticulosService
 
             $nuevoOrigen = $this->origenPara($datos);
             $cambiaClasificacion = $datos['tipo'] !== $articulo->tipo || $nuevoOrigen !== $articulo->origen;
+            $tieneHistorial = $this->tieneHistorial($articulo);
 
-            if ($cambiaClasificacion && $this->tieneHistorial($articulo)) {
+            if ($cambiaClasificacion && $tieneHistorial) {
                 throw ValidationException::withMessages([
                     'tipo' => 'No se puede cambiar el tipo ni el origen de un artículo con historial de producción o stock.',
+                ]);
+            }
+
+            $cambiaUnidad = (int) $datos['unidad_de_medida_id'] !== (int) $articulo->unidad_de_medida_id;
+
+            if ($cambiaUnidad && $tieneHistorial) {
+                throw ValidationException::withMessages([
+                    'unidad_de_medida_id' => 'No se puede cambiar la unidad de medida de un artículo con historial de producción o stock.',
                 ]);
             }
 

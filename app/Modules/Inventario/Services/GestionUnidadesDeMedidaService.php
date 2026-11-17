@@ -14,7 +14,7 @@ class GestionUnidadesDeMedidaService
     public function __construct(private readonly AuditoriaService $auditoria) {}
 
     /**
-     * @return Collection<int, array{id:int, nombre:string, factor_conversion:float, articulos:int}>
+     * @return Collection<int, array{id:int, nombre:string, articulos:int}>
      */
     public function listar(): Collection
     {
@@ -25,26 +25,22 @@ class GestionUnidadesDeMedidaService
             ->map(fn (UnidadDeMedida $unidad): array => [
                 'id' => $unidad->id,
                 'nombre' => $unidad->nombre,
-                'factor_conversion' => (float) $unidad->factor_conversion,
                 'articulos' => (int) $unidad->articulos_count,
             ]);
     }
 
-    public function crear(Usuario $actor, string $nombre, float $factorConversion, ?string $direccionIp = null): UnidadDeMedida
+    public function crear(Usuario $actor, string $nombre, ?string $direccionIp = null): UnidadDeMedida
     {
         $this->asegurarNombreDisponible($nombre);
 
-        return DB::transaction(function () use ($actor, $nombre, $factorConversion, $direccionIp): UnidadDeMedida {
-            $unidad = UnidadDeMedida::create([
-                'nombre' => $nombre,
-                'factor_conversion' => $factorConversion,
-            ]);
+        return DB::transaction(function () use ($actor, $nombre, $direccionIp): UnidadDeMedida {
+            $unidad = UnidadDeMedida::create(['nombre' => $nombre]);
 
             $this->auditoria->registrarEvento(
                 $actor->id,
                 'crear_unidad_de_medida',
                 null,
-                ['nombre' => $nombre, 'factor_conversion' => $factorConversion],
+                ['nombre' => $nombre],
                 $direccionIp,
                 UnidadDeMedida::class,
                 $unidad->id,
@@ -58,21 +54,20 @@ class GestionUnidadesDeMedidaService
         Usuario $actor,
         UnidadDeMedida $unidad,
         string $nombre,
-        float $factorConversion,
         ?string $direccionIp = null,
     ): UnidadDeMedida {
         $this->asegurarNombreDisponible($nombre, $unidad->id);
 
-        return DB::transaction(function () use ($actor, $unidad, $nombre, $factorConversion, $direccionIp): UnidadDeMedida {
-            $anterior = ['nombre' => $unidad->nombre, 'factor_conversion' => (float) $unidad->factor_conversion];
+        return DB::transaction(function () use ($actor, $unidad, $nombre, $direccionIp): UnidadDeMedida {
+            $anterior = ['nombre' => $unidad->nombre];
 
-            $unidad->update(['nombre' => $nombre, 'factor_conversion' => $factorConversion]);
+            $unidad->update(['nombre' => $nombre]);
 
             $this->auditoria->registrarEvento(
                 $actor->id,
                 'actualizar_unidad_de_medida',
                 $anterior,
-                ['nombre' => $nombre, 'factor_conversion' => $factorConversion],
+                ['nombre' => $nombre],
                 $direccionIp,
                 UnidadDeMedida::class,
                 $unidad->id,
@@ -94,7 +89,7 @@ class GestionUnidadesDeMedidaService
             $this->auditoria->registrarEvento(
                 $actor->id,
                 'eliminar_unidad_de_medida',
-                ['nombre' => $unidad->nombre, 'factor_conversion' => (float) $unidad->factor_conversion],
+                ['nombre' => $unidad->nombre],
                 null,
                 $direccionIp,
                 UnidadDeMedida::class,
@@ -114,7 +109,7 @@ class GestionUnidadesDeMedidaService
 
         if ($existe) {
             throw ValidationException::withMessages([
-                'nombre' => 'Ya existe una unidad de medida con ese nombre.',
+                'nombre' => 'La unidad de medida ya existe.',
             ]);
         }
     }

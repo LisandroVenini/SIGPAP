@@ -32,7 +32,6 @@ class UnidadDeMedidaController
         $this->unidades->crear(
             $actor,
             $request->validated('nombre'),
-            (float) $request->validated('factor_conversion'),
             $request->ip(),
         );
 
@@ -48,7 +47,6 @@ class UnidadDeMedidaController
             $actor,
             $unidad,
             $request->validated('nombre'),
-            (float) $request->validated('factor_conversion'),
             $request->ip(),
         );
 

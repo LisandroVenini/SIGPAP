@@ -3,9 +3,11 @@
 namespace App\Modules\Inventario\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Inventario\Enums\EstadoReserva;
 use App\Modules\Inventario\Enums\TipoMovimientoStock;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\MovimientoDeStock;
+use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +41,18 @@ class GestionAjustesService
             if (abs($diferencia) < 0.0001) {
                 throw ValidationException::withMessages([
                     'nuevo_stock' => 'El nuevo stock es igual al actual; no hay ajuste que registrar.',
+                ]);
+            }
+
+            $reservado = (float) Reserva::query()
+                ->where('articulo_id', $articulo->id)
+                ->where('estado', EstadoReserva::Vigente->value)
+                ->sum('cantidad');
+
+            if ($nuevoStock < $reservado) {
+                throw ValidationException::withMessages([
+                    'nuevo_stock' => 'El stock no puede quedar por debajo de las unidades reservadas ('
+                        .number_format($reservado, 2, ',', '.').').',
                 ]);
             }
 

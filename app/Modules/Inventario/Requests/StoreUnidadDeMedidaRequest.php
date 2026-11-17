@@ -18,7 +18,6 @@ class StoreUnidadDeMedidaRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
-            'factor_conversion' => ['required', 'numeric', 'gt:0'],
         ];
     }
 }

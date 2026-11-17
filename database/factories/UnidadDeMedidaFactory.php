@@ -22,7 +22,6 @@ class UnidadDeMedidaFactory extends Factory
     {
         return [
             'nombre' => fake()->unique()->word(),
-            'factor_conversion' => 1,
         ];
     }
 }

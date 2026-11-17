@@ -72,7 +72,6 @@ class UnidadDeMedidaControllerTest extends TestCase
         // Act
         $response = $this->actingAs($usuario)->post('/inventario/unidades-de-medida', [
             'nombre' => 'Metro cuadrado',
-            'factor_conversion' => 1,
         ]);
 
         // Assert
@@ -89,7 +88,6 @@ class UnidadDeMedidaControllerTest extends TestCase
         // Act
         $response = $this->actingAs($usuario)->post('/inventario/unidades-de-medida', [
             'nombre' => 'LITRO',
-            'factor_conversion' => 1,
         ]);
 
         // Assert
@@ -101,17 +99,16 @@ class UnidadDeMedidaControllerTest extends TestCase
     {
         // Arrange
         $usuario = $this->usuarioConRol(Rol::EncargadoStock);
-        $unidad = UnidadDeMedida::factory()->create(['nombre' => 'Litro', 'factor_conversion' => 1]);
+        $unidad = UnidadDeMedida::factory()->create(['nombre' => 'Litro']);
 
         // Act
         $response = $this->actingAs($usuario)->put("/inventario/unidades-de-medida/{$unidad->id}", [
             'nombre' => 'Litro',
-            'factor_conversion' => 1000,
         ]);
 
         // Assert
         $response->assertRedirect('/inventario/unidades-de-medida');
-        $this->assertDatabaseHas('unidades_de_medida', ['id' => $unidad->id, 'factor_conversion' => 1000]);
+        $this->assertDatabaseHas('unidades_de_medida', ['id' => $unidad->id, 'nombre' => 'Litro']);
     }
 
     public function test_a_unit_in_use_cannot_be_deleted(): void

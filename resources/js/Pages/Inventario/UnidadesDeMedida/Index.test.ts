@@ -47,8 +47,8 @@ import Unidades from './Index.vue';
 
 const props = {
     unidades: [
-        { id: 1, nombre: 'Unidad', factor_conversion: 1, articulos: 2 },
-        { id: 2, nombre: 'Litro', factor_conversion: 1, articulos: 0 },
+        { id: 1, nombre: 'Unidad', articulos: 2 },
+        { id: 2, nombre: 'Litro', articulos: 0 },
     ],
 };
 

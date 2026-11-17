@@ -7,7 +7,6 @@ import { confirmar } from '@/composables/useConfirm';
 interface Unidad {
     id: number;
     nombre: string;
-    factor_conversion: number;
     articulos: number;
 }
 
@@ -26,7 +25,6 @@ const unidadEditando = ref<Unidad | null>(null);
 
 const form = useForm({
     nombre: '',
-    factor_conversion: '1',
 });
 
 function abrirCrear(): void {
@@ -34,7 +32,6 @@ function abrirCrear(): void {
     unidadEditando.value = null;
     form.reset();
     form.clearErrors();
-    form.factor_conversion = '1';
     drawerOpen.value = true;
 }
 
@@ -43,7 +40,6 @@ function abrirEditar(unidad: Unidad): void {
     unidadEditando.value = unidad;
     form.clearErrors();
     form.nombre = unidad.nombre;
-    form.factor_conversion = String(unidad.factor_conversion);
     drawerOpen.value = true;
 }
 
@@ -143,11 +139,6 @@ async function eliminar(unidad: Unidad): Promise<void> {
                                 <th
                                     class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
                                 >
-                                    Factor
-                                </th>
-                                <th
-                                    class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
-                                >
                                     Artículos
                                 </th>
                                 <th
@@ -165,9 +156,6 @@ async function eliminar(unidad: Unidad): Promise<void> {
                             >
                                 <td class="px-4 py-2.5 text-sm font-medium text-ink">
                                     {{ unidad.nombre }}
-                                </td>
-                                <td class="num px-4 py-2.5 text-right text-xs text-steel">
-                                    {{ unidad.factor_conversion }}
                                 </td>
                                 <td class="num px-4 py-2.5 text-right text-xs text-steel">
                                     {{ unidad.articulos }}
@@ -243,24 +231,6 @@ async function eliminar(unidad: Unidad): Promise<void> {
                         />
                         <p v-if="form.errors.nombre" class="text-xs text-oxide">
                             {{ form.errors.nombre }}
-                        </p>
-                    </div>
-
-                    <div class="flex flex-col gap-1.5">
-                        <label for="factor_conversion" class="text-xs font-medium text-steel"
-                            >Factor de conversión</label
-                        >
-                        <input
-                            id="factor_conversion"
-                            v-model="form.factor_conversion"
-                            type="number"
-                            min="0.000001"
-                            step="0.000001"
-                            required
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 font-mono text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
-                        />
-                        <p v-if="form.errors.factor_conversion" class="text-xs text-oxide">
-                            {{ form.errors.factor_conversion }}
                         </p>
                     </div>
 
