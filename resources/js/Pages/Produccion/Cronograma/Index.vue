@@ -64,10 +64,14 @@ function abrir(fila: FilaCronograma): void {
     drawerOpen.value = true;
 }
 
+const enviando = ref(false);
+
 function guardar(): void {
-    if (!filaActiva.value) {
+    if (!filaActiva.value || enviando.value) {
         return;
     }
+
+    enviando.value = true;
 
     router.put(
         `/produccion/cronograma/${filaActiva.value.orden_id}/prioridad`,
@@ -81,6 +85,9 @@ function guardar(): void {
             preserveScroll: true,
             onSuccess: () => {
                 drawerOpen.value = false;
+            },
+            onFinish: () => {
+                enviando.value = false;
             },
         },
     );
@@ -366,6 +373,21 @@ function guardar(): void {
                             type="text"
                             class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
+                    </div>
+
+                    <div
+                        v-if="
+                            page.props.errors.prioridad ||
+                            page.props.errors.motivo ||
+                            page.props.errors.estado
+                        "
+                        class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
+                    >
+                        {{
+                            page.props.errors.prioridad ??
+                            page.props.errors.motivo ??
+                            page.props.errors.estado
+                        }}
                     </div>
 
                     <div

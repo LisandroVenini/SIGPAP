@@ -112,11 +112,21 @@ watch(
     { deep: true },
 );
 
+const errorInline = ref<string | null>(null);
+
 function guardarTiempo(asignada: Asignada): void {
     router.put(
         `/produccion/hoja-de-ruta/${props.producto.id}/etapas/${asignada.etapa_id}`,
         { tiempo_por_unidad: Number(tiemposEdicion.value[asignada.etapa_id]) },
-        { preserveScroll: true },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                errorInline.value = null;
+            },
+            onError: (errors) => {
+                errorInline.value = Object.values(errors)[0] ?? null;
+            },
+        },
     );
 }
 
@@ -124,7 +134,15 @@ function guardarCantidad(componente: ComponenteDeReceta): void {
     router.put(
         `/produccion/hoja-de-ruta/${props.producto.id}/receta/componentes/${componente.id}`,
         { cantidad: Number(cantidadesEdicion.value[componente.id]) },
-        { preserveScroll: true },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                errorInline.value = null;
+            },
+            onError: (errors) => {
+                errorInline.value = Object.values(errors)[0] ?? null;
+            },
+        },
     );
 }
 
@@ -231,6 +249,13 @@ async function quitarComponente(componente: ComponenteDeReceta): Promise<void> {
                 class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
             >
                 {{ page.props.errors.articulo }}
+            </div>
+
+            <div
+                v-if="errorInline"
+                class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
+            >
+                {{ errorInline }}
             </div>
 
             <div

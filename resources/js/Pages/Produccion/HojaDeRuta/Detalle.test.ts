@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { enableAutoUnmount, mount } from '@vue/test-utils';
-import { reactive } from 'vue';
+import { nextTick, reactive } from 'vue';
 
 enableAutoUnmount(afterEach);
 
@@ -272,6 +272,22 @@ describe('Produccion Hoja de Ruta detail page', () => {
             { tiempo_por_unidad: 7.5 },
             expect.objectContaining({ preserveScroll: true }),
         );
+    });
+
+    it('shows the validation error of an inline edit', async () => {
+        // Arrange
+        hoisted.routerPut.mockImplementationOnce((_url, _data, options) => {
+            options.onError({ tiempo_por_unidad: 'El tiempo debe ser mayor a 0.' });
+        });
+        const wrapper = mount(Detalle, { props, attachTo: document.body });
+
+        // Act
+        await wrapper.find('[data-testid="tiempo-10"]').setValue('0');
+        await wrapper.find('[data-testid="guardar-tiempo-10"]').trigger('click');
+        await nextTick();
+
+        // Assert
+        expect(wrapper.text()).toContain('El tiempo debe ser mayor a 0.');
     });
 
     it('updates the quantity of a recipe component', async () => {
