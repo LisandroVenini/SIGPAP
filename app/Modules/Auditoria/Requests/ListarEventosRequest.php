@@ -2,6 +2,8 @@
 
 namespace App\Modules\Auditoria\Requests;
 
+use Carbon\Carbon;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListarEventosRequest extends FormRequest
@@ -21,7 +23,19 @@ class ListarEventosRequest extends FormRequest
             'accion' => ['nullable', 'string', 'max:255'],
             'direccion_ip' => ['nullable', 'string', 'max:45'],
             'fecha_desde' => ['nullable', 'date'],
-            'fecha_hasta' => ['nullable', 'date', 'after_or_equal:fecha_desde'],
+            'fecha_hasta' => [
+                'nullable',
+                'date',
+                'after_or_equal:fecha_desde',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $desde = $this->input('fecha_desde');
+
+                    if (is_string($desde) && $desde !== ''
+                        && Carbon::parse($desde)->diffInDays(Carbon::parse($value)) > 366) {
+                        $fail('El rango de fechas no puede superar los 366 días.');
+                    }
+                },
+            ],
         ];
     }
 }

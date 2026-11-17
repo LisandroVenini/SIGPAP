@@ -218,4 +218,17 @@ class ReporteControllerTest extends TestCase
         // Assert
         $response->assertForbidden();
     }
+
+    public function test_a_range_longer_than_one_year_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+
+        // Act
+        $response = $this->actingAs($usuario)
+            ->get('/reportes?tipo=produccion&desde=2025-01-01&hasta=2026-06-01');
+
+        // Assert
+        $response->assertSessionHasErrors('hasta');
+    }
 }

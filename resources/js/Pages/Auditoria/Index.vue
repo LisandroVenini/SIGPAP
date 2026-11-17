@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
 
 interface EventoDeAuditoria {
     id: number;
@@ -184,12 +185,10 @@ function labelDePagina(label: string): string {
                         <label for="fecha_desde" class="text-xs font-medium text-steel"
                             >Desde</label
                         >
-                        <input
+                        <DatePicker
                             id="fecha_desde"
                             v-model="fechaDesde"
                             data-testid="fecha-desde"
-                            type="date"
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
                     </div>
 
@@ -197,12 +196,11 @@ function labelDePagina(label: string): string {
                         <label for="fecha_hasta" class="text-xs font-medium text-steel"
                             >Hasta</label
                         >
-                        <input
+                        <DatePicker
                             id="fecha_hasta"
                             v-model="fechaHasta"
+                            :min="fechaDesde || null"
                             data-testid="fecha-hasta"
-                            type="date"
-                            class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                         />
                     </div>
 
