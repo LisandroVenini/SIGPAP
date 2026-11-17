@@ -8,8 +8,8 @@ use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\ParametroGlobalService;
 use Database\Seeders\ParametroGlobalSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -77,7 +77,7 @@ class ParametroGlobalServiceTest extends TestCase
         $service->actualizar($gerente, ['compras_vigencia_cotizacion_dias' => '10']);
     }
 
-    public function test_actualizar_rolls_back_when_a_key_does_not_exist(): void
+    public function test_actualizar_rejects_an_unknown_key_and_rolls_back(): void
     {
         // Arrange
         $this->seed(ParametroGlobalSeeder::class);
@@ -92,13 +92,14 @@ class ParametroGlobalServiceTest extends TestCase
                 'compras_vigencia_cotizacion_dias' => '10',
                 'no_existe' => 'x',
             ]);
-            $this->fail('Expected ModelNotFoundException.');
-        } catch (ModelNotFoundException) {
-            $this->addToAssertionCount(1);
+
+            $this->fail('An unknown parameter should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('parametros', $exception->errors());
         }
 
         // Assert
-        $this->assertSame('7', $service->parametro('compras_vigencia_cotizacion_dias'));
+        $this->assertNotSame('10', $service->parametro('compras_vigencia_cotizacion_dias'));
         $this->assertDatabaseCount('eventos_de_auditoria', 0);
     }
 }

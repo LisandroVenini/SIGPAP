@@ -9,6 +9,7 @@ use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ParametroGlobalService
 {
@@ -65,7 +66,14 @@ class ParametroGlobalService
 
         DB::transaction(function () use ($actor, $parametros, $direccionIp): void {
             foreach ($parametros as $nombre => $valor) {
-                $parametro = ParametroGlobal::where('nombre', $nombre)->firstOrFail();
+                $parametro = ParametroGlobal::where('nombre', $nombre)->first();
+
+                if ($parametro === null) {
+                    throw ValidationException::withMessages([
+                        'parametros' => "El parámetro \"{$nombre}\" no existe.",
+                    ]);
+                }
+
                 $valorAnterior = $parametro->valor;
 
                 $parametro->update(['valor' => $valor]);
