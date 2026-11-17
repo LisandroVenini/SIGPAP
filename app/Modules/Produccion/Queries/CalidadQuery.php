@@ -13,6 +13,16 @@ class CalidadQuery
     ) {}
 
     /**
+     * Accumulated rejected units for one order, across all its quality controls.
+     */
+    public function rechazadasAcumuladas(int $ordenId): float
+    {
+        return (float) ControlDeCalidad::query()
+            ->where('orden_de_produccion_id', $ordenId)
+            ->sum('cantidad_rechazada');
+    }
+
+    /**
      * Return the approved quantity that can be used to close each order.
      *
      * The calculation follows these rules, in order:

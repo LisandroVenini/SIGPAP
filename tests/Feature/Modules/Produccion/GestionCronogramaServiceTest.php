@@ -113,6 +113,32 @@ class GestionCronogramaServiceTest extends TestCase
         );
     }
 
+    public function test_a_postponed_order_starts_at_its_planned_date(): void
+    {
+        // Arrange
+        $planificacion = $this->planificacion();
+        $producto = $this->producto();
+        $this->ruta($producto, [60]);
+        $fechaPrevista = now()->addDays(10)->startOfDay();
+
+        $this->orden([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'prioridad_actual' => 1,
+            'cantidad_requerida' => 4,
+            'estado' => EstadoOrdenProduccion::Pospuesta->value,
+            'fecha_prevista_inicio' => $fechaPrevista->toDateString(),
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+
+        // Act
+        $cronograma = app(GestionCronogramaService::class)->proyectar();
+
+        // Assert
+        $this->assertSame($fechaPrevista->toDateString(), $cronograma['filas'][0]['etapas'][0]['inicio']);
+        $this->assertNotSame(now()->toDateString(), $cronograma['filas'][0]['etapas'][0]['inicio']);
+    }
+
     public function test_reports_stage_progress_and_the_current_stage(): void
     {
         // Arrange

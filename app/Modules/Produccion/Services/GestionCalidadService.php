@@ -7,6 +7,7 @@ use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Models\ControlDeCalidad;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\ParteDiario;
+use App\Modules\Produccion\Queries\CalidadQuery;
 use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
 use App\Modules\Usuarios\Models\Usuario;
@@ -18,6 +19,7 @@ class GestionCalidadService
 {
     public function __construct(
         private readonly AuditoriaService $auditoria,
+        private readonly CalidadQuery $calidad,
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly PartesDiariosQuery $partesDiarios,
         private readonly UsuariosService $usuarios,
@@ -83,9 +85,11 @@ class GestionCalidadService
                 $base = $conformadoPorEtapa[$ultimaEtapaId] ?? 0.0;
             }
 
-            if (round($rechazadas - $base, 2) > 0) {
+            $rechazadasPrevias = $this->calidad->rechazadasAcumuladas($orden->id);
+
+            if (round($rechazadasPrevias + $rechazadas - $base, 2) > 0) {
                 throw ValidationException::withMessages([
-                    'cantidad_rechazada' => "Las rechazadas no pueden superar el conformado de {$base} unidades.",
+                    'cantidad_rechazada' => "Las rechazadas acumuladas no pueden superar el conformado de {$base} unidades.",
                 ]);
             }
 

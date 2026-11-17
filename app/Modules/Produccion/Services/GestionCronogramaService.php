@@ -155,6 +155,14 @@ class GestionCronogramaService
                 $cantidad = max(0.0, round($cantidad - $conformadoPrimera, 2));
             }
 
+            $inicio = $cursor;
+
+            if ($orden->estado === EstadoOrdenProduccion::Pospuesta->value
+                && $orden->fecha_prevista_inicio !== null
+                && $orden->fecha_prevista_inicio->copy()->startOfDay()->gt($inicio)) {
+                $inicio = $orden->fecha_prevista_inicio->copy()->startOfDay();
+            }
+
             $segmentos = [];
             $ultimoFin = null;
 
@@ -162,17 +170,21 @@ class GestionCronogramaService
                 $minutos = $cantidad * $etapa['tiempo_por_unidad'];
                 $diasEtapa = max(1, (int) ceil($minutos / (60 * self::HORAS_JORNADA)));
 
-                $fin = $cursor->copy()->addDays($diasEtapa - 1);
+                $fin = $inicio->copy()->addDays($diasEtapa - 1);
                 $segmentos[] = [
                     'etapa' => $etapa['etapa'],
-                    'inicio' => $cursor->toDateString(),
+                    'inicio' => $inicio->toDateString(),
                     'fin' => $fin->toDateString(),
                     'dias' => $diasEtapa,
                     'producida' => round((float) ($conformadoPorEtapa[$etapa['etapa_id']] ?? 0.0), 2),
                 ];
 
                 $ultimoFin = $fin->copy();
-                $cursor = $fin->copy()->addDay();
+                $inicio = $fin->copy()->addDay();
+            }
+
+            if ($ultimoFin !== null) {
+                $cursor = $ultimoFin->copy()->addDay();
             }
 
             $fechaEntrega = $orden->fecha_entrega?->toDateString();
