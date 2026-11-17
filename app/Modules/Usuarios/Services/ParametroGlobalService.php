@@ -82,23 +82,4 @@ class ParametroGlobalService
             }
         });
     }
-
-    /**
-     * Create or update a global parameter. Only an Administrador may write.
-     */
-    public function definirParametro(
-        Usuario $actor,
-        string $clave,
-        string $valor,
-        string $categoria = 'General',
-    ): ParametroGlobal {
-        if (! $this->puedeEditar($actor)) {
-            throw new AuthorizationException('Solo un Administrador puede definir parámetros globales.');
-        }
-
-        return ParametroGlobal::updateOrCreate(
-            ['nombre' => $clave],
-            ['valor' => $valor, 'categoria' => $categoria],
-        );
-    }
 }
