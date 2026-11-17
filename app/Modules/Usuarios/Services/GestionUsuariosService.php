@@ -196,11 +196,15 @@ class GestionUsuariosService
             return;
         }
 
+        // Locking every active administrator serializes concurrent demotions, so two
+        // requests cannot both conclude that another administrator remains.
         $hayOtroAdministradorActivo = Usuario::query()
             ->role(Rol::Administrador->value)
             ->where('estado', EstadoUsuario::Activo->value)
-            ->whereKeyNot($usuario->getKey())
-            ->exists();
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->contains(fn (Usuario $otro): bool => ! $otro->is($usuario));
 
         if ($hayOtroAdministradorActivo) {
             return;
