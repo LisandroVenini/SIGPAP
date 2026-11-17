@@ -63,6 +63,7 @@ const navEntries: NavEntry[] = [
             { label: 'Artículos', href: '/inventario/articulos' },
             { label: 'Ingreso de Mercancía', href: '/inventario/ingresos' },
             { label: 'Ajuste de Inventario', href: '/inventario/ajustes' },
+            { label: 'Unidades de Medida', href: '/inventario/unidades-de-medida' },
         ],
     },
     {
