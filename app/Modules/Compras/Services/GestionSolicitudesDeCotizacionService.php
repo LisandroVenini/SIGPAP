@@ -172,6 +172,15 @@ class GestionSolicitudesDeCotizacionService
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            if (! in_array($solicitud->estado, [
+                EstadoSolicitudDeCotizacion::Borrador->value,
+                EstadoSolicitudDeCotizacion::Enviada->value,
+            ], true)) {
+                throw ValidationException::withMessages([
+                    'estado' => 'Solo se puede modificar una solicitud en borrador o enviada.',
+                ]);
+            }
+
             if ($solicitud->cotizaciones()->exists()) {
                 throw ValidationException::withMessages([
                     'solicitud' => 'La solicitud ya tiene cotizaciones cargadas y no puede modificarse.',
@@ -236,6 +245,12 @@ class GestionSolicitudesDeCotizacionService
             if (in_array($solicitud->estado, [EstadoSolicitudDeCotizacion::Adjudicada->value, EstadoSolicitudDeCotizacion::Anulada->value], true)) {
                 throw ValidationException::withMessages([
                     'estado' => 'La solicitud no puede anularse en su estado actual.',
+                ]);
+            }
+
+            if ($solicitud->cotizaciones()->exists()) {
+                throw ValidationException::withMessages([
+                    'estado' => 'La solicitud tiene cotizaciones cargadas y no puede anularse.',
                 ]);
             }
 

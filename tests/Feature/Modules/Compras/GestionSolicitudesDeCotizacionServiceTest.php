@@ -331,6 +331,65 @@ class GestionSolicitudesDeCotizacionServiceTest extends TestCase
         $this->assertDatabaseCount('lineas_de_solicitud_de_cotizacion', 0);
     }
 
+    public function test_blocks_update_when_the_solicitud_is_annulled(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $articulo = $this->articulo('Tabla de pino');
+        $proveedor = $this->proveedor('Aceros del Sur', 'ventas@aceros.test');
+
+        $solicitud = $this->service()->crear($actor, [
+            'fecha_vencimiento' => today()->addWeek()->toDateString(),
+            'lineas' => [
+                ['articulo_id' => $articulo->id, 'cantidad_solicitada' => 10],
+            ],
+            'proveedores' => [$proveedor->id],
+        ]);
+        $this->service()->anular($actor, $solicitud);
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($actor, $solicitud, [
+                'fecha_vencimiento' => today()->addDays(10)->toDateString(),
+                'lineas' => [
+                    ['articulo_id' => $articulo->id, 'cantidad_solicitada' => 4],
+                ],
+                'proveedores' => [$proveedor->id],
+            ]);
+
+            $this->fail('An annulled solicitud should not be updated.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('estado', $exception->errors());
+        }
+
+        $this->assertDatabaseHas('lineas_de_solicitud_de_cotizacion', [
+            'solicitud_de_cotizacion_id' => $solicitud->id,
+            'cantidad_solicitada' => 10,
+        ]);
+    }
+
+    public function test_blocks_annulment_when_the_solicitud_has_quotes(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $solicitud = SolicitudDeCotizacionFactory::new()->create(['estado' => 'Enviada']);
+        CotizacionFactory::new()->create([
+            'solicitud_de_cotizacion_id' => $solicitud->id,
+        ]);
+
+        // Act / Assert
+        try {
+            $this->service()->anular($actor, $solicitud);
+
+            $this->fail('A solicitud with quotes should not be annulled.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('estado', $exception->errors());
+        }
+
+        $this->assertSame('Enviada', $solicitud->refresh()->estado);
+    }
+
     public function test_blocks_annulment_when_the_solicitud_is_adjudicada(): void
     {
         // Arrange
