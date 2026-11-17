@@ -4,10 +4,11 @@ namespace App\Modules\Produccion\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Services\GestionArticulosService;
+use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
+use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\Receta;
 use App\Modules\Usuarios\Models\Usuario;
-use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -18,13 +19,7 @@ class GestionRecetasService
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly GestionArticulosService $articulos,
-        private readonly UsuariosService $usuarios,
     ) {}
-
-    public function puedeGestionar(Usuario $actor): bool
-    {
-        return $this->usuarios->autorizar($actor, 'produccion.gestionar');
-    }
 
     /**
      * @return array{componentes: array<int, array{id: int, articulo_id: int, codigo_sku: string, descripcion: string, unidad: string|null, cantidad: float}>, disponibles: array<int, array{id: int, codigo_sku: string, descripcion: string, unidad: string|null}>}
@@ -128,6 +123,48 @@ class GestionRecetasService
             );
 
             return $componente;
+        });
+    }
+
+    public function actualizarCantidad(
+        Usuario $actor,
+        int $articuloId,
+        ComponenteDeReceta $componente,
+        float $cantidad,
+        ?string $direccionIp = null,
+    ): void {
+        if ($componente->receta?->articulo_id !== $articuloId) {
+            throw (new ModelNotFoundException)->setModel(ComponenteDeReceta::class, [$componente->id]);
+        }
+
+        $ordenesActivas = OrdenDeProduccion::query()
+            ->where('articulo_id', $articuloId)
+            ->whereNotIn('estado', [
+                EstadoOrdenProduccion::Cerrada->value,
+                EstadoOrdenProduccion::Anulada->value,
+            ])
+            ->exists();
+
+        if ($ordenesActivas) {
+            throw ValidationException::withMessages([
+                'cantidad' => 'El producto tiene órdenes de producción activas: no se puede cambiar la receta.',
+            ]);
+        }
+
+        DB::transaction(function () use ($actor, $componente, $cantidad, $direccionIp): void {
+            $anterior = (float) $componente->cantidad;
+            $componente->cantidad = $cantidad;
+            $componente->save();
+
+            $this->auditoria->registrarEvento(
+                $actor->id,
+                'actualizar_componente_receta',
+                ['cantidad' => $anterior],
+                ['cantidad' => $cantidad],
+                $direccionIp,
+                ComponenteDeReceta::class,
+                $componente->id,
+            );
         });
     }
 

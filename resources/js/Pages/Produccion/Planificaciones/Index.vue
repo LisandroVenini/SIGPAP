@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import DatePicker from '@/Components/DatePicker.vue';
+import { hoyISO } from '@/lib/fechas';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Planificacion {
     id: number;
@@ -49,6 +52,22 @@ const form = useForm({
     fecha_fin: '',
     observaciones: '',
 });
+
+const hoy = hoyISO();
+
+// The end date can never precede the start date nor today.
+const finMinimo = computed(() =>
+    form.fecha_inicio !== '' && form.fecha_inicio > hoy ? form.fecha_inicio : hoy,
+);
+
+watch(
+    () => form.fecha_inicio,
+    (inicio) => {
+        if (form.fecha_fin !== '' && inicio !== '' && form.fecha_fin < inicio) {
+            form.fecha_fin = '';
+        }
+    },
+);
 
 function aplicarFiltros(): void {
     router.get(
@@ -105,8 +124,15 @@ function guardar(): void {
     });
 }
 
-function eliminar(planificacion: Planificacion): void {
-    if (!window.confirm(`¿Eliminar la planificación "${planificacion.nombre}"?`)) {
+async function eliminar(planificacion: Planificacion): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Eliminar planificación',
+        mensaje: `¿Eliminar la planificación "${planificacion.nombre}"?`,
+        confirmar: 'Eliminar',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 
@@ -349,12 +375,12 @@ function labelDePagina(label: string): string {
                             <label for="fecha_inicio" class="text-xs font-medium text-steel"
                                 >Fecha de inicio</label
                             >
-                            <input
+                            <DatePicker
                                 id="fecha_inicio"
                                 v-model="form.fecha_inicio"
-                                type="date"
+                                :min="hoy"
+                                :invalid="!!form.errors.fecha_inicio"
                                 required
-                                class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                             />
                             <p v-if="form.errors.fecha_inicio" class="text-xs text-oxide">
                                 {{ form.errors.fecha_inicio }}
@@ -365,12 +391,12 @@ function labelDePagina(label: string): string {
                             <label for="fecha_fin" class="text-xs font-medium text-steel"
                                 >Fecha de fin</label
                             >
-                            <input
+                            <DatePicker
                                 id="fecha_fin"
                                 v-model="form.fecha_fin"
-                                type="date"
+                                :min="finMinimo"
+                                :invalid="!!form.errors.fecha_fin"
                                 required
-                                class="rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                             />
                             <p v-if="form.errors.fecha_fin" class="text-xs text-oxide">
                                 {{ form.errors.fecha_fin }}

@@ -5,6 +5,7 @@ namespace App\Modules\Produccion\Controllers;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
 use App\Modules\Produccion\Requests\DestroyComponenteDeRecetaRequest;
 use App\Modules\Produccion\Requests\StoreComponenteDeRecetaRequest;
+use App\Modules\Produccion\Requests\UpdateComponenteDeRecetaRequest;
 use App\Modules\Produccion\Services\GestionRecetasService;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
@@ -29,6 +30,27 @@ class RecetaController
         return redirect()
             ->route('produccion.hoja-de-ruta.show', $articulo)
             ->with('success', 'Insumo agregado a la receta.');
+    }
+
+    public function update(
+        UpdateComponenteDeRecetaRequest $request,
+        int $articulo,
+        ComponenteDeReceta $componente,
+    ): RedirectResponse {
+        /** @var Usuario $actor */
+        $actor = $request->user();
+
+        $this->recetas->actualizarCantidad(
+            $actor,
+            $articulo,
+            $componente,
+            (float) $request->validated('cantidad'),
+            $request->ip(),
+        );
+
+        return redirect()
+            ->route('produccion.hoja-de-ruta.show', $articulo)
+            ->with('success', 'Cantidad del insumo actualizada.');
     }
 
     public function destroy(DestroyComponenteDeRecetaRequest $request, int $articulo, ComponenteDeReceta $componente): RedirectResponse

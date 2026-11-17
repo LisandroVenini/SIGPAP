@@ -79,4 +79,20 @@ class UsuariosServiceTest extends TestCase
         // Assert
         $this->assertSame([], $resumenes);
     }
+
+    public function test_buscar_por_email_returns_the_user_or_null(): void
+    {
+        // Arrange
+        $usuario = Usuario::factory()->create(['email' => 'supervisor@example.test']);
+        $service = new UsuariosService;
+
+        // Act
+        $encontrado = $service->buscarPorEmail('supervisor@example.test');
+        $inexistente = $service->buscarPorEmail('nadie@example.test');
+
+        // Assert
+        $this->assertNotNull($encontrado);
+        $this->assertSame($usuario->id, $encontrado->id);
+        $this->assertNull($inexistente);
+    }
 }

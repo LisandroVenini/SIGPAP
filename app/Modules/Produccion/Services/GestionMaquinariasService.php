@@ -121,13 +121,16 @@ class GestionMaquinariasService
     public function eliminar(Usuario $actor, Maquinaria $maquinaria, ?string $direccionIp = null): void
     {
         DB::transaction(function () use ($actor, $maquinaria, $direccionIp): void {
-            $enCurso = $maquinaria->ordenesDeProduccion()
-                ->where('estado', EstadoOrdenProduccion::EnCurso->value)
+            $activa = $maquinaria->ordenesDeProduccion()
+                ->whereNotIn('estado', [
+                    EstadoOrdenProduccion::Cerrada->value,
+                    EstadoOrdenProduccion::Anulada->value,
+                ])
                 ->exists();
 
-            if ($enCurso) {
+            if ($activa) {
                 throw ValidationException::withMessages([
-                    'maquinaria' => 'La maquinaria está asignada a una orden de producción en curso.',
+                    'maquinaria' => 'La maquinaria está asignada a una orden de producción activa.',
                 ]);
             }
 

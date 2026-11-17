@@ -41,6 +41,10 @@ vi.mock('../../../Layouts/AppLayout.vue', () => ({
     default: { template: '<div><slot /></div>' },
 }));
 
+vi.mock('@/composables/useConfirm', () => ({
+    confirmar: vi.fn(async () => true),
+}));
+
 import Etapas from './Index.vue';
 
 const props = {
@@ -110,10 +114,6 @@ describe('Produccion Etapas page', () => {
 
     it('deletes an etapa after confirming', async () => {
         // Arrange
-        vi.stubGlobal(
-            'confirm',
-            vi.fn(() => true),
-        );
         const wrapper = mount(Etapas, { props });
 
         // Act

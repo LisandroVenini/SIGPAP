@@ -56,6 +56,8 @@ Route::middleware('web')
                 ->whereNumber('orden')
                 ->name('ordenes-de-produccion.partes.store');
 
+            Route::get('partes-diarios', [ParteDiarioController::class, 'index'])->name('partes-diarios.index');
+
             Route::get('etapas', [EtapaController::class, 'index'])->name('etapas.index');
             Route::post('etapas', [EtapaController::class, 'store'])->name('etapas.store');
             Route::put('etapas/{etapa}', [EtapaController::class, 'update'])->name('etapas.update');
@@ -77,6 +79,14 @@ Route::middleware('web')
             Route::post('maquinarias/{maquinaria}/mantenimientos', [IntervencionDeMantenimientoController::class, 'store'])
                 ->whereNumber('maquinaria')
                 ->name('maquinarias.mantenimientos.store');
+            Route::put('maquinarias/{maquinaria}/mantenimientos/{intervencion}', [IntervencionDeMantenimientoController::class, 'update'])
+                ->whereNumber('maquinaria')
+                ->whereNumber('intervencion')
+                ->name('maquinarias.mantenimientos.update');
+            Route::delete('maquinarias/{maquinaria}/mantenimientos/{intervencion}', [IntervencionDeMantenimientoController::class, 'destroy'])
+                ->whereNumber('maquinaria')
+                ->whereNumber('intervencion')
+                ->name('maquinarias.mantenimientos.destroy');
 
             Route::get('planes-de-mantenimiento', [PlanDeMantenimientoController::class, 'index'])->name('planes.index');
             Route::post('planes-de-mantenimiento', [PlanDeMantenimientoController::class, 'store'])->name('planes.store');
@@ -94,6 +104,10 @@ Route::middleware('web')
             Route::post('hoja-de-ruta/{articulo}/etapas', [HojaDeRutaController::class, 'store'])
                 ->whereNumber('articulo')
                 ->name('hoja-de-ruta.etapas.store');
+            Route::put('hoja-de-ruta/{articulo}/etapas/{etapa}', [HojaDeRutaController::class, 'actualizarEtapa'])
+                ->whereNumber('articulo')
+                ->whereNumber('etapa')
+                ->name('hoja-de-ruta.etapas.update');
             Route::delete('hoja-de-ruta/{articulo}/etapas/{etapa}', [HojaDeRutaController::class, 'destroy'])
                 ->whereNumber('articulo')
                 ->whereNumber('etapa')
@@ -106,8 +120,13 @@ Route::middleware('web')
             Route::post('hoja-de-ruta/{articulo}/receta/componentes', [RecetaController::class, 'store'])
                 ->whereNumber('articulo')
                 ->name('hoja-de-ruta.receta.componentes.store');
+            Route::put('hoja-de-ruta/{articulo}/receta/componentes/{componente}', [RecetaController::class, 'update'])
+                ->whereNumber('articulo')
+                ->whereNumber('componente')
+                ->name('hoja-de-ruta.receta.componentes.update');
             Route::delete('hoja-de-ruta/{articulo}/receta/componentes/{componente}', [RecetaController::class, 'destroy'])
                 ->whereNumber('articulo')
+                ->whereNumber('componente')
                 ->name('hoja-de-ruta.receta.componentes.destroy');
         });
     });

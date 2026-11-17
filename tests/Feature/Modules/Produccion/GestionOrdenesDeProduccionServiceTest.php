@@ -95,6 +95,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
 
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
+
         // Act
         $resultado = $this->service()->crear(
             $actor,
@@ -134,6 +140,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
 
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
+
         // Act
         $resultado = $this->service()->crear(
             $actor,
@@ -164,6 +176,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $insumo = $this->insumo(['stock_fisico' => 0]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
+
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
 
         // Act
         $resultado = $this->service()->crear(
@@ -259,6 +277,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $insumo = $this->insumo(['stock_fisico' => 100]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
+
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
         $this->service()->crear(
             $actor,
             $planificacion->id,
@@ -292,6 +316,12 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $insumo = $this->insumo(['stock_fisico' => 100]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 10);
+
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => Etapa::factory()->create()->id,
+            'orden' => 1,
+        ]);
         $this->service()->crear(
             $actor,
             $planificacion->id,
@@ -389,6 +419,22 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $this->assertSame(30.0, $fila['avance']);
         $this->assertSame('Lijado', $fila['partes'][0]['etapa']);
         $this->assertSame('Corte', $fila['partes'][1]['etapa']);
+        $this->assertSame([
+            [
+                'etapa_id' => $corte->id,
+                'nombre' => 'Corte',
+                'producida' => 4.0,
+                'rechazadas' => 0.0,
+                'faltante' => 6.0,
+            ],
+            [
+                'etapa_id' => $lijado->id,
+                'nombre' => 'Lijado',
+                'producida' => 3.0,
+                'rechazadas' => 0.0,
+                'faltante' => 7.0,
+            ],
+        ], $fila['etapas_detalle']);
     }
 
     public function test_lists_orders_with_filters_and_ordering(): void
@@ -425,6 +471,38 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         $this->assertSame($productoB->id, $filtradasPorEstado->items()[0]['producto']['id']);
         $this->assertSame(1, $filtradasPorBusqueda->total());
         $this->assertSame($productoA->id, $filtradasPorBusqueda->items()[0]['producto']['id']);
+    }
+
+    public function test_closed_orders_are_listed_after_the_others_by_default(): void
+    {
+        // Arrange
+        $planificacion = $this->planificacion();
+        $producto = $this->productoFabricado(['descripcion' => 'Silla de pino']);
+        $cerrada = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'estado' => EstadoOrdenProduccion::Cerrada->value,
+            'fecha_entrega' => '2026-11-01',
+        ]);
+        $pendiente = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'estado' => EstadoOrdenProduccion::Pendiente->value,
+            'fecha_entrega' => '2026-11-30',
+        ]);
+
+        // Act
+        $todas = $this->service()->listar([]);
+        $soloCerradas = $this->service()->listar([
+            'estado' => EstadoOrdenProduccion::Cerrada->value,
+        ]);
+
+        // Assert
+        $this->assertSame(
+            [$pendiente->id, $cerrada->id],
+            array_column($todas->items(), 'id'),
+        );
+        $this->assertSame([$cerrada->id], array_column($soloCerradas->items(), 'id'));
     }
 
     public function test_list_approved_quantity_matches_closure_calculation_with_multiple_parts(): void

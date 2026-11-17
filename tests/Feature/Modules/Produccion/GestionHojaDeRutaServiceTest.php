@@ -344,4 +344,80 @@ class GestionHojaDeRutaServiceTest extends TestCase
 
         app(GestionHojaDeRutaService::class)->desasignar($actor, $producto->id, $etapa->id, '127.0.0.1');
     }
+
+    public function test_blocks_route_changes_when_the_product_has_active_orders(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapa = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapa->id,
+            'orden' => 1,
+        ]);
+        OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'estado' => EstadoOrdenProduccion::Pendiente->value,
+        ]);
+
+        // Act
+        try {
+            app(GestionHojaDeRutaService::class)->asignar($actor, $producto->id, Etapa::factory()->create()->id, 5);
+            $this->fail('Se esperaba una excepción por órdenes activas.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('articulo', $excepcion->errors());
+        }
+    }
+
+    public function test_updates_the_time_of_an_assigned_stage(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapa = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapa->id,
+            'tiempo_por_unidad' => 10,
+            'orden' => 1,
+        ]);
+
+        // Act
+        app(GestionHojaDeRutaService::class)->actualizarTiempo($actor, $producto->id, $etapa->id, 7.5);
+
+        // Assert
+        $this->assertDatabaseHas('asignaciones_de_etapa', [
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapa->id,
+            'tiempo_por_unidad' => 7.5,
+        ]);
+    }
+
+    public function test_blocks_updating_the_time_when_the_product_has_active_orders(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        $etapa = Etapa::factory()->create();
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapa->id,
+            'orden' => 1,
+        ]);
+        OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'estado' => EstadoOrdenProduccion::Pendiente->value,
+        ]);
+
+        // Act
+        try {
+            app(GestionHojaDeRutaService::class)->actualizarTiempo($actor, $producto->id, $etapa->id, 7.5);
+            $this->fail('Se esperaba una excepción por órdenes activas.');
+        } catch (ValidationException $excepcion) {
+            // Assert
+            $this->assertArrayHasKey('articulo', $excepcion->errors());
+        }
+    }
 }

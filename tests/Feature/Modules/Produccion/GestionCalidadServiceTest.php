@@ -188,6 +188,33 @@ class GestionCalidadServiceTest extends TestCase
         $this->service()->registrar($actor, $orden, $parte->id, 6, 'Muchos defectos', '127.0.0.1');
     }
 
+    public function test_rejects_accumulated_rejected_units_over_the_conformed(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        [$corte] = $this->hojaDeRutaDeDosEtapas($producto);
+        $orden = $this->ordenEnCurso($producto);
+        $parte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'cantidad_conformada' => 5,
+        ]);
+
+        $this->service()->registrar($actor, $orden, $parte->id, 3, 'Defecto menor', '127.0.0.1');
+
+        // Act / Assert
+        try {
+            $this->service()->registrar($actor, $orden, $parte->id, 3, 'Otro defecto', '127.0.0.1');
+
+            $this->fail('Accumulated rejected units above the conformed quantity should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('cantidad_rechazada', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('controles_de_calidad', 1);
+    }
+
     public function test_requires_motivo_when_rejected(): void
     {
         // Arrange

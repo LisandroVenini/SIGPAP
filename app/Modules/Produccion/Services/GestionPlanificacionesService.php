@@ -14,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 class GestionPlanificacionesService
 {
+    private const DIAS_MAXIMOS = 90;
+
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly PlanificacionesQuery $query,
@@ -87,7 +89,7 @@ class GestionPlanificacionesService
         array $datos,
         ?string $direccionIp = null,
     ): PlanificacionDeProduccion {
-        $this->asegurarPeriodoValido($datos);
+        $this->asegurarPeriodoValido($datos, $planificacion);
 
         return DB::transaction(function () use ($actor, $planificacion, $datos, $direccionIp): PlanificacionDeProduccion {
             $anterior = [
@@ -153,11 +155,32 @@ class GestionPlanificacionesService
     /**
      * @param  array{fecha_inicio: string, fecha_fin: string}  $datos
      */
-    private function asegurarPeriodoValido(array $datos): void
+    private function asegurarPeriodoValido(array $datos, ?PlanificacionDeProduccion $actual = null): void
     {
-        if (Carbon::parse($datos['fecha_fin'])->lt(Carbon::parse($datos['fecha_inicio']))) {
+        $inicio = Carbon::parse($datos['fecha_inicio']);
+        $fin = Carbon::parse($datos['fecha_fin']);
+
+        if ($fin->lt($inicio)) {
             throw ValidationException::withMessages([
                 'fecha_fin' => 'La fecha de fin no puede ser anterior a la fecha de inicio.',
+            ]);
+        }
+
+        if ($inicio->diffInDays($fin) > self::DIAS_MAXIMOS) {
+            throw ValidationException::withMessages([
+                'fecha_fin' => 'La planificación no puede durar más de '.self::DIAS_MAXIMOS.' días.',
+            ]);
+        }
+
+        $solapada = PlanificacionDeProduccion::query()
+            ->when($actual !== null, fn ($query) => $query->whereKeyNot($actual->getKey()))
+            ->where('fecha_inicio', '<=', $fin->toDateString())
+            ->where('fecha_fin', '>=', $inicio->toDateString())
+            ->first();
+
+        if ($solapada !== null) {
+            throw ValidationException::withMessages([
+                'fecha_inicio' => "El período se superpone con la planificación \"{$solapada->nombre}\".",
             ]);
         }
     }

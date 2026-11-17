@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
+import { confirmar } from '@/composables/useConfirm';
 
 interface Etapa {
     id: number;
@@ -99,8 +100,15 @@ function guardar(): void {
     });
 }
 
-function eliminar(etapa: Etapa): void {
-    if (!window.confirm(`¿Eliminar la etapa "${etapa.nombre}"?`)) {
+async function eliminar(etapa: Etapa): Promise<void> {
+    const confirmado = await confirmar({
+        titulo: 'Eliminar etapa',
+        mensaje: `¿Eliminar la etapa "${etapa.nombre}"?`,
+        confirmar: 'Eliminar',
+        peligro: true,
+    });
+
+    if (!confirmado) {
         return;
     }
 

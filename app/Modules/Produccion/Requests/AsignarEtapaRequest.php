@@ -18,7 +18,7 @@ class AsignarEtapaRequest extends FormRequest
     {
         return [
             'etapa_id' => ['required', 'integer', 'exists:etapas,id'],
-            'tiempo_por_unidad' => ['required', 'numeric', 'gt:0'],
+            'tiempo_por_unidad' => ['required', 'numeric', 'gt:0', 'max:999999.99'],
         ];
     }
 }

@@ -83,23 +83,6 @@ class MaquinariaControllerTest extends TestCase
         $this->assertDatabaseHas('maquinarias', ['nombre' => 'Lijadora orbital', 'tipo' => 'Lijado']);
     }
 
-    public function test_duplicate_names_are_allowed(): void
-    {
-        // Arrange
-        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
-        Maquinaria::factory()->create(['nombre' => 'Lijadora orbital']);
-
-        // Act
-        $response = $this->actingAs($usuario)->post('/produccion/maquinarias', [
-            'nombre' => 'Lijadora orbital',
-            'tipo' => 'Lijado',
-        ]);
-
-        // Assert
-        $response->assertRedirect('/produccion/maquinarias');
-        $this->assertDatabaseCount('maquinarias', 2);
-    }
-
     public function test_a_supervisor_can_update_a_machine(): void
     {
         // Arrange
@@ -184,5 +167,22 @@ class MaquinariaControllerTest extends TestCase
         $response->assertRedirect('/produccion/maquinarias');
         $response->assertSessionHasErrors('maquinaria');
         $this->assertDatabaseHas('maquinarias', ['id' => $maquinaria->id]);
+    }
+
+    public function test_a_duplicate_machine_name_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        Maquinaria::factory()->create(['nombre' => 'Lijadora orbital']);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/maquinarias', [
+            'nombre' => 'lijadora ORBITAL',
+            'tipo' => 'Lijado',
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('nombre');
+        $this->assertDatabaseCount('maquinarias', 1);
     }
 }

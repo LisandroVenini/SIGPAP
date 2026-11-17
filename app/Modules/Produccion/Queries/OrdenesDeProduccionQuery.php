@@ -2,6 +2,7 @@
 
 namespace App\Modules\Produccion\Queries;
 
+use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -21,6 +22,12 @@ class OrdenesDeProduccionQuery
             ->when($filtros['estado'] ?? null, fn ($query, string $estado) => $query->conEstado($estado))
             ->when($filtros['fecha_desde'] ?? null, fn ($query, string $fecha) => $query->whereDate('fecha_entrega', '>=', $fecha))
             ->when($filtros['fecha_hasta'] ?? null, fn ($query, string $fecha) => $query->whereDate('fecha_entrega', '<=', $fecha))
+            // Closed orders are closed business: they stay visible but sink below
+            // every order that still needs attention.
+            ->orderByRaw(
+                'case when estado = ? then 1 else 0 end',
+                [EstadoOrdenProduccion::Cerrada->value],
+            )
             ->orderBy('fecha_entrega')
             ->orderBy('id')
             ->paginate(15)

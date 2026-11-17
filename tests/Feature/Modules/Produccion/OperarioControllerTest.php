@@ -132,4 +132,22 @@ class OperarioControllerTest extends TestCase
         $response->assertSessionHasErrors('operario');
         $this->assertNotSoftDeleted('operarios', ['id' => $operario->id]);
     }
+
+    public function test_a_duplicate_operator_name_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::SupervisorProduccion);
+        Operario::factory()->create(['nombre' => 'Ana', 'apellido' => 'Pérez']);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/produccion/operarios', [
+            'nombre' => 'ana',
+            'apellido' => 'PÉREZ',
+            'especialidad' => 'Pintura',
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('apellido');
+        $this->assertDatabaseCount('operarios', 1);
+    }
 }
