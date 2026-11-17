@@ -240,7 +240,9 @@ class ParteDiarioControllerTest extends TestCase
             ->where('ordenes.0.etapas.0.faltante', 6)
             ->has('ordenes.0.maquinarias')
             ->has('ordenes.0.partes_hoy', 1)
-            ->where('ordenes.0.partes_hoy.0.cantidad', 4));
+            ->where('ordenes.0.partes_hoy.0.cantidad', 4)
+            ->has('ordenes.0.partes_historial', 1)
+            ->has('ordenes.0.controles', 0));
     }
 
     public function test_a_parte_before_the_order_start_is_rejected(): void

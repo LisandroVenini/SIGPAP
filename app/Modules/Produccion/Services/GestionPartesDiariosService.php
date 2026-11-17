@@ -12,6 +12,7 @@ use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Produccion\Queries\AvancePorEtapasQuery;
+use App\Modules\Produccion\Queries\CalidadQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
@@ -29,6 +30,7 @@ class GestionPartesDiariosService
         private readonly UsuariosService $usuarios,
         private readonly AvancePorEtapasQuery $avancePorEtapas,
         private readonly GestionArticulosService $articulos,
+        private readonly CalidadQuery $calidad,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
@@ -39,7 +41,7 @@ class GestionPartesDiariosService
     /**
      * Orders in progress with everything the daily-part panel needs to render.
      *
-     * @return array<int, array{id:int, producto: array<string, mixed>|null, cantidad_requerida:float, etapas: array<int, array{etapa_id:int, nombre:string, producida:float, rechazadas:float, faltante:float}>, maquinarias: array<int, array{id:int, nombre:string}>, partes_hoy: array<int, mixed>}>
+     * @return array<int, array{id:int, producto: array<string, mixed>|null, cantidad_requerida:float, etapas: array<int, array{etapa_id:int, nombre:string, producida:float, rechazadas:float, faltante:float}>, maquinarias: array<int, array{id:int, nombre:string}>, partes_hoy: array<int, mixed>, partes_historial: array<int, mixed>, controles: array<int, array{id:int, fecha:string|null, etapa:string|null, aprobada:float, rechazada:float, motivo:string|null}>}>
      */
     public function ordenesEnCursoParaCarga(string $fecha): array
     {
@@ -63,7 +65,10 @@ class GestionPartesDiariosService
                 ->map(fn ($cantidad): float => (float) $cantidad)
                 ->all(),
         );
-        $partesPorOrden = $this->query->porOrdenes($ordenes->pluck('id')->all(), $fecha);
+        $ordenIds = $ordenes->pluck('id')->all();
+        $partesPorOrden = $this->query->porOrdenes($ordenIds, $fecha);
+        $historialPorOrden = $this->query->porOrdenes($ordenIds);
+        $controlesPorOrden = $this->calidad->controlesPorOrdenes($ordenIds);
 
         return $ordenes->map(fn (OrdenDeProduccion $orden): array => [
             'id' => $orden->id,
@@ -79,6 +84,8 @@ class GestionPartesDiariosService
                 ->values()
                 ->all(),
             'partes_hoy' => $partesPorOrden[$orden->id] ?? [],
+            'partes_historial' => $historialPorOrden[$orden->id] ?? [],
+            'controles' => $controlesPorOrden[$orden->id] ?? [],
         ])->values()->all();
     }
 

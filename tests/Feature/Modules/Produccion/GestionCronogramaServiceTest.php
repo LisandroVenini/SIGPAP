@@ -13,6 +13,7 @@ use App\Modules\Produccion\Models\Etapa;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
+use App\Modules\Produccion\Models\RegistroPrioridad;
 use App\Modules\Produccion\Services\GestionCronogramaService;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
@@ -404,5 +405,39 @@ class GestionCronogramaServiceTest extends TestCase
             'orden_de_produccion_id' => $urgente->id,
             'prioridad_nueva' => 20,
         ]);
+    }
+
+    public function test_projection_includes_the_priority_history(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $planificacion = $this->planificacion();
+        $producto = $this->producto();
+        $orden = $this->orden([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'prioridad_actual' => 1,
+            'cantidad_requerida' => 5,
+            'fecha_entrega' => now()->addDays(10)->toDateString(),
+        ]);
+        RegistroPrioridad::create([
+            'orden_de_produccion_id' => $orden->id,
+            'usuario_id' => $actor->id,
+            'prioridad_anterior' => 2,
+            'prioridad_nueva' => 1,
+            'fecha_cambio' => now(),
+            'motivo' => 'Urgencia comercial',
+            'detalle' => 'Adelanto por cliente.',
+        ]);
+
+        // Act
+        $fila = app(GestionCronogramaService::class)->proyectar()['filas'][0];
+
+        // Assert
+        $this->assertCount(1, $fila['historial']);
+        $this->assertSame('Urgencia comercial', $fila['historial'][0]['motivo']);
+        $this->assertSame(2, $fila['historial'][0]['prioridad_anterior']);
+        $this->assertSame(1, $fila['historial'][0]['prioridad_nueva']);
+        $this->assertSame($actor->nombre, $fila['historial'][0]['usuario']);
     }
 }
