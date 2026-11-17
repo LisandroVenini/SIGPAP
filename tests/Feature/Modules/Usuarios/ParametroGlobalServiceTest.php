@@ -8,8 +8,8 @@ use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\ParametroGlobalService;
 use Database\Seeders\ParametroGlobalSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -40,39 +40,6 @@ class ParametroGlobalServiceTest extends TestCase
 
         // Assert
         $this->assertNull($valor);
-    }
-
-    public function test_definir_parametro_requires_administrador(): void
-    {
-        // Arrange
-        Role::create(['name' => Rol::Gerente->value, 'guard_name' => 'web']);
-        $usuario = Usuario::factory()->create();
-        $usuario->assignRole(Rol::Gerente->value);
-        $service = new ParametroGlobalService(new AuditoriaService);
-
-        // Act / Assert
-        $this->expectException(AuthorizationException::class);
-        $service->definirParametro($usuario, 'umbral_tolerancia_precio', '20');
-    }
-
-    public function test_administrador_can_define_a_parametro(): void
-    {
-        // Arrange
-        Role::create(['name' => Rol::Administrador->value, 'guard_name' => 'web']);
-        $admin = Usuario::factory()->create();
-        $admin->assignRole(Rol::Administrador->value);
-        $service = new ParametroGlobalService(new AuditoriaService);
-
-        // Act
-        $parametro = $service->definirParametro($admin, 'umbral_tolerancia_precio', '20', 'Compras');
-
-        // Assert
-        $this->assertSame('20', $parametro->valor);
-        $this->assertSame('20', $service->parametro('umbral_tolerancia_precio'));
-        $this->assertDatabaseHas('parametros_globales', [
-            'nombre' => 'umbral_tolerancia_precio',
-            'valor' => '20',
-        ]);
     }
 
     public function test_actualizar_persists_and_audits_each_parameter(): void
@@ -110,7 +77,7 @@ class ParametroGlobalServiceTest extends TestCase
         $service->actualizar($gerente, ['compras_vigencia_cotizacion_dias' => '10']);
     }
 
-    public function test_actualizar_rolls_back_when_a_key_does_not_exist(): void
+    public function test_actualizar_rejects_an_unknown_key_and_rolls_back(): void
     {
         // Arrange
         $this->seed(ParametroGlobalSeeder::class);
@@ -125,9 +92,10 @@ class ParametroGlobalServiceTest extends TestCase
                 'compras_vigencia_cotizacion_dias' => '10',
                 'no_existe' => 'x',
             ]);
-            $this->fail('Expected ModelNotFoundException.');
-        } catch (ModelNotFoundException) {
-            $this->addToAssertionCount(1);
+
+            $this->fail('An unknown parameter should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('parametros', $exception->errors());
         }
 
         // Assert

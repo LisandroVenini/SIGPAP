@@ -9,6 +9,7 @@ use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ParametroGlobalService
 {
@@ -65,7 +66,14 @@ class ParametroGlobalService
 
         DB::transaction(function () use ($actor, $parametros, $direccionIp): void {
             foreach ($parametros as $nombre => $valor) {
-                $parametro = ParametroGlobal::where('nombre', $nombre)->firstOrFail();
+                $parametro = ParametroGlobal::where('nombre', $nombre)->first();
+
+                if ($parametro === null) {
+                    throw ValidationException::withMessages([
+                        'parametros' => "El parámetro \"{$nombre}\" no existe.",
+                    ]);
+                }
+
                 $valorAnterior = $parametro->valor;
 
                 $parametro->update(['valor' => $valor]);
@@ -81,24 +89,5 @@ class ParametroGlobalService
                 );
             }
         });
-    }
-
-    /**
-     * Create or update a global parameter. Only an Administrador may write.
-     */
-    public function definirParametro(
-        Usuario $actor,
-        string $clave,
-        string $valor,
-        string $categoria = 'General',
-    ): ParametroGlobal {
-        if (! $this->puedeEditar($actor)) {
-            throw new AuthorizationException('Solo un Administrador puede definir parámetros globales.');
-        }
-
-        return ParametroGlobal::updateOrCreate(
-            ['nombre' => $clave],
-            ['valor' => $valor, 'categoria' => $categoria],
-        );
     }
 }

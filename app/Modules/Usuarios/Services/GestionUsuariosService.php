@@ -72,9 +72,10 @@ class GestionUsuariosService
      */
     public function actualizar(Usuario $actor, Usuario $usuario, array $datos, ?string $direccionIp = null): Usuario
     {
-        $this->asegurarOperacionPermitida($actor, $usuario, $datos['estado'], $datos['rol']);
-
         return DB::transaction(function () use ($actor, $usuario, $datos, $direccionIp): Usuario {
+            $this->asegurarOperacionPermitida($actor, $usuario, $datos['estado'], $datos['rol']);
+            $this->asegurarAdministradorRestante($usuario, $datos['estado'], $datos['rol']);
+
             $anterior = [
                 'nombre' => $usuario->nombre,
                 'email' => $usuario->email,
@@ -122,9 +123,10 @@ class GestionUsuariosService
             ? EstadoUsuario::Activo->value
             : EstadoUsuario::Inhabilitado->value;
 
-        $this->asegurarOperacionPermitida($actor, $usuario, $nuevoEstado);
-
         return DB::transaction(function () use ($actor, $usuario, $nuevoEstado, $direccionIp): Usuario {
+            $this->asegurarOperacionPermitida($actor, $usuario, $nuevoEstado);
+            $this->asegurarAdministradorRestante($usuario, $nuevoEstado);
+
             $anterior = ['estado' => $usuario->estado];
 
             $usuario->estado = $nuevoEstado;
@@ -169,5 +171,51 @@ class GestionUsuariosService
                 'rol' => 'No podés quitarte el rol de Administrador.',
             ]);
         }
+    }
+
+    /**
+     * The system must always keep one active Administrador: losing every
+     * administrator locks the application out of user and configuration management.
+     */
+    private function asegurarAdministradorRestante(
+        Usuario $usuario,
+        string $nuevoEstado,
+        ?string $nuevoRol = null,
+    ): void {
+        $sigueSiendoAdministrador = $nuevoRol === null || $nuevoRol === Rol::Administrador->value;
+        $sigueActivo = $nuevoEstado === EstadoUsuario::Activo->value;
+
+        if ($sigueSiendoAdministrador && $sigueActivo) {
+            return;
+        }
+
+        // Locking every active administrator serializes concurrent demotions, so two
+        // requests cannot both conclude that another administrator remains. The locked
+        // rows are also the fresh source of truth for the target's state and role.
+        $administradoresActivos = Usuario::query()
+            ->role(Rol::Administrador->value)
+            ->where('estado', EstadoUsuario::Activo->value)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+
+        $bloqueado = $administradoresActivos->firstWhere('id', $usuario->getKey());
+
+        if ($bloqueado === null) {
+            return;
+        }
+
+        $hayOtroAdministradorActivo = $administradoresActivos
+            ->contains(fn (Usuario $otro): bool => ! $otro->is($bloqueado));
+
+        if ($hayOtroAdministradorActivo) {
+            return;
+        }
+
+        $campo = $nuevoRol !== null && $nuevoRol !== Rol::Administrador->value ? 'rol' : 'estado';
+
+        throw ValidationException::withMessages([
+            $campo => 'Debe quedar al menos un Administrador activo en el sistema.',
+        ]);
     }
 }

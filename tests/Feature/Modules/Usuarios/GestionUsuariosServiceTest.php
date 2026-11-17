@@ -3,6 +3,7 @@
 namespace Tests\Feature\Modules\Usuarios;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Usuarios\Enums\EstadoUsuario;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Queries\UsuariosQuery;
@@ -182,5 +183,92 @@ class GestionUsuariosServiceTest extends TestCase
             'rol' => Rol::Gerente->value,
             'estado' => 'Activo',
         ]);
+    }
+
+    public function test_the_last_active_administrador_cannot_be_inhabilitated(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+        $gerente = Usuario::factory()->create();
+        $gerente->assignRole(Rol::Gerente->value);
+
+        // Act / Assert
+        try {
+            $this->service()->alternarEstado($gerente, $admin, '127.0.0.1');
+
+            $this->fail('The last active administrador should not be inhabilitated.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('estado', $exception->errors());
+        }
+
+        $this->assertSame('Activo', $admin->refresh()->estado);
+    }
+
+    public function test_the_last_active_administrador_cannot_lose_their_role(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+        $gerente = Usuario::factory()->create();
+        $gerente->assignRole(Rol::Gerente->value);
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($gerente, $admin, [
+                'nombre' => $admin->nombre,
+                'email' => $admin->email,
+                'password' => '',
+                'rol' => Rol::Gerente->value,
+                'estado' => 'Activo',
+            ]);
+
+            $this->fail('The last active administrador should keep the role.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('rol', $exception->errors());
+        }
+
+        $this->assertTrue($admin->refresh()->hasRole(Rol::Administrador->value));
+    }
+
+    public function test_the_last_administrador_guard_reads_the_persisted_state(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+        $gerente = Usuario::factory()->create();
+        $gerente->assignRole(Rol::Gerente->value);
+
+        // A stale in-memory copy must not hide that the persisted row is an active admin.
+        $admin->estado = EstadoUsuario::Inhabilitado->value;
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($gerente, $admin, [
+                'nombre' => $admin->nombre,
+                'email' => $admin->email,
+                'password' => '',
+                'rol' => Rol::Gerente->value,
+                'estado' => EstadoUsuario::Inhabilitado->value,
+            ]);
+
+            $this->fail('A stale copy should not bypass the last administrador guard.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('rol', $exception->errors());
+        }
+
+        $this->assertTrue($admin->refresh()->hasRole(Rol::Administrador->value));
+        $this->assertSame(EstadoUsuario::Activo->value, $admin->estado);
+    }
+
+    public function test_an_administrador_can_be_inhabilitated_when_another_active_one_remains(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+        $otroAdmin = Usuario::factory()->create();
+        $otroAdmin->assignRole(Rol::Administrador->value);
+
+        // Act
+        $this->service()->alternarEstado($admin, $otroAdmin, '127.0.0.1');
+
+        // Assert
+        $this->assertSame('Inhabilitado', $otroAdmin->refresh()->estado);
     }
 }
