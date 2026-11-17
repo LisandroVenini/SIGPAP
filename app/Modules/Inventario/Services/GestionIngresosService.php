@@ -49,7 +49,7 @@ class GestionIngresosService
         ?string $direccionIp = null,
     ): void {
         DB::transaction(function () use ($actor, $numeroOc, $numeroRemito, $direccionIp): void {
-            $orden = $this->recepciones->ordenPorNumero($numeroOc);
+            $orden = $this->recepciones->ordenPorNumero($numeroOc, true);
 
             $tieneRecepcion = $orden !== null && (
                 $orden['estado'] === EstadoOrdenDeCompra::Recibida->value

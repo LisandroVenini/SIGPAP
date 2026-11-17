@@ -219,11 +219,15 @@ class GestionRecepcionesService
      *
      * @return array{id:int, numero_oc:string, estado:string, entrega_parcial:bool}|null
      */
-    public function ordenPorNumero(string $numeroOc): ?array
+    public function ordenPorNumero(string $numeroOc, bool $conLock = false): ?array
     {
-        $orden = OrdenDeCompra::query()
-            ->where('numero_oc', $numeroOc)
-            ->first(['id', 'numero_oc', 'estado', 'entrega_parcial']);
+        $consulta = OrdenDeCompra::query()->where('numero_oc', $numeroOc);
+
+        if ($conLock) {
+            $consulta->lockForUpdate();
+        }
+
+        $orden = $consulta->first(['id', 'numero_oc', 'estado', 'entrega_parcial']);
 
         return $orden === null
             ? null
