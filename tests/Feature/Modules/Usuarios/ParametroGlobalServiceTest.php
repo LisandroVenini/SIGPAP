@@ -99,7 +99,7 @@ class ParametroGlobalServiceTest extends TestCase
         }
 
         // Assert
-        $this->assertNotSame('10', $service->parametro('compras_vigencia_cotizacion_dias'));
+        $this->assertSame('7', $service->parametro('compras_vigencia_cotizacion_dias'));
         $this->assertDatabaseCount('eventos_de_auditoria', 0);
     }
 }
