@@ -3,6 +3,8 @@
 namespace App\Modules\Compras\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Compras\Enums\EstadoOrdenDeCompra;
+use App\Modules\Compras\Enums\EstadoSolicitudDeCotizacion;
 use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
@@ -135,6 +137,8 @@ class GestionProveedoresService
         }
 
         DB::transaction(function () use ($actor, $proveedor, $direccionIp): void {
+            $this->validarSinOperacionesActivas($proveedor);
+
             $anterior = ['estado' => $proveedor->estado];
 
             $proveedor->update(['estado' => self::ESTADO_INACTIVO]);
@@ -149,6 +153,36 @@ class GestionProveedoresService
                 $proveedor->id,
             );
         });
+    }
+
+    /**
+     * A supplier with pending work must stay active: deactivating it would leave
+     * the open purchase orders and quote requests without a responsible party.
+     */
+    private function validarSinOperacionesActivas(Proveedor $proveedor): void
+    {
+        $ordenesPendientes = $proveedor->ordenesDeCompra()
+            ->whereIn('estado', [
+                EstadoOrdenDeCompra::Emitida->value,
+                EstadoOrdenDeCompra::Confirmada->value,
+            ])
+            ->exists();
+
+        if ($ordenesPendientes) {
+            throw ValidationException::withMessages([
+                'proveedor' => 'No se puede dar de baja un proveedor con órdenes de compra pendientes.',
+            ]);
+        }
+
+        $solicitudesEnCurso = $proveedor->solicitudesDeCotizacion()
+            ->where('estado', EstadoSolicitudDeCotizacion::Enviada->value)
+            ->exists();
+
+        if ($solicitudesEnCurso) {
+            throw ValidationException::withMessages([
+                'proveedor' => 'No se puede dar de baja un proveedor con solicitudes de cotización en curso.',
+            ]);
+        }
     }
 
     private function validarCuitDisponible(string $cuit): void

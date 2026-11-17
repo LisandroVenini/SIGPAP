@@ -7,6 +7,7 @@ use App\Modules\Compras\Requests\AnularSolicitudRequest;
 use App\Modules\Compras\Requests\ListarSolicitudesRequest;
 use App\Modules\Compras\Requests\StoreSolicitudRequest;
 use App\Modules\Compras\Requests\UpdateSolicitudRequest;
+use App\Modules\Compras\Services\GestionInformeMulticriterioService;
 use App\Modules\Compras\Services\GestionSolicitudesDeCotizacionService;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
@@ -18,13 +19,19 @@ class SolicitudDeCotizacionController
 {
     public function __construct(
         private readonly GestionSolicitudesDeCotizacionService $solicitudes,
+        private readonly GestionInformeMulticriterioService $informes,
         private readonly GestionArticulosService $articulos,
     ) {}
 
     public function index(ListarSolicitudesRequest $request): Response
     {
+        $solicitudes = $this->solicitudes->listar($request->validated());
+        $ids = $solicitudes->getCollection()->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
         return Inertia::render('Compras/SolicitudesDeCotizacion/Index', [
-            'solicitudes' => $this->solicitudes->listar($request->validated()),
+            'solicitudes' => $solicitudes,
+            'detalles' => $this->solicitudes->detallesDeSolicitudes($ids),
+            'informes' => $this->informes->paraSolicitudes($ids),
             'articulos' => $this->articulos->insumosDisponibles(),
             'proveedores' => $this->solicitudes->proveedoresActivos(),
         ]);

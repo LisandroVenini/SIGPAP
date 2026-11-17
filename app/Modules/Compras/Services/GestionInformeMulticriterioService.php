@@ -9,6 +9,7 @@ use App\Modules\Compras\Queries\InformeMulticriterioQuery;
 use App\Modules\Usuarios\Services\ParametroGlobalService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class GestionInformeMulticriterioService
 {
@@ -263,10 +264,30 @@ class GestionInformeMulticriterioService
     {
         $valor = $this->parametros->parametro($clave);
 
-        if ($valor === null || ! is_numeric($valor)) {
+        if ($valor === null) {
             return $porDefecto;
         }
 
-        return max($minimo, min($maximo, (float) $valor));
+        if (! is_numeric($valor)) {
+            Log::warning('Parámetro global no numérico; se usa el valor por defecto.', [
+                'parametro' => $clave,
+                'valor' => $valor,
+            ]);
+
+            return $porDefecto;
+        }
+
+        $numero = (float) $valor;
+
+        if ($numero < $minimo || $numero > $maximo) {
+            Log::warning('Parámetro global fuera de rango; se ajusta al límite.', [
+                'parametro' => $clave,
+                'valor' => $numero,
+                'minimo' => $minimo,
+                'maximo' => $maximo,
+            ]);
+        }
+
+        return max($minimo, min($maximo, $numero));
     }
 }

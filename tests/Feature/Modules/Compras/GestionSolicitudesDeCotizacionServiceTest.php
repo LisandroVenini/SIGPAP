@@ -12,6 +12,7 @@ use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
 use Database\Factories\CotizacionFactory;
+use Database\Factories\LineaCotizacionFactory;
 use Database\Factories\LineaSolicitudCotizacionFactory;
 use Database\Factories\SolicitudDeCotizacionFactory;
 use Database\Seeders\PermissionSeeder;
@@ -169,7 +170,18 @@ class GestionSolicitudesDeCotizacionServiceTest extends TestCase
         $this->assertSame(17, $resultados->total());
         $this->assertSame($solicitud->id, $resultados->items()[0]['id']);
         $this->assertSame(
-            ['id', 'fecha', 'fecha_vencimiento', 'estado', 'lineas', 'proveedores', 'cotizaciones'],
+            [
+                'id',
+                'fecha',
+                'fecha_vencimiento',
+                'estado',
+                'lineas',
+                'proveedores',
+                'cotizaciones',
+                'codigo',
+                'estado_visible',
+                'respuestas',
+            ],
             array_keys($resultados->items()[0]),
         );
         $this->assertSame(2, $resultados->items()[0]['lineas']);
@@ -317,6 +329,65 @@ class GestionSolicitudesDeCotizacionServiceTest extends TestCase
         }
 
         $this->assertDatabaseCount('lineas_de_solicitud_de_cotizacion', 0);
+    }
+
+    public function test_blocks_update_when_the_solicitud_is_annulled(): void
+    {
+        // Arrange
+        Mail::fake();
+        $actor = $this->actor();
+        $articulo = $this->articulo('Tabla de pino');
+        $proveedor = $this->proveedor('Aceros del Sur', 'ventas@aceros.test');
+
+        $solicitud = $this->service()->crear($actor, [
+            'fecha_vencimiento' => today()->addWeek()->toDateString(),
+            'lineas' => [
+                ['articulo_id' => $articulo->id, 'cantidad_solicitada' => 10],
+            ],
+            'proveedores' => [$proveedor->id],
+        ]);
+        $this->service()->anular($actor, $solicitud);
+
+        // Act / Assert
+        try {
+            $this->service()->actualizar($actor, $solicitud, [
+                'fecha_vencimiento' => today()->addDays(10)->toDateString(),
+                'lineas' => [
+                    ['articulo_id' => $articulo->id, 'cantidad_solicitada' => 4],
+                ],
+                'proveedores' => [$proveedor->id],
+            ]);
+
+            $this->fail('An annulled solicitud should not be updated.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('estado', $exception->errors());
+        }
+
+        $this->assertDatabaseHas('lineas_de_solicitud_de_cotizacion', [
+            'solicitud_de_cotizacion_id' => $solicitud->id,
+            'cantidad_solicitada' => 10,
+        ]);
+    }
+
+    public function test_blocks_annulment_when_the_solicitud_has_quotes(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $solicitud = SolicitudDeCotizacionFactory::new()->create(['estado' => 'Enviada']);
+        CotizacionFactory::new()->create([
+            'solicitud_de_cotizacion_id' => $solicitud->id,
+        ]);
+
+        // Act / Assert
+        try {
+            $this->service()->anular($actor, $solicitud);
+
+            $this->fail('A solicitud with quotes should not be annulled.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('estado', $exception->errors());
+        }
+
+        $this->assertSame('Enviada', $solicitud->refresh()->estado);
     }
 
     public function test_blocks_annulment_when_the_solicitud_is_adjudicada(): void
@@ -473,5 +544,54 @@ class GestionSolicitudesDeCotizacionServiceTest extends TestCase
             'auditable_type' => Cotizacion::class,
             'auditable_id' => $cotizacion->id,
         ]);
+    }
+
+    public function test_detail_exposes_the_received_quote_lines_and_the_visible_state(): void
+    {
+        // Arrange
+        $articulo = $this->articulo('Cola vinílica');
+        $proveedor = $this->proveedor('Maderera Sur', 'compras@maderera.test');
+        $solicitud = SolicitudDeCotizacionFactory::new()->create([
+            'fecha' => now()->toDateString(),
+            'fecha_vencimiento' => now()->addDays(7)->toDateString(),
+            'estado' => 'Enviada',
+        ]);
+        LineaSolicitudCotizacionFactory::new()->create([
+            'solicitud_de_cotizacion_id' => $solicitud->id,
+            'articulo_id' => $articulo->id,
+            'cantidad_solicitada' => 3,
+        ]);
+        $cotizacion = CotizacionFactory::new()->create([
+            'solicitud_de_cotizacion_id' => $solicitud->id,
+            'proveedor_id' => $proveedor->id,
+            'fecha' => now()->toDateString(),
+        ]);
+        LineaCotizacionFactory::new()->create([
+            'cotizacion_id' => $cotizacion->id,
+            'articulo_id' => $articulo->id,
+            'precio_unitario' => 10,
+            'cantidad_ofertada' => 2,
+            'fecha_prometida' => now()->addDays(3)->toDateString(),
+        ]);
+
+        // Act
+        $fila = $this->service()->listar([])->items()[0];
+        $detalle = $this->service()->detallesDeSolicitudes([$solicitud->id])[$solicitud->id];
+
+        // Assert
+        $this->assertSame('Respondida', $fila['estado_visible']);
+        $this->assertSame(['recibidas' => 1, 'esperadas' => 0], $fila['respuestas']);
+        $this->assertSame(
+            'SC-'.now()->format('Y').'-'.str_pad((string) $solicitud->id, 4, '0', STR_PAD_LEFT),
+            $fila['codigo'],
+        );
+        $this->assertSame('Cola vinílica', $detalle['insumos']);
+        $this->assertSame('Respondida', $detalle['estado_visible']);
+        $this->assertSame(20.0, $detalle['cotizaciones'][0]['total_ofertado']);
+        $this->assertSame(30.0, $detalle['cotizaciones'][0]['costo_pedido']);
+        $this->assertSame(10.0, $detalle['cotizaciones'][0]['lineas'][0]['precio_unitario']);
+        $this->assertSame(3.0, $detalle['cotizaciones'][0]['lineas'][0]['cantidad_solicitada']);
+        $this->assertSame(2.0, $detalle['cotizaciones'][0]['lineas'][0]['cantidad_ofertada']);
+        $this->assertSame(20.0, $detalle['cotizaciones'][0]['lineas'][0]['subtotal']);
     }
 }

@@ -213,6 +213,33 @@ class PortalOrdenControllerTest extends TestCase
         $response->assertNotFound();
     }
 
+    public function test_an_expired_orden_token_returns_not_found(): void
+    {
+        // Arrange
+        $contexto = $this->ordenEmitida();
+        $contexto['orden']->update(['fecha_emision' => today()->subDays(31)]);
+
+        // Act
+        $response = $this->get("/portal/ordenes/{$contexto['orden']->token}");
+
+        // Assert
+        $response->assertNotFound();
+    }
+
+    public function test_an_expired_orden_token_cannot_be_confirmed(): void
+    {
+        // Arrange
+        $contexto = $this->ordenEmitida();
+        $contexto['orden']->update(['fecha_emision' => today()->subDays(31)]);
+
+        // Act
+        $response = $this->post("/portal/ordenes/{$contexto['orden']->token}", ['aceptada' => true]);
+
+        // Assert
+        $response->assertNotFound();
+        $this->assertSame('Emitida', $contexto['orden']->refresh()->estado);
+    }
+
     public function test_the_public_orden_page_is_rate_limited(): void
     {
         // Act / Assert

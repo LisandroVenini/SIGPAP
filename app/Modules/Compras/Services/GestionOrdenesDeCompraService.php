@@ -29,6 +29,8 @@ use Illuminate\Validation\ValidationException;
 
 class GestionOrdenesDeCompraService
 {
+    private const DIAS_VIGENCIA_TOKEN = 30;
+
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly UsuariosService $usuarios,
@@ -207,6 +209,7 @@ class GestionOrdenesDeCompraService
             $anterior = ['lineas' => $orden->lineas()->count()];
 
             $this->validarLineas($lineas);
+            $this->validarArticulosDeLaCotizacion($orden, $lineas);
 
             $orden->lineas()->delete();
 
@@ -248,16 +251,59 @@ class GestionOrdenesDeCompraService
 
             $orden->update(['estado' => EstadoOrdenDeCompra::Anulada->value]);
 
+            $adjudicacionLiberada = $this->liberarAdjudicacion($orden);
+
             $this->auditoria->registrarEvento(
                 $actor->id,
                 'anular_orden_compra',
                 $anterior,
-                ['estado' => EstadoOrdenDeCompra::Anulada->value, 'motivo' => $motivo],
+                [
+                    'estado' => EstadoOrdenDeCompra::Anulada->value,
+                    'motivo' => $motivo,
+                    'adjudicacion_liberada' => $adjudicacionLiberada,
+                ],
                 $direccionIp,
                 OrdenDeCompra::class,
                 $orden->id,
             );
         });
+    }
+
+    /**
+     * Annulling the order must free the adjudicated quote: otherwise the solicitud stays
+     * Adjudicada forever and no other quote can be chosen.
+     */
+    private function liberarAdjudicacion(OrdenDeCompra $orden): bool
+    {
+        if ($orden->cotizacion_id === null) {
+            return false;
+        }
+
+        $cotizacion = Cotizacion::query()
+            ->whereKey($orden->cotizacion_id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($cotizacion === null) {
+            return false;
+        }
+
+        $cotizacion->lineas()->update(['adjudicada' => false]);
+
+        $solicitud = SolicitudDeCotizacion::query()
+            ->whereKey($cotizacion->solicitud_de_cotizacion_id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($solicitud === null) {
+            return false;
+        }
+
+        if ($solicitud->estado === EstadoSolicitudDeCotizacion::Adjudicada->value) {
+            $solicitud->update(['estado' => EstadoSolicitudDeCotizacion::Enviada->value]);
+        }
+
+        return true;
     }
 
     public function confirmar(string $token, bool $aceptada, ?string $motivo = null, ?string $direccionIp = null): void
@@ -268,7 +314,7 @@ class GestionOrdenesDeCompraService
                 ->lockForUpdate()
                 ->first();
 
-            if ($orden === null || $orden->estado !== EstadoOrdenDeCompra::Emitida->value) {
+            if ($orden === null || $orden->estado !== EstadoOrdenDeCompra::Emitida->value || $this->tokenVencido($orden)) {
                 throw (new ModelNotFoundException)->setModel(OrdenDeCompra::class);
             }
 
@@ -323,7 +369,7 @@ class GestionOrdenesDeCompraService
             ->where('estado', EstadoOrdenDeCompra::Emitida->value)
             ->first();
 
-        if ($orden === null) {
+        if ($orden === null || $this->tokenVencido($orden)) {
             return null;
         }
 
@@ -336,6 +382,15 @@ class GestionOrdenesDeCompraService
                 fn (LineaOrdenCompra $linea): float => (float) $linea->cantidad * (float) $linea->precio_pactado,
             ),
         ];
+    }
+
+    /**
+     * The supplier link stays valid for 30 days from the emission date.
+     */
+    private function tokenVencido(OrdenDeCompra $orden): bool
+    {
+        return $orden->fecha_emision !== null
+            && $orden->fecha_emision->copy()->addDays(self::DIAS_VIGENCIA_TOKEN)->lt(today());
     }
 
     private function siguienteNumeroOc(): string
@@ -398,13 +453,66 @@ class GestionOrdenesDeCompraService
     }
 
     /**
-     * Domain invariant: an order line cannot have a non-positive quantity or a negative price.
+     * An order created from a quote may only keep articles that were quoted: swapping
+     * an article would order something the supplier never offered.
      *
-     * @param  array<int, array{cantidad: float|string, precio_pactado: float|string}>  $lineas
+     * @param  array<int, array{articulo_id: int}>  $lineas
+     */
+    private function validarArticulosDeLaCotizacion(OrdenDeCompra $orden, array $lineas): void
+    {
+        if ($orden->cotizacion_id === null) {
+            return;
+        }
+
+        $permitidos = $orden->cotizacion()
+            ->firstOrFail()
+            ->lineas()
+            ->pluck('articulo_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        foreach (array_values($lineas) as $indice => $linea) {
+            if (! in_array((int) $linea['articulo_id'], $permitidos, true)) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.articulo_id" => 'El artículo debe pertenecer a la cotización de origen.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Domain invariant: an order line cannot repeat an article, have a non-positive
+     * quantity or a negative price.
+     *
+     * @param  array<int, array{articulo_id: int, cantidad: float|string, precio_pactado: float|string}>  $lineas
      */
     private function validarLineas(array $lineas): void
     {
+        if ($lineas === []) {
+            throw ValidationException::withMessages([
+                'lineas' => 'La orden debe tener al menos un artículo.',
+            ]);
+        }
+
+        $vistos = [];
+
         foreach (array_values($lineas) as $indice => $linea) {
+            $articuloId = (int) ($linea['articulo_id'] ?? 0);
+
+            if ($articuloId <= 0) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.articulo_id" => 'El artículo es obligatorio.',
+                ]);
+            }
+
+            if (in_array($articuloId, $vistos, true)) {
+                throw ValidationException::withMessages([
+                    "lineas.{$indice}.articulo_id" => 'El artículo está repetido en la orden.',
+                ]);
+            }
+
+            $vistos[] = $articuloId;
+
             if ((float) ($linea['cantidad'] ?? 0) <= 0) {
                 throw ValidationException::withMessages([
                     "lineas.{$indice}.cantidad" => 'La cantidad debe ser mayor a 0.',

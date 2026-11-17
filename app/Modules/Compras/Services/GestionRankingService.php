@@ -9,6 +9,7 @@ use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\ParametroGlobalService;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class GestionRankingService
 {
@@ -209,21 +210,57 @@ class GestionRankingService
     {
         $valor = $this->parametros->parametro($clave);
 
-        if ($valor === null || ! is_numeric($valor)) {
+        if ($valor === null) {
             return $porDefecto;
         }
 
-        return max(0.0, min(1.0, (float) $valor));
+        if (! is_numeric($valor)) {
+            Log::warning('Parámetro global no numérico; se usa el valor por defecto.', [
+                'parametro' => $clave,
+                'valor' => $valor,
+            ]);
+
+            return $porDefecto;
+        }
+
+        $numero = (float) $valor;
+
+        if ($numero < 0.0 || $numero > 1.0) {
+            Log::warning('Parámetro global fuera de rango; se ajusta al límite.', [
+                'parametro' => $clave,
+                'valor' => $numero,
+            ]);
+        }
+
+        return max(0.0, min(1.0, $numero));
     }
 
     private function ventanaMeses(): int
     {
         $valor = $this->parametros->parametro(self::VENTANA_MESES);
 
-        if ($valor === null || filter_var($valor, FILTER_VALIDATE_INT) === false) {
+        if ($valor === null) {
             return self::VENTANA_POR_DEFECTO;
         }
 
-        return max(1, min(60, (int) $valor));
+        if (filter_var($valor, FILTER_VALIDATE_INT) === false) {
+            Log::warning('Parámetro global no entero; se usa el valor por defecto.', [
+                'parametro' => self::VENTANA_MESES,
+                'valor' => $valor,
+            ]);
+
+            return self::VENTANA_POR_DEFECTO;
+        }
+
+        $numero = (int) $valor;
+
+        if ($numero < 1 || $numero > 60) {
+            Log::warning('Parámetro global fuera de rango; se ajusta al límite.', [
+                'parametro' => self::VENTANA_MESES,
+                'valor' => $numero,
+            ]);
+        }
+
+        return max(1, min(60, $numero));
     }
 }

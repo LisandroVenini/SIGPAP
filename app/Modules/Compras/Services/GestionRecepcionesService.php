@@ -80,8 +80,10 @@ class GestionRecepcionesService
         bool $entregaParcial,
         array $lineasRecibidas,
         ?string $direccionIp = null,
+        array $acumuladas = [],
+        bool $cerrarConFaltantes = false,
     ): void {
-        DB::transaction(function () use ($actor, $orden, $entregaParcial, $lineasRecibidas, $direccionIp): void {
+        DB::transaction(function () use ($actor, $orden, $entregaParcial, $lineasRecibidas, $direccionIp, $acumuladas, $cerrarConFaltantes): void {
             $orden = OrdenDeCompra::query()
                 ->whereKey($orden->getKey())
                 ->lockForUpdate()
@@ -95,15 +97,54 @@ class GestionRecepcionesService
 
             $lineas = $orden->lineas()->get();
             $recibidas = $this->cantidadesRecibidas($lineasRecibidas);
+
+            $totales = [];
+
+            foreach ($lineas as $linea) {
+                $articuloId = (int) $linea->articulo_id;
+                $totales[$articuloId] = round(($acumuladas[$articuloId] ?? 0.0) + ($recibidas[$articuloId] ?? 0.0), 2);
+            }
+
+            $quedanFaltantes = $lineas->contains(
+                fn ($linea): bool => ($totales[(int) $linea->articulo_id] ?? 0.0) < (float) $linea->cantidad,
+            );
+
+            if (! $cerrarConFaltantes && $quedanFaltantes !== $entregaParcial) {
+                throw ValidationException::withMessages([
+                    'entrega_parcial' => $quedanFaltantes
+                        ? 'Quedan artículos pendientes: la entrega debe registrarse como parcial.'
+                        : 'No quedan artículos pendientes: la entrega no puede registrarse como parcial.',
+                ]);
+            }
+
+            $anterior = ['estado' => $orden->estado, 'entrega_parcial' => (bool) $orden->entrega_parcial];
+
+            if ($quedanFaltantes && ! $cerrarConFaltantes) {
+                $orden->update([
+                    'estado' => EstadoOrdenDeCompra::Confirmada->value,
+                    'entrega_parcial' => true,
+                ]);
+
+                $this->auditoria->registrarEvento(
+                    $actor->id,
+                    'registrar_recepcion_parcial',
+                    $anterior,
+                    ['estado' => EstadoOrdenDeCompra::Confirmada->value, 'entrega_parcial' => true],
+                    $direccionIp,
+                    OrdenDeCompra::class,
+                    $orden->id,
+                );
+
+                return;
+            }
+
             $resumenes = $this->articulos->resumenesDeArticulos(
                 $lineas->pluck('articulo_id')->unique()->values()->all(),
             );
 
-            $anterior = ['estado' => $orden->estado];
-
             $orden->update([
                 'estado' => EstadoOrdenDeCompra::Recibida->value,
-                'entrega_parcial' => $entregaParcial,
+                'entrega_parcial' => $quedanFaltantes,
             ]);
 
             $this->registrarDesempeno($orden);
@@ -111,17 +152,17 @@ class GestionRecepcionesService
             $fechasPrometidas = $this->fechasPrometidas($orden);
 
             foreach ($lineas as $linea) {
-                $recibida = $recibidas[(int) $linea->articulo_id] ?? 0.0;
+                $total = $totales[(int) $linea->articulo_id] ?? 0.0;
                 $descripcion = $resumenes[(int) $linea->articulo_id]['descripcion']
                     ?? 'Artículo #'.$linea->articulo_id;
 
-                if ($recibida < (float) $linea->cantidad) {
+                if ($total < (float) $linea->cantidad) {
                     $this->registrarIncidencia(
                         $orden,
                         TipoIncidencia::Faltante->value,
                         sprintf(
                             'Se recibieron %s de %s unidades de %s.',
-                            $recibida,
+                            $total,
                             (float) $linea->cantidad,
                             $descripcion,
                         ),
@@ -147,7 +188,119 @@ class GestionRecepcionesService
                 $actor->id,
                 'registrar_recepcion_orden',
                 $anterior,
-                ['estado' => EstadoOrdenDeCompra::Recibida->value, 'entrega_parcial' => $entregaParcial],
+                ['estado' => EstadoOrdenDeCompra::Recibida->value, 'entrega_parcial' => $quedanFaltantes],
+                $direccionIp,
+                OrdenDeCompra::class,
+                $orden->id,
+            );
+        });
+    }
+
+    /**
+     * Take the order row lock before another module reads or writes reception data,
+     * so concurrent receptions of the same order serialize.
+     */
+    public function bloquearOrdenPorNumero(string $numeroOc): void
+    {
+        $orden = OrdenDeCompra::query()
+            ->where('numero_oc', $numeroOc)
+            ->lockForUpdate()
+            ->first();
+
+        if ($orden === null || ! $this->esRecepcionable($orden)) {
+            throw ValidationException::withMessages([
+                'numero_oc' => 'La orden de compra no está pendiente de recepción.',
+            ]);
+        }
+    }
+
+    /**
+     * Minimal purchase order data by number, for other modules that need its id.
+     *
+     * @return array{id:int, numero_oc:string, estado:string, entrega_parcial:bool}|null
+     */
+    public function ordenPorNumero(string $numeroOc, bool $conLock = false): ?array
+    {
+        $consulta = OrdenDeCompra::query()->where('numero_oc', $numeroOc);
+
+        if ($conLock) {
+            $consulta->lockForUpdate();
+        }
+
+        $orden = $consulta->first(['id', 'numero_oc', 'estado', 'entrega_parcial']);
+
+        return $orden === null
+            ? null
+            : [
+                'id' => $orden->id,
+                'numero_oc' => $orden->numero_oc,
+                'estado' => $orden->estado,
+                'entrega_parcial' => (bool) $orden->entrega_parcial,
+            ];
+    }
+
+    /**
+     * Resolve the numbers of several purchase orders without exposing the model.
+     *
+     * @param  array<int, int>  $ordenIds
+     * @return array<int, string>
+     */
+    public function numerosDeOrden(array $ordenIds): array
+    {
+        if ($ordenIds === []) {
+            return [];
+        }
+
+        return OrdenDeCompra::query()
+            ->whereKey($ordenIds)
+            ->pluck('numero_oc', 'id')
+            ->mapWithKeys(fn (string $numero, int|string $id): array => [(int) $id => $numero])
+            ->all();
+    }
+
+    /**
+     * Undo a reception so the order can be received again.
+     */
+    public function revertirRecepcionPorNumero(
+        Usuario $actor,
+        string $numeroOc,
+        ?string $direccionIp = null,
+        bool $quedaRecepcionParcial = false,
+    ): void {
+        DB::transaction(function () use ($actor, $numeroOc, $direccionIp, $quedaRecepcionParcial): void {
+            $orden = OrdenDeCompra::query()
+                ->where('numero_oc', $numeroOc)
+                ->lockForUpdate()
+                ->first();
+
+            $recepcionParcial = $orden !== null
+                && $orden->estado === EstadoOrdenDeCompra::Confirmada->value
+                && (bool) $orden->entrega_parcial;
+
+            if ($orden === null || ($orden->estado !== EstadoOrdenDeCompra::Recibida->value && ! $recepcionParcial)) {
+                throw ValidationException::withMessages([
+                    'numero_oc' => 'La orden de compra no tiene una recepción registrada.',
+                ]);
+            }
+
+            $anterior = ['estado' => $orden->estado, 'entrega_parcial' => (bool) $orden->entrega_parcial];
+
+            $orden->update([
+                'estado' => EstadoOrdenDeCompra::Confirmada->value,
+                'entrega_parcial' => $quedaRecepcionParcial,
+            ]);
+
+            $this->registrarIncidencia(
+                $orden,
+                TipoIncidencia::AnulacionRecepcion->value,
+                'Se anuló la recepción registrada.',
+            );
+
+            $this->auditoria->registrarEvento(
+                $actor->id,
+                'revertir_recepcion_orden',
+                $anterior,
+                ['estado' => EstadoOrdenDeCompra::Confirmada->value, 'entrega_parcial' => $quedaRecepcionParcial],
                 $direccionIp,
                 OrdenDeCompra::class,
                 $orden->id,
@@ -166,6 +319,8 @@ class GestionRecepcionesService
         bool $entregaParcial,
         array $lineasRecibidas,
         ?string $direccionIp = null,
+        array $acumuladas = [],
+        bool $cerrarConFaltantes = false,
     ): void {
         $orden = OrdenDeCompra::query()
             ->with(['proveedor', 'lineas'])
@@ -178,7 +333,7 @@ class GestionRecepcionesService
             ]);
         }
 
-        $this->registrarRecepcion($actor, $orden, $entregaParcial, $lineasRecibidas, $direccionIp);
+        $this->registrarRecepcion($actor, $orden, $entregaParcial, $lineasRecibidas, $direccionIp, $acumuladas, $cerrarConFaltantes);
     }
 
     private function esRecepcionable(OrdenDeCompra $orden): bool
