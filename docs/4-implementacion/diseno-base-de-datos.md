@@ -36,7 +36,7 @@ Notas spatie: guard único `web`, sin teams. Configurar morph map (`'usuario' =>
 
 | Tabla | Campos | FK |
 | --- | --- | --- |
-| `unidades_de_medida` | id, nombre (unique), factor_conversion | |
+| `unidades_de_medida` | id, nombre (unique) | |
 | `articulos` | id, codigo_sku (unique), descripcion, tipo (Materia Prima/Insumo Consumible/Producto Terminado), origen (Fabricado/Tercero, nullable), stock_fisico, stock_minimo?, stock_maximo?, fecha_vencimiento?, estado (Activo/Inactivo), unidad_de_medida_id | `unidad_de_medida_id → unidades_de_medida` |
 | `reservas` | id, articulo_id, orden_de_produccion_id, cantidad, estado (Vigente/Consumida/Liberada) | 2 FK |
 | `movimientos_de_stock` | id, articulo_id, orden_de_produccion_id?, orden_de_compra_id?, tipo (Ingreso/Consumo/Salida/Ajuste), cantidad (con signo), fecha, motivo?, numero_remito? | `articulo_id`; `orden_de_produccion_id` y `orden_de_compra_id` nullable |
