@@ -95,6 +95,19 @@ class GestionRecepcionesService
 
             $lineas = $orden->lineas()->get();
             $recibidas = $this->cantidadesRecibidas($lineasRecibidas);
+
+            $hayFaltantes = $lineas->contains(
+                fn ($linea): bool => ($recibidas[(int) $linea->articulo_id] ?? 0.0) < (float) $linea->cantidad,
+            );
+
+            if ($hayFaltantes !== $entregaParcial) {
+                throw ValidationException::withMessages([
+                    'entrega_parcial' => $hayFaltantes
+                        ? 'Hay artículos faltantes: la entrega debe registrarse como parcial.'
+                        : 'No hay artículos faltantes: la entrega no puede registrarse como parcial.',
+                ]);
+            }
+
             $resumenes = $this->articulos->resumenesDeArticulos(
                 $lineas->pluck('articulo_id')->unique()->values()->all(),
             );

@@ -166,6 +166,57 @@ class GestionRecepcionesServiceTest extends TestCase
         $this->assertSame(0, Incidencia::query()->count());
     }
 
+    public function test_rejects_a_partial_delivery_without_shortages(): void
+    {
+        // Arrange
+        $actor = Usuario::factory()->create();
+        $contexto = $this->contexto(fechaConfirmacion: today()->toDateString());
+
+        // Act / Assert
+        try {
+            $this->service()->registrarRecepcion(
+                $actor,
+                $contexto['orden'],
+                true,
+                [
+                    ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 10],
+                ],
+            );
+
+            $this->fail('A complete delivery cannot be flagged as partial.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('entrega_parcial', $exception->errors());
+        }
+
+        $this->assertSame('Confirmada', $contexto['orden']->refresh()->estado);
+    }
+
+    public function test_rejects_a_complete_delivery_with_shortages(): void
+    {
+        // Arrange
+        $actor = Usuario::factory()->create();
+        $contexto = $this->contexto(fechaConfirmacion: today()->toDateString());
+
+        // Act / Assert
+        try {
+            $this->service()->registrarRecepcion(
+                $actor,
+                $contexto['orden'],
+                false,
+                [
+                    ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 6],
+                ],
+            );
+
+            $this->fail('A shortage must be registered as a partial delivery.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('entrega_parcial', $exception->errors());
+        }
+
+        $this->assertSame('Confirmada', $contexto['orden']->refresh()->estado);
+        $this->assertSame(0, Incidencia::query()->count());
+    }
+
     public function test_registrar_recepcion_rejects_an_order_that_is_not_recepcionable(): void
     {
         // Arrange
