@@ -37,6 +37,15 @@ interface ParteHoy {
     observaciones: string | null;
 }
 
+interface ControlCalidad {
+    id: number;
+    fecha: string | null;
+    etapa: string | null;
+    aprobada: number;
+    rechazada: number;
+    motivo: string | null;
+}
+
 interface Orden {
     id: number;
     producto: Producto | null;
@@ -44,6 +53,8 @@ interface Orden {
     etapas: Etapa[];
     maquinarias: Maquinaria[];
     partes_hoy: ParteHoy[];
+    partes_historial: ParteHoy[];
+    controles: ControlCalidad[];
 }
 
 type SharedProps = {
@@ -504,6 +515,137 @@ function registrarParte(): void {
                                         </td>
                                         <td class="px-4 py-2.5 text-xs text-steel">
                                             {{ parte.observaciones || '—' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div
+                        class="overflow-hidden rounded-panel border border-hairline bg-surface shadow-diffused"
+                    >
+                        <div class="border-b border-hairline px-4 py-3">
+                            <h3 class="text-base font-semibold text-ink">Historial de partes</h3>
+                        </div>
+
+                        <div
+                            v-if="ordenActiva.partes_historial.length === 0"
+                            class="px-4 py-10 text-center text-sm text-steel"
+                        >
+                            Todavía no hay partes registrados para esta orden.
+                        </div>
+
+                        <div v-else class="overflow-x-auto">
+                            <table class="w-full text-left" data-testid="partes-historial-table">
+                                <thead class="border-b border-hairline bg-workshop">
+                                    <tr>
+                                        <th
+                                            class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Fecha
+                                        </th>
+                                        <th
+                                            class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Etapa
+                                        </th>
+                                        <th
+                                            class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Cantidad
+                                        </th>
+                                        <th
+                                            class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Maquinaria
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-hairline">
+                                    <tr
+                                        v-for="parte in ordenActiva.partes_historial"
+                                        :key="parte.id"
+                                    >
+                                        <td class="num px-4 py-2.5 text-xs text-steel">
+                                            {{ parte.fecha }}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-sm text-ink">
+                                            {{ parte.etapa }}
+                                        </td>
+                                        <td class="num px-4 py-2.5 text-right text-xs text-steel">
+                                            {{ parte.cantidad }}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-xs text-steel">
+                                            {{ parte.maquinaria ?? '—' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div
+                        class="overflow-hidden rounded-panel border border-hairline bg-surface shadow-diffused"
+                    >
+                        <div class="border-b border-hairline px-4 py-3">
+                            <h3 class="text-base font-semibold text-ink">Controles de calidad</h3>
+                        </div>
+
+                        <div
+                            v-if="ordenActiva.controles.length === 0"
+                            class="px-4 py-10 text-center text-sm text-steel"
+                        >
+                            No hay controles de calidad registrados para esta orden.
+                        </div>
+
+                        <div v-else class="overflow-x-auto">
+                            <table class="w-full text-left" data-testid="controles-calidad-table">
+                                <thead class="border-b border-hairline bg-workshop">
+                                    <tr>
+                                        <th
+                                            class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Fecha
+                                        </th>
+                                        <th
+                                            class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Etapa
+                                        </th>
+                                        <th
+                                            class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Aprobadas
+                                        </th>
+                                        <th
+                                            class="px-4 py-2.5 text-right text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Rechazadas
+                                        </th>
+                                        <th
+                                            class="px-4 py-2.5 text-[0.6875rem] font-semibold tracking-wider text-steel uppercase"
+                                        >
+                                            Motivo
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-hairline">
+                                    <tr v-for="control in ordenActiva.controles" :key="control.id">
+                                        <td class="num px-4 py-2.5 text-xs text-steel">
+                                            {{ control.fecha ?? '—' }}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-sm text-ink">
+                                            {{ control.etapa ?? 'Orden' }}
+                                        </td>
+                                        <td class="num px-4 py-2.5 text-right text-xs text-steel">
+                                            {{ control.aprobada }}
+                                        </td>
+                                        <td class="num px-4 py-2.5 text-right text-xs text-steel">
+                                            {{ control.rechazada }}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-xs text-steel">
+                                            {{ control.motivo ?? '—' }}
                                         </td>
                                     </tr>
                                 </tbody>

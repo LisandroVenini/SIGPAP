@@ -78,6 +78,27 @@ const ordenA = {
             observaciones: 'Turno mañana',
         },
     ],
+    partes_historial: [
+        {
+            id: 100,
+            etapa_id: 10,
+            etapa: 'Corte',
+            fecha: '2026-11-11',
+            cantidad: 4,
+            maquinaria: null,
+            observaciones: 'Turno mañana',
+        },
+    ],
+    controles: [
+        {
+            id: 200,
+            fecha: '2026-11-11',
+            etapa: 'Corte',
+            aprobada: 3,
+            rechazada: 1,
+            motivo: 'Detalle de laca',
+        },
+    ],
 };
 
 const ordenB = {
@@ -90,6 +111,8 @@ const ordenB = {
     ],
     maquinarias: [{ id: 2, nombre: 'Compresor' }],
     partes_hoy: [],
+    partes_historial: [],
+    controles: [],
 };
 
 const props = {
@@ -233,5 +256,16 @@ describe('Produccion ParteDiario page', () => {
 
         // Assert
         expect(wrapper.text()).toContain('Parte diario registrado.');
+    });
+
+    it('shows the full parts history and the quality controls of the selected order', () => {
+        // Arrange / Act
+        const wrapper = mount(ParteDiario, { props });
+
+        // Assert
+        expect(wrapper.find('[data-testid="partes-historial-table"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="controles-calidad-table"]').text()).toContain(
+            'Detalle de laca',
+        );
     });
 });
