@@ -113,8 +113,15 @@ watch(
 );
 
 const errorInline = ref<string | null>(null);
+const guardando = ref(false);
 
 function guardarTiempo(asignada: Asignada): void {
+    if (guardando.value) {
+        return;
+    }
+
+    guardando.value = true;
+
     router.put(
         `/produccion/hoja-de-ruta/${props.producto.id}/etapas/${asignada.etapa_id}`,
         { tiempo_por_unidad: Number(tiemposEdicion.value[asignada.etapa_id]) },
@@ -126,11 +133,20 @@ function guardarTiempo(asignada: Asignada): void {
             onError: (errors) => {
                 errorInline.value = Object.values(errors)[0] ?? null;
             },
+            onFinish: () => {
+                guardando.value = false;
+            },
         },
     );
 }
 
 function guardarCantidad(componente: ComponenteDeReceta): void {
+    if (guardando.value) {
+        return;
+    }
+
+    guardando.value = true;
+
     router.put(
         `/produccion/hoja-de-ruta/${props.producto.id}/receta/componentes/${componente.id}`,
         { cantidad: Number(cantidadesEdicion.value[componente.id]) },
@@ -141,6 +157,9 @@ function guardarCantidad(componente: ComponenteDeReceta): void {
             },
             onError: (errors) => {
                 errorInline.value = Object.values(errors)[0] ?? null;
+            },
+            onFinish: () => {
+                guardando.value = false;
             },
         },
     );
@@ -173,6 +192,12 @@ async function desasignar(asignada: Asignada): Promise<void> {
 }
 
 function mover(asignada: Asignada, direccion: 'subir' | 'bajar'): void {
+    if (guardando.value) {
+        return;
+    }
+
+    guardando.value = true;
+
     router.put(
         `/produccion/hoja-de-ruta/${props.producto.id}/etapas/${asignada.etapa_id}/mover`,
         {
@@ -181,6 +206,9 @@ function mover(asignada: Asignada, direccion: 'subir' | 'bajar'): void {
         },
         {
             preserveScroll: true,
+            onFinish: () => {
+                guardando.value = false;
+            },
         },
     );
 }
@@ -314,6 +342,7 @@ async function quitarComponente(componente: ComponenteDeReceta): Promise<void> {
                                             type="number"
                                             min="0.01"
                                             step="0.01"
+                                            aria-label="Tiempo por unidad"
                                             class="w-20 rounded-control border border-hairline bg-surface px-2 py-1 text-right font-mono text-xs text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                                             :data-testid="`tiempo-${asignada.etapa_id}`"
                                         />
@@ -488,6 +517,7 @@ async function quitarComponente(componente: ComponenteDeReceta): Promise<void> {
                                             type="number"
                                             min="0.01"
                                             step="0.01"
+                                            aria-label="Cantidad por unidad"
                                             class="w-20 rounded-control border border-hairline bg-surface px-2 py-1 text-right font-mono text-xs text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                                             :data-testid="`cantidad-${componente.id}`"
                                         />

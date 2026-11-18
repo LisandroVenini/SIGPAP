@@ -118,6 +118,11 @@ function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento): string {
                             type="button"
                             :data-testid="`reordenar-orden-${fila.orden_id}`"
                             :disabled="!fila.reubicable"
+                            :aria-label="
+                                fila.reubicable
+                                    ? 'Reordenar prioridad'
+                                    : 'En curso: reubicación bloqueada'
+                            "
                             :title="
                                 fila.reubicable
                                     ? 'Reordenar prioridad'
