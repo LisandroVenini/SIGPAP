@@ -9,12 +9,16 @@ use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\MovimientoDeStock;
 use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Usuarios\Models\Usuario;
+use App\Shared\Alertas\Services\AlertaService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class GestionAjustesService
 {
-    public function __construct(private readonly AuditoriaService $auditoria) {}
+    public function __construct(
+        private readonly AuditoriaService $auditoria,
+        private readonly AlertaService $alertas,
+    ) {}
 
     public function ajustar(
         Usuario $actor,
@@ -59,13 +63,26 @@ class GestionAjustesService
             $articulo->stock_fisico = $nuevoStock;
             $articulo->save();
 
-            MovimientoDeStock::create([
+            $movimiento = MovimientoDeStock::create([
                 'articulo_id' => $articulo->id,
                 'tipo' => TipoMovimientoStock::Ajuste->value,
                 'cantidad' => $diferencia,
                 'fecha' => now()->toDateString(),
                 'motivo' => $motivo,
             ]);
+
+            $porcentaje = $stockAnterior > 0
+                ? round(abs($diferencia) / $stockAnterior * 100, 2)
+                : 100.0;
+
+            $this->alertas->emitirPorTipo('ajuste_significativo', [
+                'articulo' => $articulo->descripcion,
+                'diferencia' => $diferencia,
+                'stock_anterior' => $stockAnterior,
+                'stock_nuevo' => $nuevoStock,
+                'porcentaje' => $porcentaje,
+                'articulo_id' => $articulo->id,
+            ], 'ajuste:'.$movimiento->id);
 
             $this->auditoria->registrarEvento(
                 $actor->id,

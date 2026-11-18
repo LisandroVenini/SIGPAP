@@ -12,12 +12,22 @@ interface AuthUser {
 
 type SharedProps = {
     auth: { user: AuthUser | null };
+    alertas_no_leidas: number;
+    alertas_recientes: {
+        id: number;
+        tipo: string;
+        severidad: string;
+        descripcion: string;
+        fecha: string | null;
+    }[];
 };
 
 defineProps<{ title: string }>();
 
 const page = usePage<SharedProps>();
 const user = computed(() => page.props.auth.user);
+const alertasNoLeidas = computed(() => page.props.alertas_no_leidas ?? 0);
+const alertasRecientes = computed(() => page.props.alertas_recientes ?? []);
 const currentUrl = computed(() => page.url);
 const initials = computed(() =>
     user.value
@@ -41,7 +51,7 @@ interface NavEntry {
     items?: NavItem[];
 }
 
-const navEntries: NavEntry[] = [
+const navEntries = computed<NavEntry[]>(() => [
     { label: 'Tablero', href: '/dashboard' },
     {
         label: 'Producción',
@@ -91,7 +101,7 @@ const navEntries: NavEntry[] = [
             { label: 'Configuración', href: '/usuarios/configuracion' },
         ],
     },
-];
+]);
 
 function isActive(href?: string): boolean {
     return href !== undefined && currentUrl.value.split('?')[0] === href.split('?')[0];
@@ -107,15 +117,34 @@ function isEntryActive(entry: NavEntry): boolean {
 
 const openMenu = ref<string | null>(null);
 const mobileOpen = ref(false);
+const alertasOpen = ref(false);
 const navRoot = ref<HTMLElement | null>(null);
 
 function toggleMenu(label: string): void {
     openMenu.value = openMenu.value === label ? null : label;
 }
 
+function toggleAlertas(): void {
+    closeMenus();
+    alertasOpen.value = !alertasOpen.value;
+}
+
 function closeMenus(): void {
     openMenu.value = null;
     mobileOpen.value = false;
+    alertasOpen.value = false;
+}
+
+function claseSeveridad(valor: string): string {
+    if (valor === 'Critica') {
+        return 'bg-oxide';
+    }
+
+    if (valor === 'Atencion') {
+        return 'bg-amber';
+    }
+
+    return 'bg-steel';
 }
 
 function handlePointerDown(event: Event): void {
@@ -255,6 +284,87 @@ const mobileItemClass = (active: boolean): string =>
                 </nav>
 
                 <div class="ml-auto flex items-center gap-2 xl:ml-0 xl:gap-3">
+                    <div v-if="user" class="relative">
+                        <button
+                            type="button"
+                            data-testid="campana-alertas"
+                            class="relative inline-flex h-9 w-9 items-center justify-center rounded-control border border-hairline text-steel transition-colors hover:bg-workshop/60 hover:text-ink"
+                            :aria-expanded="alertasOpen"
+                            aria-haspopup="true"
+                            :aria-label="
+                                alertasNoLeidas > 0
+                                    ? `Alertas, ${alertasNoLeidas} sin leer`
+                                    : 'Alertas'
+                            "
+                            @click="toggleAlertas"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="h-5 w-5"
+                                aria-hidden="true"
+                            >
+                                <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                                <path d="M10.3 21a2 2 0 0 0 3.4 0" />
+                            </svg>
+                            <span
+                                v-if="alertasNoLeidas > 0"
+                                class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-oxide px-1 text-[0.625rem] font-semibold text-white"
+                            >
+                                {{ alertasNoLeidas > 9 ? '9+' : alertasNoLeidas }}
+                            </span>
+                        </button>
+
+                        <div
+                            v-if="alertasOpen"
+                            data-testid="alertas-dropdown"
+                            class="absolute top-full right-0 z-40 mt-2 w-80 overflow-hidden rounded-panel border border-hairline bg-surface shadow-diffused"
+                        >
+                            <div class="max-h-80 overflow-y-auto">
+                                <ul
+                                    v-if="alertasRecientes.length > 0"
+                                    class="divide-y divide-hairline"
+                                >
+                                    <li
+                                        v-for="alerta in alertasRecientes"
+                                        :key="alerta.id"
+                                        class="flex items-start gap-2.5 px-3 py-2.5"
+                                    >
+                                        <span
+                                            :class="[
+                                                'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                                                claseSeveridad(alerta.severidad),
+                                            ]"
+                                            aria-hidden="true"
+                                        ></span>
+                                        <div class="flex flex-col gap-0.5">
+                                            <p class="text-xs leading-snug font-medium text-ink">
+                                                {{ alerta.descripcion }}
+                                            </p>
+                                            <p class="text-[0.625rem] text-clay">
+                                                {{ alerta.fecha }}
+                                            </p>
+                                        </div>
+                                    </li>
+                                </ul>
+                                <p v-else class="px-3 py-6 text-center text-xs text-steel">
+                                    No hay alertas recientes.
+                                </p>
+                            </div>
+                            <Link
+                                href="/alertas"
+                                class="block border-t border-hairline px-3 py-2.5 text-center text-xs font-medium text-teja transition-colors hover:bg-teja-wash/40 hover:underline"
+                                @click="alertasOpen = false"
+                            >
+                                Ver todas las alertas
+                            </Link>
+                        </div>
+                    </div>
+
                     <template v-if="user">
                         <div class="hidden items-center gap-2.5 xl:flex">
                             <div

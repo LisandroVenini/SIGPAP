@@ -11,6 +11,14 @@ const page = vi.hoisted(() => ({
                 roles: ['Supervisor de Producción'],
             },
         },
+        alertas_no_leidas: 0,
+        alertas_recientes: [] as {
+            id: number;
+            tipo: string;
+            severidad: string;
+            descripcion: string;
+            fecha: string | null;
+        }[],
     },
     url: '/dashboard',
 }));
@@ -35,6 +43,39 @@ function findMenuTrigger(wrapper: VueWrapper, label: string) {
 }
 
 describe('AppLayout', () => {
+    it('opens the bell dropdown with the recent alerts and a link to the inbox', async () => {
+        // Arrange
+        page.props.alertas_no_leidas = 3;
+        page.props.alertas_recientes = [
+            {
+                id: 1,
+                tipo: 'stock_bajo_minimo',
+                severidad: 'Critica',
+                descripcion: 'Tabla de pino bajo el mínimo',
+                fecha: '18/11 10:00',
+            },
+        ];
+
+        const wrapper = mount(AppLayout, {
+            props: { title: 'Tablero' },
+            slots: { default: '<div>contenido</div>' },
+        });
+
+        // Act
+        const campana = wrapper.find('[data-testid="campana-alertas"]');
+        await campana.trigger('click');
+
+        // Assert
+        expect(campana.attributes('aria-label')).toBe('Alertas, 3 sin leer');
+        expect(wrapper.find('[data-testid="alertas-dropdown"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain('Tabla de pino bajo el mínimo');
+        expect(wrapper.text()).toContain('Ver todas las alertas');
+        expect(wrapper.find('a[href="/alertas"]').exists()).toBe(true);
+
+        page.props.alertas_no_leidas = 0;
+        page.props.alertas_recientes = [];
+    });
+
     it('renders the page title, the slot and the authenticated user chip', () => {
         // Arrange / Act
         const wrapper = mount(AppLayout, {

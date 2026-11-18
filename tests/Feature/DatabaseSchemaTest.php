@@ -211,6 +211,23 @@ class DatabaseSchemaTest extends TestCase
         ]);
     }
 
+    public function test_alert_rule_tables_and_partial_unique_index_exist(): void
+    {
+        // Arrange / Act
+        $indices = DB::table('pg_indexes')
+            ->where('schemaname', 'public')
+            ->pluck('indexname')
+            ->all();
+
+        // Assert
+        $this->assertTrue(Schema::hasTable('reglas_de_alerta'));
+        $this->assertTrue(Schema::hasTable('regla_de_alerta_rol'));
+        $this->assertTrue(Schema::hasTable('alerta_rol'));
+        $this->assertTrue(Schema::hasTable('alerta_lecturas'));
+        $this->assertContains('alertas_clave_dedupe_abierta_unique', $indices);
+        $this->assertContains('regla_tipo_activa_idx', $indices);
+    }
+
     public function test_foreign_keys_and_hot_filter_columns_are_indexed(): void
     {
         // Arrange

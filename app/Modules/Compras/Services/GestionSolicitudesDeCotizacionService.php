@@ -14,6 +14,7 @@ use App\Modules\Compras\Queries\SolicitudesDeCotizacionQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
+use App\Shared\Alertas\Services\AlertaService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -30,6 +31,7 @@ class GestionSolicitudesDeCotizacionService
         private readonly UsuariosService $usuarios,
         private readonly GestionArticulosService $articulos,
         private readonly SolicitudesDeCotizacionQuery $query,
+        private readonly AlertaService $alertas,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
@@ -390,6 +392,13 @@ class GestionSolicitudesDeCotizacionService
                     'proveedor_id' => $envio['proveedor']->id,
                     'error' => $excepcion->getMessage(),
                 ]);
+
+                $this->alertas->emitirPorTipo('mail_fallido', [
+                    'numero_oc' => 'Solicitud #'.$solicitud->id,
+                    'proveedor' => $envio['proveedor']->razon_social,
+                    'error' => $excepcion->getMessage(),
+                    'solicitud_de_cotizacion_id' => $solicitud->id,
+                ], 'solicitud:'.$solicitud->id.':proveedor:'.$envio['proveedor']->id);
             }
         }
     }

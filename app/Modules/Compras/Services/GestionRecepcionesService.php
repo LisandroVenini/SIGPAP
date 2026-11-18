@@ -13,6 +13,7 @@ use App\Modules\Compras\Models\OrdenDeCompra;
 use App\Modules\Compras\Queries\RecepcionesQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
+use App\Shared\Alertas\Services\AlertaService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class GestionRecepcionesService
         private readonly AuditoriaService $auditoria,
         private readonly RecepcionesQuery $query,
         private readonly GestionArticulosService $articulos,
+        private readonly AlertaService $alertas,
     ) {}
 
     /**
@@ -167,6 +169,16 @@ class GestionRecepcionesService
                             $descripcion,
                         ),
                     );
+
+                    $this->alertas->emitirPorTipo('recepcion_con_faltante', [
+                        'numero_oc' => $orden->numero_oc,
+                        'proveedor' => $orden->proveedor?->razon_social ?? '—',
+                        'articulo' => $descripcion,
+                        'recibida' => $total,
+                        'pedida' => (float) $linea->cantidad,
+                        'orden_de_compra_id' => $orden->id,
+                        'articulo_id' => (int) $linea->articulo_id,
+                    ], 'oc:'.$orden->id.':articulo:'.$linea->articulo_id);
                 }
 
                 $prometida = $fechasPrometidas[(int) $linea->articulo_id] ?? null;

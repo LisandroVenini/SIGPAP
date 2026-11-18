@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Modules\Inventario;
 
-use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Enums\EstadoReserva;
 use App\Modules\Inventario\Enums\MotivoAjuste;
 use App\Modules\Inventario\Enums\TipoMovimientoStock;
@@ -20,7 +19,7 @@ class GestionAjustesServiceTest extends TestCase
 
     private function service(): GestionAjustesService
     {
-        return new GestionAjustesService(new AuditoriaService);
+        return app(GestionAjustesService::class);
     }
 
     public function test_ajustar_sobrescribe_stock_y_registra_movimiento_y_auditoria(): void

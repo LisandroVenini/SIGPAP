@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             ParametroGlobalSeeder::class,
             UnidadDeMedidaSeeder::class,
             AdminUserSeeder::class,
+            ReglaDeAlertaSeeder::class,
         ]);
     }
 }

@@ -12,6 +12,7 @@ use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
+use App\Shared\Alertas\Services\AlertaService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -23,6 +24,7 @@ class GestionCalidadService
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly PartesDiariosQuery $partesDiarios,
         private readonly UsuariosService $usuarios,
+        private readonly AlertaService $alertas,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
@@ -101,6 +103,17 @@ class GestionCalidadService
                 'cantidad_rechazada' => $rechazadas,
                 'motivo_rechazo' => $motivo,
             ]);
+
+            $rechazoPct = $base > 0 ? round($rechazadas / $base * 100, 2) : 0.0;
+
+            if ($rechazoPct > 0) {
+                $this->alertas->emitirPorTipo('calidad_baja', [
+                    'orden' => $orden->id,
+                    'producto' => $orden->articulo?->descripcion ?? 'Orden #'.$orden->id,
+                    'rechazo_pct' => $rechazoPct,
+                    'orden_de_produccion_id' => $orden->id,
+                ], 'calidad:'.$control->id);
+            }
 
             $this->auditoria->registrarEvento(
                 $actor->id,
