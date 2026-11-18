@@ -18,7 +18,7 @@ class StoreProveedorRequest extends FormRequest
     {
         return [
             'razon_social' => ['required', 'string', 'max:255'],
-            'cuit' => ['required', 'string', 'max:20'],
+            'cuit' => ['required', 'string', 'max:20', 'unique:proveedores,cuit'],
             'email' => ['nullable', 'email', 'max:255'],
             'telefono' => ['nullable', 'string', 'max:50'],
         ];
