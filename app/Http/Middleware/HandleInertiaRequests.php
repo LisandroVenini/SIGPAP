@@ -43,6 +43,15 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
             ],
             'alertas_no_leidas' => $user !== null ? app(AlertaQuery::class)->noLeidas($user) : 0,
+            'alertas_recientes' => $user !== null
+                ? app(AlertaQuery::class)->ultimas($user, 5)->map(fn ($alerta): array => [
+                    'id' => $alerta->id,
+                    'tipo' => $alerta->tipo,
+                    'severidad' => $alerta->severidad,
+                    'descripcion' => $alerta->descripcion,
+                    'fecha' => $alerta->fecha?->format('d/m H:i'),
+                ])->all()
+                : [],
         ];
     }
 }

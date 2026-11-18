@@ -77,6 +77,8 @@ class AlertaControllerTest extends TestCase
             ->has('alertas.data', 1)
             ->where('noLeidas', 1)
             ->where('alertas_no_leidas', 1)
+            ->has('alertas_recientes', 1)
+            ->where('alertas_recientes.0.tipo', 'stock_bajo_minimo')
         );
     }
 
