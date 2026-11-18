@@ -15,7 +15,7 @@ class AlertaServiceTest extends TestCase
     {
         // Arrange
         $articulo = ArticuloFactory::new()->create();
-        $service = new AlertaService;
+        $service = app(AlertaService::class);
 
         // Act
         $alerta = $service->emitirAlerta(
@@ -37,7 +37,7 @@ class AlertaServiceTest extends TestCase
     public function test_it_emits_an_alert_without_context_references(): void
     {
         // Arrange
-        $service = new AlertaService;
+        $service = app(AlertaService::class);
 
         // Act
         $alerta = $service->emitirAlerta('Técnica', ['descripcion' => 'Timeout del motor'], 'Predictivo');
