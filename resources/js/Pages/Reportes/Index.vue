@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import DatePicker from '@/Components/DatePicker.vue';
@@ -34,10 +34,33 @@ const desde = ref<string>(props.filtros.desde ?? '');
 const hasta = ref<string>(props.filtros.hasta ?? '');
 const estado = ref<string>(props.filtros.estado ?? '');
 
+const page = usePage<{ errors: Record<string, string> }>();
+
+const ESTADOS_PRODUCCION = [
+    'Pendiente',
+    'Pendiente por Insumos',
+    'Asignada',
+    'En Curso',
+    'Pospuesta',
+    'Cerrada',
+    'Anulada',
+];
+
 const esProduccion = computed(() => tipo.value === 'produccion');
+const procesando = ref(false);
+const errorVisible = computed(
+    () =>
+        page.props.errors.desde ??
+        page.props.errors.hasta ??
+        page.props.errors.estado ??
+        page.props.errors.tipo ??
+        page.props.errors.exportar,
+);
 const filasVisibles = computed(() => props.preview?.filas.slice(0, 50) ?? []);
 
 function generar(): void {
+    procesando.value = true;
+
     router.get(
         '/reportes',
         {
@@ -46,7 +69,14 @@ function generar(): void {
             hasta: hasta.value || undefined,
             estado: esProduccion.value && estado.value ? estado.value : undefined,
         },
-        { preserveState: true, preserveScroll: true, replace: true },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onFinish: () => {
+                procesando.value = false;
+            },
+        },
     );
 }
 
@@ -126,23 +156,38 @@ function valoresDe(fila: FilaReporte): (string | number | null)[] {
 
                     <div v-if="esProduccion" class="flex flex-col gap-1">
                         <label for="estado" class="text-xs font-medium text-steel">Estado</label>
-                        <input
+                        <select
                             id="estado"
                             v-model="estado"
                             data-testid="estado"
-                            type="text"
-                            placeholder="Todos"
-                            class="w-40 rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-clay/70 focus:ring-2 focus:ring-teja/40 focus:outline-none"
-                        />
+                            class="w-48 rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
+                        >
+                            <option value="">Todos</option>
+                            <option
+                                v-for="opcion in ESTADOS_PRODUCCION"
+                                :key="opcion"
+                                :value="opcion"
+                            >
+                                {{ opcion }}
+                            </option>
+                        </select>
                     </div>
 
                     <button
                         type="submit"
-                        class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98]"
+                        :disabled="procesando"
+                        class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98] disabled:opacity-60"
                     >
-                        Generar
+                        {{ procesando ? 'Generando…' : 'Generar' }}
                     </button>
                 </form>
+            </div>
+
+            <div
+                v-if="errorVisible"
+                class="rounded-control border border-oxide/20 bg-oxide/5 px-4 py-2.5 text-sm text-oxide"
+            >
+                {{ errorVisible }}
             </div>
 
             <template v-if="props.preview">

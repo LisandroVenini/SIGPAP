@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 
-const hoisted = vi.hoisted(() => ({ routerGet: vi.fn() }));
+const hoisted = vi.hoisted(() => ({
+    routerGet: vi.fn(),
+    page: { props: { errors: {} as Record<string, string> } },
+}));
 
 vi.mock('@inertiajs/vue3', () => ({
     Head: { template: '<div />' },
     Link: { props: ['href'], template: '<a :href="href"><slot /></a>' },
     router: { get: hoisted.routerGet },
+    usePage: () => hoisted.page,
 }));
 
 vi.mock('../../Layouts/AppLayout.vue', () => ({
@@ -98,6 +102,19 @@ describe('Reportes Index page', () => {
             }),
             expect.any(Object),
         );
+    });
+
+    it('renders the backend validation error', () => {
+        // Arrange
+        hoisted.page.props.errors = { hasta: 'El rango no puede superar 366 días.' };
+
+        // Act
+        const wrapper = mount(Index, { props });
+
+        // Assert
+        expect(wrapper.text()).toContain('El rango no puede superar 366 días.');
+
+        hoisted.page.props.errors = {};
     });
 
     it('only offers the estado filter for the production report', async () => {
