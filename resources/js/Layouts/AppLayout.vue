@@ -12,12 +12,14 @@ interface AuthUser {
 
 type SharedProps = {
     auth: { user: AuthUser | null };
+    alertas_no_leidas: number;
 };
 
 defineProps<{ title: string }>();
 
 const page = usePage<SharedProps>();
 const user = computed(() => page.props.auth.user);
+const alertasNoLeidas = computed(() => page.props.alertas_no_leidas ?? 0);
 const currentUrl = computed(() => page.url);
 const initials = computed(() =>
     user.value
@@ -41,9 +43,12 @@ interface NavEntry {
     items?: NavItem[];
 }
 
-const navEntries: NavEntry[] = [
+const navEntries = computed<NavEntry[]>(() => [
     { label: 'Tablero', href: '/dashboard' },
-    { label: 'Alertas', href: '/alertas' },
+    {
+        label: alertasNoLeidas.value > 0 ? `Alertas (${alertasNoLeidas.value})` : 'Alertas',
+        href: '/alertas',
+    },
     {
         label: 'Producción',
         items: [
@@ -92,7 +97,7 @@ const navEntries: NavEntry[] = [
             { label: 'Configuración', href: '/usuarios/configuracion' },
         ],
     },
-];
+]);
 
 function isActive(href?: string): boolean {
     return href !== undefined && currentUrl.value.split('?')[0] === href.split('?')[0];

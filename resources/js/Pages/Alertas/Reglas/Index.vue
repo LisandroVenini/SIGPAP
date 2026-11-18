@@ -415,7 +415,11 @@ function labelDePagina(label: string): string {
                     </button>
                 </div>
 
-                <form class="flex flex-col gap-4 pt-4" @submit.prevent="guardar">
+                <form
+                    class="flex flex-col gap-4 pt-4"
+                    data-testid="regla-form"
+                    @submit.prevent="guardar"
+                >
                     <div class="flex flex-col gap-1">
                         <label for="nombre" class="text-xs font-medium text-steel">Nombre</label>
                         <input

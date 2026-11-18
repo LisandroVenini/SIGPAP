@@ -11,6 +11,7 @@ const page = vi.hoisted(() => ({
                 roles: ['Supervisor de Producción'],
             },
         },
+        alertas_no_leidas: 0,
     },
     url: '/dashboard',
 }));
@@ -35,6 +36,22 @@ function findMenuTrigger(wrapper: VueWrapper, label: string) {
 }
 
 describe('AppLayout', () => {
+    it('shows the unread alert count in the menu', () => {
+        // Arrange
+        page.props.alertas_no_leidas = 3;
+
+        // Act
+        const wrapper = mount(AppLayout, {
+            props: { title: 'Tablero' },
+            slots: { default: '<div>contenido</div>' },
+        });
+
+        // Assert
+        expect(wrapper.text()).toContain('Alertas (3)');
+
+        page.props.alertas_no_leidas = 0;
+    });
+
     it('renders the page title, the slot and the authenticated user chip', () => {
         // Arrange / Act
         const wrapper = mount(AppLayout, {

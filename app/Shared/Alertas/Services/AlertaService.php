@@ -236,12 +236,13 @@ class AlertaService
 
         foreach ($tipo->condiciones as $condicion) {
             $clave = $condicion['clave'];
+            $variable = $condicion['variable'] ?? $clave;
 
-            if (! array_key_exists($clave, $contexto) || ! is_numeric($contexto[$clave])) {
+            if (! array_key_exists($variable, $contexto) || ! is_numeric($contexto[$variable])) {
                 return false;
             }
 
-            $valor = (float) $contexto[$clave];
+            $valor = (float) $contexto[$variable];
             $limite = (float) ($regla->condiciones[$clave] ?? $condicion['por_defecto']);
 
             $cumple = match ($condicion['operador']) {

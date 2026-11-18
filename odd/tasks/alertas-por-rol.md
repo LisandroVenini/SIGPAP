@@ -20,7 +20,7 @@ Objetivo: subsistema de alertas configurable por reglas, con destinatarios por r
 | T1 | S1, S2, S3, S4 | hecho (kernel backend) |
 | T2 | S6 | hecho (catálogo) |
 | T3 | S1, S7, S8 | hecho (CRUD + permisos) |
-| T4 | S3, S5 | hecho (bandeja + lectura) |
+| T4 | S3, S5 | hecho (bandeja + lectura + badge + tests front) |
 | T5 | S2, S4 | hecho (emisores de eventos) |
 | T6 | S5 | hecho (vigilantes + scheduler) |
 | T7 | S5 | hecho (seeder + retención) |

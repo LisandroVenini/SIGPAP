@@ -19,7 +19,7 @@ class ReglaDeAlertaSeeder extends Seeder
             ['tipo' => 'stock_bajo_minimo', 'nombre' => 'Stock bajo el mínimo', 'condiciones' => [], 'mensaje' => '{{articulo}} está bajo el mínimo: {{disponible}} de {{minimo}}.'],
             ['tipo' => 'articulo_por_vencer', 'nombre' => 'Artículo por vencer', 'condiciones' => ['dias' => 30], 'mensaje' => '{{articulo}} vence el {{fecha_vencimiento}} ({{dias}} días).'],
             ['tipo' => 'solicitud_por_vencer', 'nombre' => 'Solicitud por vencer', 'condiciones' => ['dias' => 3], 'mensaje' => 'La solicitud {{numero}} vence el {{fecha_vencimiento}}.'],
-            ['tipo' => 'cotizaciones_insuficientes', 'nombre' => 'Cotizaciones insuficientes', 'condiciones' => ['dias_antes' => 2, 'minimo' => 3], 'mensaje' => 'La solicitud {{numero}} tiene {{recibidas}} de {{minimo}} cotizaciones.'],
+            ['tipo' => 'cotizaciones_insuficientes', 'nombre' => 'Cotizaciones insuficientes', 'condiciones' => ['dias' => 2, 'minimo' => 3], 'mensaje' => 'La solicitud {{numero}} tiene {{recibidas}} de {{minimo}} cotizaciones.'],
             ['tipo' => 'oc_sin_confirmar', 'nombre' => 'OC sin confirmar', 'condiciones' => ['dias' => 7], 'mensaje' => 'La OC {{numero_oc}} lleva {{dias}} días sin confirmar.'],
             ['tipo' => 'orden_atrasada', 'nombre' => 'Orden atrasada', 'condiciones' => [], 'mensaje' => 'La orden {{orden}} de {{producto}} está atrasada desde el {{fecha_entrega}}.'],
             ['tipo' => 'orden_por_vencer', 'nombre' => 'Orden por vencer', 'condiciones' => ['dias' => 2, 'avance_maximo' => 100], 'mensaje' => 'La orden {{orden}} vence el {{fecha_entrega}} con {{avance}}% de avance.'],

@@ -11,7 +11,7 @@ final class TipoDeAlerta
 {
     /**
      * @param  array<int, Rol>  $rolesPorDefecto
-     * @param  array<int, array{clave: string, etiqueta: string, tipo: string, operador: string, minimo?: float|int, maximo?: float|int, por_defecto: float|int}>  $condiciones
+     * @param  array<int, array{clave: string, etiqueta: string, tipo: string, operador: string, variable: string, minimo?: float|int, maximo?: float|int, por_defecto: float|int}>  $condiciones
      * @param  array<int, string>  $variables
      */
     public function __construct(

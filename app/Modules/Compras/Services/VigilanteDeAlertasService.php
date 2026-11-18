@@ -10,11 +10,16 @@ use App\Shared\Alertas\Services\AlertaService;
 
 class VigilanteDeAlertasService
 {
-    public function __construct(private readonly AlertaService $alertas) {}
+    public function __construct(
+        private readonly AlertaService $alertas,
+        private readonly GestionRankingService $ranking,
+    ) {}
 
     public function evaluar(): int
     {
-        return $this->evaluarSolicitudes() + $this->evaluarOrdenesSinConfirmar();
+        return $this->evaluarSolicitudes()
+            + $this->evaluarOrdenesSinConfirmar()
+            + $this->evaluarProveedoresCriticos();
     }
 
     private function evaluarSolicitudes(): int
@@ -68,5 +73,23 @@ class VigilanteDeAlertasService
             });
 
         return $this->alertas->sincronizarPorTipo('oc_sin_confirmar', $contextos);
+    }
+
+    private function evaluarProveedoresCriticos(): int
+    {
+        $ranking = $this->ranking->listar();
+        $ventana = $ranking['parametros']['ventana_meses'];
+
+        $contextos = [];
+
+        foreach ($ranking['filas'] as $fila) {
+            $contextos['proveedor:'.$fila['proveedor_id']] = [
+                'proveedor' => $fila['proveedor'],
+                'puntaje' => $fila['puntaje'],
+                'ventana' => $ventana,
+            ];
+        }
+
+        return $this->alertas->sincronizarPorTipo('proveedor_critico', $contextos);
     }
 }
