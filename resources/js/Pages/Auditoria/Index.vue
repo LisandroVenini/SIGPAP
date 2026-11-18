@@ -311,7 +311,10 @@ function labelDePagina(label: string): string {
                         <Link
                             v-for="link in props.eventos.links"
                             :key="link.label"
-                            :href="link.url ?? '#'"
+                            :href="link.url ?? undefined"
+                            :aria-current="link.active ? 'page' : undefined"
+                            :aria-disabled="link.url === null ? 'true' : undefined"
+                            :tabindex="link.url === null ? -1 : undefined"
                             class="rounded px-2 py-0.5"
                             :class="
                                 link.active
@@ -332,6 +335,7 @@ function labelDePagina(label: string): string {
             @click.self="cerrarDetalle"
         >
             <aside
+                v-dialog="cerrarDetalle"
                 data-testid="detalle-auditoria"
                 class="flex h-full w-full max-w-[520px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >

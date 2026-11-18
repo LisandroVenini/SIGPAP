@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
+import { formatearCantidad } from '@/lib/numeros';
 import DatePicker from '@/Components/DatePicker.vue';
 import { hoyISO } from '@/lib/fechas';
 import { confirmar } from '@/composables/useConfirm';
@@ -345,15 +346,15 @@ function labelDePagina(label: string): string {
                                     {{ articulo.unidad ?? '—' }}
                                 </td>
                                 <td class="px-4 py-2.5 text-right font-mono text-xs text-ink">
-                                    {{ articulo.stock_fisico }}
+                                    {{ formatearCantidad(articulo.stock_fisico) }}
                                 </td>
                                 <td class="px-4 py-2.5 text-right font-mono text-xs text-steel">
-                                    {{ articulo.stock_comprometido }}
+                                    {{ formatearCantidad(articulo.stock_comprometido) }}
                                 </td>
                                 <td
                                     class="px-4 py-2.5 text-right font-mono text-xs font-medium text-ink"
                                 >
-                                    {{ articulo.stock_disponible }}
+                                    {{ formatearCantidad(articulo.stock_disponible) }}
                                 </td>
                                 <td class="px-4 py-2.5">
                                     <span
@@ -429,7 +430,10 @@ function labelDePagina(label: string): string {
                         <Link
                             v-for="link in props.articulos.links"
                             :key="link.label"
-                            :href="link.url ?? '#'"
+                            :href="link.url ?? undefined"
+                            :aria-current="link.active ? 'page' : undefined"
+                            :aria-disabled="link.url === null ? 'true' : undefined"
+                            :tabindex="link.url === null ? -1 : undefined"
                             class="rounded px-2 py-0.5"
                             :class="
                                 link.active
@@ -450,6 +454,7 @@ function labelDePagina(label: string): string {
             @click.self="cerrarDrawer"
         >
             <aside
+                v-dialog="cerrarDrawer"
                 class="flex h-full w-full max-w-[460px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >
                 <div class="flex items-center justify-between border-b border-hairline pb-3">
