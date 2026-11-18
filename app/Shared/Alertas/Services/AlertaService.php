@@ -3,6 +3,7 @@
 namespace App\Shared\Alertas\Services;
 
 use App\Modules\Usuarios\Models\Usuario;
+use App\Shared\Alertas\Catalogo\CatalogoDeAlertas;
 use App\Shared\Alertas\Enums\OrigenAlerta;
 use App\Shared\Alertas\Enums\SeveridadAlerta;
 use App\Shared\Alertas\Models\Alerta;
@@ -50,6 +51,12 @@ class AlertaService
         $emitidas = 0;
 
         foreach ($reglas as $regla) {
+            if (! $this->cumpleCondiciones($regla, $contexto)) {
+                $this->resolver($regla, $referencia);
+
+                continue;
+            }
+
             $this->emitir($regla, $contexto, $referencia);
             $emitidas++;
         }
@@ -103,6 +110,37 @@ class AlertaService
 
             return $alerta;
         });
+    }
+
+    /**
+     * Emit the conditions that match and close the open alerts whose reference disappeared.
+     *
+     * @param  array<string, array<string, mixed>>  $contextosPorReferencia
+     */
+    public function sincronizarPorTipo(string $tipo, array $contextosPorReferencia): int
+    {
+        $emitidas = 0;
+
+        foreach ($contextosPorReferencia as $referencia => $contexto) {
+            $emitidas += $this->emitirPorTipo($tipo, $contexto, (string) $referencia);
+        }
+
+        $vigentes = array_keys($contextosPorReferencia);
+
+        Alerta::query()
+            ->where('tipo', $tipo)
+            ->whereNull('resuelta_en')
+            ->get()
+            ->each(function (Alerta $alerta) use ($vigentes): void {
+                $partes = explode(':', (string) $alerta->clave_dedupe);
+                $referencia = implode(':', array_slice($partes, 2));
+
+                if (! in_array($referencia, $vigentes, true)) {
+                    $alerta->update(['resuelta_en' => now()]);
+                }
+            });
+
+        return $emitidas;
     }
 
     /**
@@ -183,6 +221,43 @@ class AlertaService
             fn (array $coincidencia): string => (string) ($contexto[$coincidencia[1]] ?? '—'),
             $plantilla,
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $contexto
+     */
+    private function cumpleCondiciones(ReglaDeAlerta $regla, array $contexto): bool
+    {
+        $tipo = CatalogoDeAlertas::obtener($regla->tipo);
+
+        if ($tipo === null) {
+            return false;
+        }
+
+        foreach ($tipo->condiciones as $condicion) {
+            $clave = $condicion['clave'];
+
+            if (! array_key_exists($clave, $contexto) || ! is_numeric($contexto[$clave])) {
+                return false;
+            }
+
+            $valor = (float) $contexto[$clave];
+            $limite = (float) ($regla->condiciones[$clave] ?? $condicion['por_defecto']);
+
+            $cumple = match ($condicion['operador']) {
+                'lt' => $valor < $limite,
+                'lte' => $valor <= $limite,
+                'gt' => $valor > $limite,
+                'gte' => $valor >= $limite,
+                default => false,
+            };
+
+            if (! $cumple) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function claveDe(ReglaDeAlerta $regla, string $referencia): string

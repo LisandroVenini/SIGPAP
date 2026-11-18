@@ -114,7 +114,7 @@ final class CatalogoDeAlertas
                 [Rol::EncargadoCompras],
                 [
                     self::entero('dias_antes', 'Días antes del vencimiento', 0, 30, 2),
-                    self::entero('minimo', 'Cotizaciones mínimas', 1, 20, 3),
+                    self::entero('minimo', 'Cotizaciones mínimas', 1, 20, 3, 'lt'),
                 ],
                 ['numero', 'fecha_vencimiento', 'recibidas', 'minimo', 'dias'],
             ),
@@ -148,8 +148,19 @@ final class CatalogoDeAlertas
                 OrigenAlerta::Condicion,
                 SeveridadAlerta::Atencion,
                 [Rol::EncargadoCompras, Rol::Gerente],
-                [self::decimal('puntaje_minimo', 'Puntaje mínimo', 0, 100, 50)],
+                [self::decimal('puntaje_minimo', 'Puntaje mínimo', 0, 100, 50, 'lte')],
                 ['proveedor', 'puntaje', 'ventana'],
+            ),
+            new TipoDeAlerta(
+                'mail_fallido',
+                'Envío de correo fallido',
+                'No se pudo enviar una invitación de cotización o una orden de compra.',
+                ModuloDeAlerta::Compras,
+                OrigenAlerta::Evento,
+                SeveridadAlerta::Atencion,
+                [Rol::EncargadoCompras, Rol::Administrador],
+                [],
+                ['numero_oc', 'proveedor', 'error'],
             ),
             new TipoDeAlerta(
                 'orden_atrasada',
@@ -172,7 +183,7 @@ final class CatalogoDeAlertas
                 [Rol::SupervisorProduccion, Rol::Gerente],
                 [
                     self::entero('dias', 'Días antes de la entrega', 1, 30, 2),
-                    self::decimal('avance_maximo', 'Avance máximo (%)', 0, 100, 100),
+                    self::decimal('avance_maximo', 'Avance máximo (%)', 0, 100, 100, 'lte'),
                 ],
                 ['orden', 'producto', 'fecha_entrega', 'avance'],
             ),
@@ -215,12 +226,13 @@ final class CatalogoDeAlertas
     /**
      * @return array{clave: string, etiqueta: string, tipo: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
      */
-    private static function entero(string $clave, string $etiqueta, int $minimo, int $maximo, int $porDefecto): array
+    private static function entero(string $clave, string $etiqueta, int $minimo, int $maximo, int $porDefecto, string $operador = 'lte'): array
     {
         return [
             'clave' => $clave,
             'etiqueta' => $etiqueta,
             'tipo' => 'integer',
+            'operador' => $operador,
             'minimo' => $minimo,
             'maximo' => $maximo,
             'por_defecto' => $porDefecto,
@@ -230,12 +242,13 @@ final class CatalogoDeAlertas
     /**
      * @return array{clave: string, etiqueta: string, tipo: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
      */
-    private static function decimal(string $clave, string $etiqueta, float $minimo, float $maximo, float $porDefecto): array
+    private static function decimal(string $clave, string $etiqueta, float $minimo, float $maximo, float $porDefecto, string $operador = 'gte'): array
     {
         return [
             'clave' => $clave,
             'etiqueta' => $etiqueta,
             'tipo' => 'numeric',
+            'operador' => $operador,
             'minimo' => $minimo,
             'maximo' => $maximo,
             'por_defecto' => $porDefecto,

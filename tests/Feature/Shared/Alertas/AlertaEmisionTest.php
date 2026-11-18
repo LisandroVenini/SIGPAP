@@ -114,6 +114,30 @@ class AlertaEmisionTest extends TestCase
         $this->assertSame(1, Alerta::query()->whereNull('resuelta_en')->count());
     }
 
+    public function test_a_rule_only_emits_when_its_conditions_are_met(): void
+    {
+        // Arrange
+        $regla = $this->regla(
+            [Rol::EncargadoStock],
+            [
+                'tipo' => 'ajuste_significativo',
+                'modulo' => 'Inventario',
+                'origen_tipo' => 'evento',
+                'condiciones' => ['porcentaje' => 10],
+                'mensaje' => '{{articulo}} ajustado un {{porcentaje}}%.',
+            ],
+        );
+
+        // Act
+        $bajo = $this->service()->emitirPorTipo('ajuste_significativo', ['articulo' => 'Tabla', 'porcentaje' => 5], 'ajuste:1');
+        $alto = $this->service()->emitirPorTipo('ajuste_significativo', ['articulo' => 'Tabla', 'porcentaje' => 15], 'ajuste:1');
+
+        // Assert
+        $this->assertSame(0, $bajo);
+        $this->assertSame(1, $alto);
+        $this->assertSame(1, Alerta::query()->count());
+    }
+
     public function test_inactive_rules_do_not_emit(): void
     {
         // Arrange

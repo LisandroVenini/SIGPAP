@@ -21,9 +21,9 @@ Objetivo: subsistema de alertas configurable por reglas, con destinatarios por r
 | T2 | S6 | hecho (catálogo) |
 | T3 | S1, S7, S8 | hecho (CRUD + permisos) |
 | T4 | S3, S5 | hecho (bandeja + lectura) |
-| T5 | S2, S4 | pendiente (emisores de eventos) |
-| T6 | S5 | pendiente (vigilantes + scheduler) |
-| T7 | S5 | pendiente (seeder + retención) |
+| T5 | S2, S4 | hecho (emisores de eventos) |
+| T6 | S5 | hecho (vigilantes + scheduler) |
+| T7 | S5 | hecho (seeder + retención) |
 
 ## Log
 

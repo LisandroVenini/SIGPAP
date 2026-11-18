@@ -19,6 +19,7 @@ use App\Modules\Compras\Queries\SolicitudesDeCotizacionQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
+use App\Shared\Alertas\Services\AlertaService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
@@ -40,6 +41,7 @@ class GestionOrdenesDeCompraService
         private readonly ReporteComprasQuery $reporteCompras,
         private readonly SolicitudesDeCotizacionQuery $solicitudesQuery,
         private readonly GestionArticulosService $articulos,
+        private readonly AlertaService $alertas,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
@@ -459,6 +461,13 @@ class GestionOrdenesDeCompraService
                 'proveedor_id' => $proveedor->id,
                 'error' => $excepcion->getMessage(),
             ]);
+
+            $this->alertas->emitirPorTipo('mail_fallido', [
+                'numero_oc' => $orden->numero_oc,
+                'proveedor' => $proveedor->razon_social,
+                'error' => $excepcion->getMessage(),
+                'orden_de_compra_id' => $orden->id,
+            ], 'oc:'.$orden->id);
         }
     }
 
