@@ -6,6 +6,7 @@ use App\Modules\Usuarios\Enums\EstadoUsuario;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UpdateUsuarioRequest extends FormRequest
@@ -13,6 +14,13 @@ class UpdateUsuarioRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()?->can('update', $this->route('usuario')) ?? false;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email')) {
+            $this->merge(['email' => Str::lower(trim((string) $this->input('email')))]);
+        }
     }
 
     /**

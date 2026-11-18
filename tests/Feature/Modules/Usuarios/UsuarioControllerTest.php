@@ -81,6 +81,43 @@ class UsuarioControllerTest extends TestCase
         $this->assertDatabaseHas('eventos_de_auditoria', ['accion' => 'crear_usuario']);
     }
 
+    public function test_an_email_is_stored_lowercased(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+
+        // Act
+        $response = $this->actingAs($admin)->post('/usuarios', [
+            'nombre' => 'Laura Cáceres',
+            'email' => 'Laura@Confort.Test',
+            'password' => 'secret-password',
+            'rol' => Rol::Gerente->value,
+        ]);
+
+        // Assert
+        $response->assertRedirect();
+        $this->assertDatabaseHas('usuarios', ['email' => 'laura@confort.test']);
+    }
+
+    public function test_a_duplicate_email_ignoring_case_is_rejected(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+        Usuario::factory()->create(['email' => 'laura@confort.test']);
+
+        // Act
+        $response = $this->actingAs($admin)->post('/usuarios', [
+            'nombre' => 'Laura Cáceres',
+            'email' => 'LAURA@CONFORT.TEST',
+            'password' => 'secret-password',
+            'rol' => Rol::Gerente->value,
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('email');
+        $this->assertDatabaseCount('usuarios', 2);
+    }
+
     public function test_a_duplicate_email_is_rejected(): void
     {
         // Arrange

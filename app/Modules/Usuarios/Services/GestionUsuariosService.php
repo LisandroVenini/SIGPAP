@@ -9,6 +9,7 @@ use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Queries\UsuariosQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class GestionUsuariosService
@@ -47,7 +48,7 @@ class GestionUsuariosService
         return DB::transaction(function () use ($actor, $datos, $direccionIp): Usuario {
             $usuario = Usuario::create([
                 'nombre' => $datos['nombre'],
-                'email' => $datos['email'],
+                'email' => Str::lower(trim($datos['email'])),
                 'clave_acceso' => $datos['password'],
             ]);
 
@@ -87,7 +88,7 @@ class GestionUsuariosService
             $passwordReset = ! empty($datos['password']);
 
             $usuario->nombre = $datos['nombre'];
-            $usuario->email = $datos['email'];
+            $usuario->email = Str::lower(trim($datos['email']));
             $usuario->estado = $datos['estado'];
 
             if ($passwordReset) {
