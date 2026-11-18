@@ -35,7 +35,7 @@ Stock Disponible = Stock Físico Real − Stock Comprometido (Reservas Lógicas)
 
 ## Funcionalidades y pasos
 
-### F1 — Gestión del catálogo de artículos (CU-INV-01)
+### F1 — Gestión del catálogo de artículos (CU-INV-01…05)
 
 1. El Encargado de Stock da de alta un artículo: Código SKU, nombre, tipo (Materia Prima, Insumo, Producto Terminado) y unidad de medida.
 2. El sistema valida que el SKU sea único y registra con stock físico inicial en cero.
@@ -43,7 +43,7 @@ Stock Disponible = Stock Físico Real − Stock Comprometido (Reservas Lógicas)
 4. Permite modificar y dar de baja lógica (conservando historial).
 5. Si el artículo es un Producto Terminado, el alta **no** captura etapas de producción: la hoja de ruta (etapas + tiempos) se define luego en Producción mediante el CU "Definir Hoja de Ruta del Producto".
 
-### F2 — Registrar ingreso de materiales (CU-INV-02)
+### F2 — Registrar ingreso de materiales (CU-INV-06)
 
 1. El Encargado de Stock recibe mercancía y selecciona la Orden de Compra correspondiente.
 2. Ingresa el número de remito y la cantidad real recibida por artículo.
@@ -51,13 +51,13 @@ Stock Disponible = Stock Físico Real − Stock Comprometido (Reservas Lógicas)
 4. El sistema recalcula la métrica de tiempo de entrega real del proveedor (insumo para Predictivo).
 5. Excepciones: entrega parcial (alerta no restrictiva) y excedente (requiere confirmación).
 
-### F3 — Registrar ajuste de inventario (CU-INV-03)
+### F3 — Registrar ajuste de inventario (CU-INV-07)
 
 1. El Encargado de Stock registra una corrección manual: artículo, nuevo stock observado y motivo (rotura, auditoría, merma).
 2. El sistema calcula la diferencia, sobrescribe el stock físico y guarda un registro inmutable del ajuste.
 3. Excepción: no permite stock negativo (rechaza decrementos mayores al físico disponible).
 
-### F4 — Parametrizar umbrales de stock (CU-INV-04)
+### F4 — Parametrizar umbrales de stock (CU-INV-08)
 
 1. El Encargado de Stock define el stock mínimo y máximo de un artículo.
 2. El sistema valida que mínimo ≤ máximo.

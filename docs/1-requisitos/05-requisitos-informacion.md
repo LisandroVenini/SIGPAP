@@ -7,7 +7,7 @@ Debe tener una lista de requisitos de almacenamientos y de restricciones de info
 | **Objetivos asociados**  | **OBJ–01** **Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas**  |  |
 | **Requisitos asociados** | CU-INV-01…CU-INV-08 |  |
 | **Descripción**  | El sistema deberá almacenar la información del catálogo de la fábrica, diferenciando estrictamente el inventario físico real de las reservas lógicas vigentes. |  |
-| **Datos específicos**  | Código SKU y Descripción del artículo. Tipo de artículo (Materia Prima, Insumo Consumible o Producto Terminado). Unidad de medida y factores de conversión. Cantidad de stock físico actual. Cantidad de stock comprometido (Reserva Lógica). Umbrales de control (Stock mínimo y máximo) |  |
+| **Datos específicos**  | Código SKU y Descripción del artículo. Tipo de artículo (Materia Prima, Insumo Consumible o Producto Terminado). Unidad de medida (catálogo con ABM propio). Receta del producto (lista de materiales: insumo y cantidad por unidad). Cantidad de stock físico actual. Cantidad de stock comprometido (Reserva Lógica). Umbrales de control (Stock mínimo y máximo) |  |
 |  |  |  |
 | **Estabilidad**  | Alta  |  |
 | **Comentarios**  |  |  |

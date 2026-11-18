@@ -12,7 +12,7 @@ docs/
 ├── 1-requisitos/                 ← Requisitos del sistema + casos de uso
 ├── 2-analisis/                   ← Modelo de dominio, DSS, contratos de operación
 ├── 3-diseno/                     ← Arquitectura, contratos entre módulos, despliegue
-└── 4-implementacion/             ← (pendiente)
+└── 4-implementacion/             ← base de datos y plan de pruebas
 ```
 
 ## 0. Propuesta
@@ -65,7 +65,12 @@ Estas especificaciones no son un entregable formal de la cátedra: son un artefa
 
 ## 2. Análisis (entregables formales de la cátedra)
 
-Pendiente: modelo de dominio, diagramas de secuencia del sistema (DSS), clases de análisis y demás artefactos que exige la cátedra en esta fase.
+| Archivo | Contenido |
+| --- | --- |
+| [Modelo-Dominio/01-conceptos.md](2-analisis/Modelo-Dominio/01-conceptos.md) | Conceptos, descripciones, relaciones y atributos del modelo de dominio |
+| [DSS/](2-analisis/DSS/produccion.md) | Diagramas de Secuencia del Sistema por módulo |
+| [contratos/](2-analisis/contratos/produccion.md) | Contratos de operación por módulo |
+| [matriz-de-rastreabilidad.md](2-analisis/matriz-de-rastreabilidad.md) | Matriz de rastreabilidad de análisis |
 
 ## 3. Diseño
 
@@ -74,3 +79,10 @@ Pendiente: modelo de dominio, diagramas de secuencia del sistema (DSS), clases d
 | [DESIGN.md](3-diseno/DESIGN.md) | Design system (Salvia & Teja) |
 | [contratos-entre-modulos.md](3-diseno/contratos-entre-modulos.md) | Contratos y dependencias entre módulos |
 | [diagrama-despliegue.mmd.md](3-diseno/diagrama-despliegue.mmd.md) | Diagrama de despliegue (monolito + componente ML + PostgreSQL) |
+
+## 4. Implementación
+
+| Archivo | Contenido |
+| --- | --- |
+| [diseno-base-de-datos.md](4-implementacion/diseno-base-de-datos.md) | Diseño de la base de datos (tablas, claves y relaciones) |
+| [plan-de-pruebas.md](4-implementacion/plan-de-pruebas.md) | Plan de pruebas del sistema |

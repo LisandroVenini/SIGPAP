@@ -199,3 +199,98 @@
 | **Frecuencia**  | Media |  |
 | **Estabilidad**  | Alta |  |
 | **Comentarios**  | Estos umbrales son el insumo de las alertas automáticas de reposición (proceso automático, no caso de uso). |  |
+
+
+| CU-INV-09 | Alta de Unidad de Medida |  |
+| :---- | :---- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee registrar una nueva unidad de medida en el catálogo. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la gestión de unidades de medida. |
+|  | 2 | El sistema despliega el listado de unidades existentes. |
+|  | 3 | El usuario selecciona la opción "Crear nueva unidad". |
+|  | 4 | El usuario ingresa el nombre de la unidad de medida (ej. Metro, Kilogramo, Unidad). |
+|  | 5 | El usuario confirma la operación. |
+|  | 6 | El sistema valida que el nombre no esté duplicado y registra la nueva unidad. |
+|  | 7 | El sistema informa al usuario que la operación terminó con éxito y actualiza el listado. |
+|  |  |  |
+| **Postcondición**  | La unidad de medida queda registrada y disponible para ser asignada a los artículos (CU-INV-01). |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 6 | Si el nombre ingresado ya existe (sin distinguir mayúsculas), el sistema cancela el guardado e informa el error al usuario. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 6 | Menos de 1 segundo |
+| **Frecuencia**  | Baja (alta inicial y mantenimientos puntuales). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | Ninguno |  |
+
+
+| CU-INV-10 | Baja de Unidad de Medida |  |
+| :---- | :---- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee eliminar una unidad de medida del catálogo. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. La unidad de medida existe en el catálogo. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la gestión de unidades de medida. |
+|  | 2 | El sistema despliega el listado de unidades existentes. |
+|  | 3 | El usuario selecciona una unidad y elige la opción "Eliminar". |
+|  | 4 | El sistema solicita la confirmación de la baja. |
+|  | 5 | El usuario confirma la operación. |
+|  | 6 | El sistema verifica que la unidad no esté en uso y procede con la eliminación. |
+|  | 7 | El sistema informa al usuario que la baja se completó con éxito y actualiza el listado. |
+|  |  |  |
+| **Postcondición**  | La unidad de medida queda eliminada del catálogo. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 6 | Si la unidad está en uso por uno o más artículos, el sistema bloquea la eliminación e informa que primero debe reasignarse la unidad de esos artículos. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 6 | Menos de 1 segundo |
+| **Frecuencia**  | Baja (esporádica). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | Ninguno |  |
+
+
+| CU-INV-11 | Modificación de Unidad de Medida |  |
+| :---- | :---- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee modificar el nombre de una unidad de medida existente. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. La unidad de medida existe en el catálogo. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la gestión de unidades de medida. |
+|  | 2 | El sistema despliega el listado de unidades existentes. |
+|  | 3 | El usuario selecciona una unidad y elige la opción "Modificar". |
+|  | 4 | El sistema carga el nombre de la unidad en el formulario para su edición. |
+|  | 5 | El usuario modifica el nombre y confirma la operación. |
+|  | 6 | El sistema valida los datos y actualiza el registro. |
+|  | 7 | El sistema informa al usuario que la modificación se completó con éxito. |
+|  |  |  |
+| **Postcondición**  | La unidad de medida queda actualizada con el nuevo nombre, sin alterar los artículos que la usan. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 6 | Si el nuevo nombre ya existe en otra unidad (sin distinguir mayúsculas), el sistema cancela el guardado e informa el error al usuario. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 6 | Menos de 1 segundo |
+| **Frecuencia**  | Baja (mantenimientos puntuales). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | Ninguno |  |
+
+
+| CU-INV-12 | Listado de Unidades de Medida |  |
+| :---- | :---- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-02 Gestión de Inventario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Encargado de Stock desee visualizar el conjunto de unidades de medida del catálogo. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Encargado de Stock. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la gestión de unidades de medida. |
+|  | 2 | El sistema despliega el listado de unidades, mostrando para cada una su nombre y la cantidad de artículos que la utilizan. |
+|  |  |  |
+| **Postcondición**  | El usuario visualiza el listado de unidades de medida. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 2 | Si no existen unidades registradas, el sistema muestra el mensaje "No hay unidades de medida registradas". |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 2 | Menos de 2 segundos |
+| **Frecuencia**  | Media (consultas periódicas). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | El listado no tiene búsqueda dedicada: las unidades se ordenan alfabéticamente. |  |

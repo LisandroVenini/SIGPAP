@@ -44,7 +44,7 @@ El módulo transforma la gestión de compras tradicional en una herramienta de g
 
 ## Funcionalidades y pasos
 
-### F1 — Gestión de proveedores (CU-COM-01)
+### F1 — Gestión de proveedores (CU-COM-01…05)
 
 1. Alta de proveedor: razón social, CUIT, email, teléfono.
 2. Validación de CUIT único y email válido.
@@ -62,13 +62,13 @@ El módulo transforma la gestión de compras tradicional en una herramienta de g
 2. El gerente aprueba la intención de compra.
 3. El sistema envía el enlace seguro al proveedor seleccionado.
 
-### F4 — Gestionar solicitud de cotización (Flujo B — CU-COM-02)
+### F4 — Gestionar solicitud de cotización (Flujo B — CU-COM-06…10)
 
 1. El usuario revisa el "Borrador de Solicitud" generado automáticamente, o crea una RFQ manual.
 2. Define artículos, cantidades, vencimiento y proveedores.
 3. El sistema envía los enlaces seguros a cada proveedor.
 
-### F5 — Enviar cotización (CU-COM-04)
+### F5 — Enviar cotización (CU-COM-16)
 
 1. El proveedor accede por enlace seguro y carga precio, cantidad y fecha prometida.
 2. El sistema valida el token y cierra el enlace tras el envío.
@@ -79,13 +79,13 @@ El módulo transforma la gestión de compras tradicional en una herramienta de g
 2. Evalúa contra el umbral de tolerancia configurado por el gerente.
 3. Resuelve: genera OC (ideal), descarta y pasa al siguiente (sin stock), o alerta al gerente (variación fuerte).
 
-### F7 — Adjudicar y emitir orden de compra (CU-COM-03)
+### F7 — Adjudicar y emitir orden de compra (CU-COM-11)
 
 1. El sistema presenta el informe multicriterio (precio 40% / tiempo 30% / riesgo 30%).
 2. El usuario revisa y adjudica la oferta ganadora (o elige manualmente otra).
 3. El sistema emite la OC oficial y notifica al proveedor.
 
-### F8 — Confirmar orden de compra (CU-COM-05)
+### F8 — Confirmar orden de compra (CU-COM-17)
 
 1. El proveedor recibe el enlace de confirmación y acepta o rechaza.
 2. Aceptación: la OC pasa a "Confirmada" e inicia el reloj de tiempo de entrega real.

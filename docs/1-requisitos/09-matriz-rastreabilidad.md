@@ -26,13 +26,13 @@ La matriz de rastreabilidad vincula los objetivos del sistema con los requisitos
 
 | Requisito | Casos de Uso |
 | :--- | :--- |
-| IRQ-01 | CU-INV-01…CU-INV-08 |
-| IRQ-02 | CU-PROD-06…CU-PROD-15, CU-PROD-21, CU-PROD-22 |
+| IRQ-01 | CU-INV-01…CU-INV-12, CU-PROD-29…CU-PROD-32 |
+| IRQ-02 | CU-PROD-06…CU-PROD-15, CU-PROD-21, CU-PROD-22, CU-PROD-33, CU-PROD-34 |
 | IRQ-03 | CU-COM-01…CU-COM-20 |
 | IRQ-04 | CU-PRED-01…CU-PRED-05, CU-REP-01 |
 | IRQ-05 | CU-MANT-01…CU-MANT-11 |
-| RF-01 | CU-PROD-01…CU-PROD-28, CU-MANT-01…CU-MANT-11 |
-| RF-02 | CU-INV-01…CU-INV-08 |
+| RF-01 | CU-PROD-01…CU-PROD-34, CU-MANT-01…CU-MANT-11 |
+| RF-02 | CU-INV-01…CU-INV-12 |
 | RF-03 | CU-COM-01…CU-COM-20 |
 | RF-04 | CU-PRED-01…CU-PRED-05 |
 | RF-05 | CU-PRED-04 |
@@ -46,9 +46,9 @@ La matriz de rastreabilidad vincula los objetivos del sistema con los requisitos
 
 | Módulo | Prefijo | Casos de Uso |
 | :--- | :--- | :--- |
-| Producción | CU-PROD | 01…28 |
+| Producción | CU-PROD | 01…34 |
 | Mantenimiento (subdominio) | CU-MANT | 01…11 |
-| Inventario | CU-INV | 01…08 |
+| Inventario | CU-INV | 01…12 |
 | Compras | CU-COM | 01…20 |
 | Análisis Predictivo | CU-PRED | 01…05 |
 | Reportes | CU-REP | 01 |
@@ -58,5 +58,5 @@ La matriz de rastreabilidad vincula los objetivos del sistema con los requisitos
 ## Verificación de completitud
 
 - **Hacia adelante**: todos los requisitos (IRQ, RF, NFR) tienen al menos un caso de uso asociado. ✔
-- **Hacia atrás**: los 81 casos de uso trazan a un requisito funcional o de información. ✔
+- **Hacia atrás**: los 91 casos de uso trazan a un requisito funcional o de información. ✔
 - **Cobertura de objetivos**: los 5 objetivos (OBJ-01…05) están cubiertos por al menos un requisito. ✔

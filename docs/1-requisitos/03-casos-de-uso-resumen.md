@@ -39,6 +39,12 @@ Figura # - Diagrama Caso Usos Sistema
 | CU-PROD-26 | Modificación de Operario | Alta |
 | CU-PROD-27 | Listado de Operarios | Baja |
 | CU-PROD-28 | Buscar Operario | Baja |
+| CU-PROD-29 | Agregar Insumo a la Receta | Media |
+| CU-PROD-30 | Modificar Cantidad de Insumo de la Receta | Media |
+| CU-PROD-31 | Quitar Insumo de la Receta | Media |
+| CU-PROD-32 | Ver Receta del Producto | Baja |
+| CU-PROD-33 | Posponer Orden de Producción | Media |
+| CU-PROD-34 | Reanudar Orden de Producción | Media |
 
 ### Subdominio Mantenimiento
 
@@ -68,6 +74,10 @@ Figura # - Diagrama Caso Usos Sistema
 | CU-INV-06 | Registrar ingreso de materiales | Media |
 | CU-INV-07 | Registrar Ajuste de Inventario | Media |
 | CU-INV-08 | Parametrizar Umbrales de Stock | Media |
+| CU-INV-09 | Alta de Unidad de Medida | Media |
+| CU-INV-10 | Baja de Unidad de Medida | Media |
+| CU-INV-11 | Modificación de Unidad de Medida | Media |
+| CU-INV-12 | Listado de Unidades de Medida | Baja |
 
 ### Módulo Compras
 
