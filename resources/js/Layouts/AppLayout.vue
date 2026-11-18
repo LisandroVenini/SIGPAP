@@ -43,6 +43,7 @@ interface NavEntry {
 
 const navEntries: NavEntry[] = [
     { label: 'Tablero', href: '/dashboard' },
+    { label: 'Alertas', href: '/alertas' },
     {
         label: 'Producción',
         items: [

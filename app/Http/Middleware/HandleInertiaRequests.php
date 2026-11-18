@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Shared\Alertas\Queries\AlertaQuery;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success'),
             ],
+            'alertas_no_leidas' => $user !== null ? app(AlertaQuery::class)->noLeidas($user) : 0,
         ];
     }
 }

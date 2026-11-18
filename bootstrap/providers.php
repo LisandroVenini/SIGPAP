@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Alertas\Providers\AlertasServiceProvider;
 use App\Modules\Auditoria\Providers\AuditoriaServiceProvider;
 use App\Modules\Compras\Providers\ComprasServiceProvider;
 use App\Modules\Inventario\Providers\InventarioServiceProvider;
@@ -11,6 +12,7 @@ use App\Providers\AppServiceProvider;
 
 return [
     AppServiceProvider::class,
+    AlertasServiceProvider::class,
     AuditoriaServiceProvider::class,
     ComprasServiceProvider::class,
     InventarioServiceProvider::class,
