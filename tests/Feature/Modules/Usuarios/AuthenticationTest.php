@@ -134,6 +134,19 @@ class AuthenticationTest extends TestCase
         $this->assertTrue($throttled);
     }
 
+    public function test_an_array_email_returns_a_validation_error(): void
+    {
+        // Act
+        $response = $this->post('/login', [
+            'email' => ['a@b.test'],
+            'password' => 'secret-password',
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
     public function test_the_login_lockout_threshold_is_configurable(): void
     {
         // Arrange

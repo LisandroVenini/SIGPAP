@@ -13,6 +13,15 @@ class UsuarioTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_the_email_is_normalized_on_write(): void
+    {
+        // Act
+        $usuario = Usuario::factory()->create(['email' => 'Mixta@Test.org']);
+
+        // Assert
+        $this->assertSame('mixta@test.org', $usuario->refresh()->email);
+    }
+
     public function test_the_factory_persists_a_usuario_with_a_hashed_password(): void
     {
         // Arrange
