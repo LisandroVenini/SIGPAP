@@ -3,6 +3,7 @@
 namespace App\Modules\Usuarios\Requests;
 
 use App\Modules\Usuarios\Enums\EstadoUsuario;
+use App\Modules\Usuarios\Services\ParametroGlobalService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,13 @@ class LoginRequest extends FormRequest
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email')) {
+            $this->merge(['email' => Str::lower(trim((string) $this->input('email')))]);
+        }
     }
 
     /**
@@ -55,7 +63,7 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), $this->maxAttempts())) {
             return;
         }
 
@@ -69,6 +77,16 @@ class LoginRequest extends FormRequest
                 'minutes' => ceil($seconds / 60),
             ]),
         ]);
+    }
+
+    /**
+     * Failed attempts allowed before lockout, configurable by the Administrador.
+     */
+    private function maxAttempts(): int
+    {
+        $configurados = (int) (app(ParametroGlobalService::class)->parametro('seguridad_intentos_fallidos') ?? 5);
+
+        return max(1, $configurados);
     }
 
     public function throttleKey(): string
