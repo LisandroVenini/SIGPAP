@@ -21,7 +21,7 @@ Para cada concepto se describe su **Símbolo** (nombre PascalCase, compartimento
 | Elemento | Descripción del Concepto |
 | --- | --- |
 | Símbolo | OrdenDeProduccion |
-| Intensión | Representa el mandato formal de fabricación emitido por la gerencia para manufacturar un lote específico de muebles en la planta. Define de manera única el producto a fabricar, la cantidad solicitada y los tiempos límite de inicio y fin, y transita estados durante su ciclo de vida (Pendiente, Pendiente por Insumos, Asignada, En Curso, Cerrada o Anulada). Posee una prioridad actual de programación en el cronograma, cuyo historial de cambios (con justificación) se registra en `RegistroPrioridad`. |
+| Intensión | Representa el mandato formal de fabricación emitido por la gerencia para manufacturar un lote específico de muebles en la planta. Define de manera única el producto a fabricar, la cantidad solicitada y los tiempos límite de inicio y fin, y transita estados durante su ciclo de vida (Pendiente, Pendiente por Insumos, Asignada, En Curso, Pospuesta, Cerrada o Anulada). Posee una fecha prevista de inicio para las órdenes pospuestas y una prioridad actual de programación en el cronograma, cuyo historial de cambios (con justificación) se registra en `RegistroPrioridad`. |
 | Extensión | El conjunto de todas las órdenes de trabajo reales y activas en el piso de la planta de Confort y Muebles (por ejemplo: la orden OP-501 del 07/09/2026 para fabricar 50 Sillas de Pino). |
 
 ### RegistroPrioridad
@@ -143,7 +143,7 @@ Para cada concepto se describe su **Símbolo** (nombre PascalCase, compartimento
 | Elemento | Descripción del Concepto |
 | --- | --- |
 | Símbolo | UnidadDeMedida |
-| Intensión | Representa la unidad en la que se expresa y mide un artículo, junto con su factor de conversión respecto de otras unidades equivalentes. |
+| Intensión | Representa la unidad en la que se expresa y mide un artículo. |
 | Extensión | El conjunto de todas las unidades de medida manejadas en el catálogo (por ejemplo: metro, metro cuadrado, kilogramo, litro y unidad). |
 
 ## Proveedores y Compras
@@ -177,8 +177,16 @@ Para cada concepto se describe su **Símbolo** (nombre PascalCase, compartimento
 | Elemento | Descripción del Concepto |
 | --- | --- |
 | Símbolo | Cotizacion |
-| Intensión | Representa la respuesta formal de un proveedor a una solicitud de cotización, sobre un artículo concreto, con el precio unitario, la cantidad ofrecida y la fecha prometida de entrega. La marca de adjudicación indica si fue seleccionada como oferta ganadora de la licitación. Es la entrada que se compara en la licitación multicriterio. |
-| Extensión | El conjunto de todas las ofertas recibidas (por ejemplo: la cotización de Pinturas Misiones con precio de $45 por litro y entrega en 7 días). |
+| Intensión | Representa la respuesta de un proveedor a una solicitud de cotización (Flujo B) o a una consulta de disponibilidad (Flujo A), con su fecha. Se descompone en líneas (`LineaCotizacion`), una por artículo cotizado. Es la entrada que se compara en la licitación multicriterio. |
+| Extensión | El conjunto de todas las ofertas recibidas (por ejemplo: la cotización de Pinturas Misiones sobre la licitación de barniz). |
+
+### LineaCotizacion
+
+| Elemento | Descripción del Concepto |
+| --- | --- |
+| Símbolo | LineaCotizacion |
+| Intensión | Representa la inclusión de un artículo dentro de una cotización, con el precio unitario ofertado, la cantidad ofrecida, la fecha prometida de entrega y la marca de adjudicación (si fue la oferta ganadora de la licitación). Es el dato propio de la asociación Cotizacion↔Articulo, que permite cotizaciones multi-artículo. |
+| Extensión | El conjunto de todas las líneas de las cotizaciones recibidas (por ejemplo: la línea de Pinturas Misiones que oferta barniz a $45 el litro con entrega en 7 días). |
 
 ### OrdenDeCompra
 

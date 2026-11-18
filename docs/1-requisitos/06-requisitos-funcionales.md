@@ -5,16 +5,16 @@ Debe tener una lista de los requisitos funcionales, expresado en forma tradicion
 | RF-01 | Gestión de la Producción y Parte Diario |  |
 | :---- | :---- | ----- |
 | **Objetivos asociados**  | **OBJ-01 Digitalización e Integración Operativa OBJ-02 Prevención Proactiva de Cuellos de Botella** |  |
-| **Requisitos asociados** | CU-PROD-01…CU-PROD-28 CU-MANT-01…CU-MANT-11 IRQ-02 Información sobre Órdenes de Producción y Avance IRQ-05 Información sobre Maquinarias y Desgaste Operativo |  |
-| **Descripción**  | El sistema deberá permitir la planificación de campañas, la creación de órdenes de producción y la asignación de recursos (personal y maquinaria). A nivel operativo, deberá facilitar una interfaz ágil para que el supervisor cargue el "Parte Diario", registrando los avances reales que luego servirán para recalcular las desviaciones de tiempo de producción. |  |
+| **Requisitos asociados** | CU-PROD-01…CU-PROD-34 CU-MANT-01…CU-MANT-11 IRQ-01 Información sobre Artículos e Inventario IRQ-02 Información sobre Órdenes de Producción y Avance IRQ-05 Información sobre Maquinarias y Desgaste Operativo |  |
+| **Descripción**  | El sistema deberá permitir la planificación de campañas, la creación de órdenes de producción y la asignación de recursos (personal y maquinaria). Deberá además gestionar la receta (lista de materiales) de cada producto terminado Fabricado, que define los insumos y sus cantidades por unidad y alimenta el cálculo de reservas y consumo de stock. A nivel operativo, deberá facilitar una interfaz ágil para que el supervisor cargue el "Parte Diario", registrando los avances reales que luego servirán para recalcular las desviaciones de tiempo de producción. |  |
 | **Estabilidad**  | Alta |  |
 | **Comentarios**  | Es el núcleo transaccional del sistema, indispensable para generar la información que necesita el algoritmo predictivo. |  |
 
 | RF-02 | Gestión de Inventario |  |
 | :---- | :---- | ----- |
 | **Objetivos asociados**  | **OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas** |  |
-| **Requisitos asociados** | CU-INV-01…CU-INV-08 IRQ-01 Información sobre Artículos e Inventario |  |
-| **Descripción**  | El sistema deberá gestionar el catálogo de artículos y el ingreso de materiales, implementando estrictamente un modelo dual de stock. Debe calcular en tiempo real la diferencia entre el stock físico (disponible en depósito) y el stock comprometido (reservado para órdenes en curso). |  |
+| **Requisitos asociados** | CU-INV-01…CU-INV-12 IRQ-01 Información sobre Artículos e Inventario |  |
+| **Descripción**  | El sistema deberá gestionar el catálogo de artículos, el catálogo de unidades de medida y el ingreso de materiales, implementando estrictamente un modelo dual de stock. Debe calcular en tiempo real la diferencia entre el stock físico (disponible en depósito) y el stock comprometido (reservado para órdenes en curso). |  |
 | **Estabilidad**  | Alta |  |
 | **Comentarios**  |  |  |
 

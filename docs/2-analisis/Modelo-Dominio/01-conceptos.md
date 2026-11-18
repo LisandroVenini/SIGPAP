@@ -14,7 +14,7 @@ Un concepto entra al modelo de dominio si cumple **todas** estas condiciones:
 
 Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking), vistas y salidas (Gantt, Dashboard, Reporte), componentes de software (ModeloPredictivo) y procesos (Licitación Predictiva).
 
-## Lista de conceptos idóneos (33)
+## Lista de conceptos idóneos (34)
 
 ### Producción
 
@@ -41,7 +41,7 @@ Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking
 | Articulo | Ítem del catálogo (materia prima, insumo o producto terminado), con estado Activo/Inactivo por baja lógica. |
 | Reserva | Reserva lógica de un insumo para una orden en curso. |
 | MovimientoDeStock | Entrada, salida o ajuste de existencias, con historial. |
-| UnidadDeMedida | Unidad y factor de conversión entre unidades. |
+| UnidadDeMedida | Unidad en la que se expresa y mide un artículo. |
 
 ### Proveedores y Compras
 
@@ -50,7 +50,8 @@ Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking
 | Proveedor | Entidad comercial externa, con desempeño histórico y estado Activo/Inactivo (los inactivos no participan en nuevas licitaciones). |
 | SolicitudDeDisponibilidad | Pedido directo a un proveedor (Flujo A); transita estados de consulta (Enviada, En Espera, Respondida). |
 | SolicitudDeCotizacion | RFQ a varios proveedores con vencimiento (Flujo B); transita estados (Borrador, Enviada, Adjudicada, Anulada). |
-| Cotizacion | Respuesta: precio, cantidad y fecha prometida; marca si fue la oferta adjudicada. |
+| Cotizacion | Respuesta de un proveedor a una solicitud (de cotización o de disponibilidad), con su fecha; se descompone en líneas por artículo. |
+| LineaCotizacion | Línea de una cotización: artículo cotizado, precio, cantidad ofertada, fecha prometida y marca de adjudicación. |
 | OrdenDeCompra | Pedido firme emitido al proveedor ganador; la recepción admite entrega parcial. |
 | Incidencia | Retraso, faltante o rotura que alimenta el ranking. |
 | LineaSolicitudCotizacion | Línea de la solicitud: artículo a cotizar y cantidad pedida. |
@@ -89,7 +90,7 @@ Quedan **excluidos** por principio: valores derivados (Stock Disponible, Ranking
 6. **`Alerta` unifica los tipos de notificación** (reposición, caducidad, quiebre de stock, cuello de botella predictivo, preventivo y técnica por falla/timeout del sistema) mediante un atributo `tipo`.
 7. **`ParametroGlobal` captura la configuración de negocio** (turnos, feriados, umbrales de tolerancia), que antes aparecía dispersa.
 8. **`LineaSolicitudCotizacion` y `LineaOrdenCompra` como clases de asociación.** Solicitud↔Artículo y Orden↔Artículo son N:M con dato propio (cantidad por línea, precio pactado); ese dato no es ni de la cabecera ni del artículo, igual que en `AsignacionDeEtapa`.
-9. **`Cotizacion` se asocia al `Articulo` cotizado.** Cada oferta refiere el artículo concreto de la solicitud; el precio, la cantidad ofertada y la fecha prometida quedan en la cotización.
+9. **`Cotizacion` se descompone en `LineaCotizacion`.** La cotización es la respuesta de un proveedor a una solicitud; cada línea refiere el artículo concreto cotizado y lleva el precio, la cantidad ofertada y la fecha prometida. Es el mismo patrón que `LineaSolicitudCotizacion` y `LineaOrdenCompra` (clases de asociación).
 10. **`DesempenoProveedor` registra el desempeño de entregas reales.** Cada entrega confirmada y recibida genera un registro; el ranking y la evaluación de criticidad son valores derivados de este historial.
 11. **`RegistroPrioridad` respalda la prioridad de las órdenes.** La prioridad de programación de una OP deja de ser una vista derivada: es un atributo de `OrdenDeProduccion` (`prioridadActual`) y cada cambio de prioridad —con su justificación— se persiste en `RegistroPrioridad`, complementando la auditoría técnica con el historial de negocio.
 12. **`Articulo.origen` distingue el producto terminado de tercero.** La diferencia entre fabricar y comprar listo se captura con un atributo (Fabricado / Tercero), no con un tipo de artículo nuevo: un mismo artículo puede cambiar de origen si la fábrica decide fabricarlo. Los de origen Tercero no generan órdenes de producción ni hoja de ruta.

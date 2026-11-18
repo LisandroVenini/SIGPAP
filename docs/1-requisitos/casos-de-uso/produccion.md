@@ -124,19 +124,20 @@
 | **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
 | **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
 | **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor de Producción desee registrar una nueva Orden de Producción (OP). |  |
-| **Precondición**  | Existe al menos una Planificación activa. El producto a fabricar existe en el catálogo de productos terminados y tiene su hoja de ruta (etapas) definida. |  |
+| **Precondición**  | Existe al menos una Planificación activa. El producto a fabricar existe en el catálogo de productos terminados y tiene su hoja de ruta (etapas) y su receta (lista de materiales) definidas. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
 |  | 1 | El usuario solicita al sistema acceder a la gestión de Órdenes de Producción. |
 |  | 2 | El sistema muestra el listado de las OP actuales. |
 |  | 3 | El usuario selecciona la opción "Crear nueva Orden". |
-|  | 4 | El usuario selecciona el Producto, ingresa la Cantidad requerida, la Fecha de entrega esperada y vincula la orden a una Planificación. |
+|  | 4 | El usuario selecciona el Producto, ingresa la Cantidad requerida, la Fecha de entrega esperada, vincula la orden a una Planificación y elige el modo de alta ("Solo Disponibles" o "Todas"). |
 |  | 5 | El usuario confirma la operación. |
 |  | 6 | El sistema genera la OP, le asigna el estado "Pendiente" y carga internamente la hoja de ruta del producto. |
 |  | 7 | El sistema informa al usuario el éxito de la operación. |
 |  |  |  |
 | **Postcondición**  | La Orden de Producción queda creada en estado "Pendiente" y los materiales necesarios quedan "Comprometidos" en el inventario (reserva lógica). |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 6 | Si el stock físico no alcanza para cubrir la reserva lógica, el sistema alerta al usuario del quiebre inminente y deja la OP en estado "Pendiente por Insumos", disparando una alerta para el módulo de Compras. |
+|  | 6 | Si el stock físico no alcanza para cubrir la reserva lógica y el modo de alta es "Todas", el sistema alerta al usuario del quiebre inminente y deja la OP en estado "Pendiente por Insumos", disparando una alerta para el módulo de Compras. |
+|  | 6 | Si el stock físico no alcanza y el modo de alta es "Solo Disponibles", el sistema omite esa línea (no crea la orden) e informa al usuario que quedó fuera del alta. |
 |  | 4 | Si el producto seleccionado es de origen "Tercero", el sistema bloquea la creación e informa que ese producto no se fabrica (se compra listo por Compras). |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 6 | Menos de 2 segundos. |
@@ -239,6 +240,135 @@
 | **Frecuencia**  | Alta (consultas diarias). |  |
 | **Estabilidad**  | Alta |  |
 | **Comentarios**  | Ninguno |  |
+
+
+| CU-PROD-11 | Asignar Recursos a Orden |  |
+| :---- | ----- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance IRQ-05 Información sobre Maquinarias y Desgaste RF-01 Gestión de la Producción y Parte Diario RF-06 Gestión de Mantenimiento Preventivo de Maquinarias |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor necesite asignar los operarios responsables y la maquinaria a las etapas de una Orden de Producción específica antes de iniciarla. |  |
+| **Precondición**  | La Orden de Producción se encuentra en estado "Pendiente" o "Pendiente por Insumos". Existen operarios (CU-PROD-24..28) y maquinarias activas en el sistema. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario selecciona una OP Pendiente y solicita la opción "Asignar Recursos". |
+|  | 2 | El sistema despliega las etapas de la hoja de ruta de la OP seleccionada. |
+|  | 3 | El usuario selecciona de las listas desplegables a los operarios responsables y la maquinaria para cada etapa. |
+|  | 4 | El usuario confirma la asignación. |
+|  | 5 | El sistema valida la disponibilidad de los recursos seleccionados. |
+|  | 6 | El sistema registra la asignación y cambia el estado de la OP a "Asignada". |
+|  | 7 | El sistema confirma el éxito de la operación. |
+|  |  |  |
+| **Postcondición**  | La OP queda en estado "Asignada", con sus operarios y maquinaria asignados, lista para ser iniciada. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 5 | Si una maquinaria se encuentra bloqueada por Mantenimiento, el sistema la muestra deshabilitada y no permite su selección. |
+|  |  |  |
+|  |  |  |
+|  | 3 | **(Flujo de Desasignación):** Si el usuario desea quitar un recurso ya asignado, lo deselecciona de la lista y confirma; el sistema libera la asignación de esa etapa. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 5 | 1 segundo |
+| **Frecuencia**  | Diaria |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | La asignación unifica operarios y maquinaria en una única operación. Desasignar un recurso es un flujo de modificación dentro de este caso de uso. |  |
+
+
+| CU-PROD-12 | Iniciar Orden de Producción |  |
+| :---- | ----- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor desee iniciar explícitamente la ejecución de una Orden de Producción ya asignada. |  |
+| **Precondición**  | La Orden de Producción se encuentra en estado "Asignada", con operarios y maquinaria asignados. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario selecciona una OP en estado "Asignada" y solicita la opción "Iniciar Orden". |
+|  | 2 | El sistema confirma que los recursos están asignados. |
+|  | 3 | El usuario confirma el inicio de la orden. |
+|  | 4 | El sistema cambia el estado de la OP a "En Curso" y registra la fecha de inicio. |
+|  | 5 | El sistema informa al usuario que la orden fue iniciada con éxito. |
+|  |  |  |
+| **Postcondición**  | La Orden de Producción queda en estado "En Curso" y habilitada para el registro de Partes Diarios. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 2 | Si la OP no tiene todos los recursos asignados, el sistema bloquea el inicio e informa al usuario que primero debe completar la asignación (CU-PROD-11). |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 4 | Menos de 1 segundo. |
+| **Frecuencia**  | Alta (una vez por cada orden lanzada). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | El inicio es explícito por decisión de negocio: la orden no arranca automáticamente al asignar recursos. |  |
+
+
+| CU-PROD-13 | Cargar Parte Diario |  |
+| :---- | ----- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-02 Prevención Proactiva de Cuellos de Botella |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor registre las unidades fabricadas al finalizar su turno, delegando procesos automatizados en el sistema central y en el componente predictivo. |  |
+| **Precondición**  | Existe al menos una Orden de Producción en estado "En Curso". |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El Supervisor selecciona en su terminal una OP activa y solicita "Cargar Parte Diario". |
+|  | 2 | El sistema muestra la etapa actual de la orden y la cantidad objetivo. |
+|  | 3 | El Supervisor ingresa la cantidad de unidades completadas en su turno de trabajo y observaciones (opcional). |
+|  | 4 | El Supervisor pulsa en confirmar. |
+|  | 5 | El sistema asienta el avance, acumulando las unidades terminadas para la etapa en cuestión. |
+|  | 6 | El sistema consume el stock físico de los insumos según la receta del producto (libera la reserva lógica y descuenta existencias). |
+|  | 7 | El sistema incrementa el desgaste acumulado de la maquinaria utilizada. |
+|  | 8 | El sistema envía una petición asíncrona al Componente Predictivo para evaluar la Tasa de Rendimiento Real (TRR). |
+|  | 9 | El sistema notifica al usuario que el parte se registró exitosamente. |
+|  |  |  |
+| **Postcondición**  | El progreso de la OP se actualiza, el stock físico se consume, se incrementa el desgaste de la maquinaria y el motor predictivo recibe nueva información para evaluar desviaciones. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 5 | Si la cantidad ingresada por el supervisor supera la cantidad total requerida por la OP, el sistema despliega una alerta de validación requiriendo confirmación doble antes de guardar. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 5,6,7 | Menor a 2 segundos para la respuesta al usuario. |
+| **Frecuencia**  | Alta |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | El consumo de stock se produce aquí (reserva al crear la orden, consumo al cargar el Parte Diario). Las cantidades de insumos a consumir surgen de la receta (lista de materiales) del producto. |  |
+
+
+| CU-PROD-14 | Registrar Control de Calidad |  |
+| :---- | ----- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor inspeccione el lote producido y determine mermas o rechazos. |  |
+| **Precondición**  | Existe un Parte Diario previamente cargado con unidades declaradas listas para su inspección. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El Supervisor selecciona el registro de un Parte Diario y solicita "Registrar Inspección de Calidad". |
+|  | 2 | El sistema muestra las unidades declaradas. |
+|  | 3 | El Supervisor ingresa la cantidad de unidades rechazadas y selecciona el motivo de la falla (ej. error de corte, rotura). |
+|  | 4 | El Supervisor confirma la operación. |
+|  | 5 | El sistema registra la merma y descuenta las unidades rechazadas de unidades válidas de la OP. |
+|  | 6 | El sistema emite un mensaje de éxito. |
+|  |  |  |
+|  |  |  |
+| **Postcondición**  | La métrica de unidades reales terminadas queda corregida, asegurando que la OP no se cierre con "falsos positivos" de producción. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 3 | Si todas las unidades están correctas, el Supervisor ingresa "0" en rechazos. El sistema asienta el lote como 100% conforme. |
+|  |  |  |
+|  |  |  |
+|  | 5 | Si las unidades rechazadas ingresadas superan la cantidad total reportada en el Parte Diario, el sistema rechaza el guardado y exige su corrección inmediata. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 5 | 1 segundo |
+| **Frecuencia**  | Media (Una vez por cada lote finalizado) |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | Ninguno |  |
+
+
+| CU-PROD-15 | Cerrar Orden de Producción |  |
+| :---- | ----- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
+| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor desee cerrar explícitamente una Orden de Producción al terminar la última etapa. |  |
+| **Precondición**  | La Orden de Producción se encuentra en estado "En Curso". La última etapa reportó su avance completo y existe control de calidad registrado para dicha etapa. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario selecciona una OP en estado "En Curso" y solicita la opción "Cerrar Orden". |
+|  | 2 | El sistema muestra el resumen de unidades producidas y valida que exista control de calidad para la última etapa. |
+|  | 3 | El usuario registra las unidades producidas finales y confirma el cierre. |
+|  | 4 | El sistema consolida las unidades válidas y cambia el estado de la OP a "Cerrada". |
+|  | 5 | El sistema informa al usuario que la orden fue cerrada con éxito. |
+|  |  |  |
+| **Postcondición**  | La Orden de Producción queda en estado "Cerrada" con sus unidades válidas consolidadas. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 2 | Si no existe control de calidad registrado para la última etapa, el sistema bloquea el cierre e informa que primero debe registrarse la inspección (CU-PROD-14). |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 4 | Menos de 1 segundo. |
+| **Frecuencia**  | Alta (una vez por cada orden finalizada). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | El cierre es explícito y la calidad es prerrequisito, por decisión de negocio. |  |
 
 
 | CU-PROD-16 | Alta de Etapa de Producción |  |
@@ -384,7 +514,7 @@
 |  | 7 | Menos de 1 segundo. |
 | **Frecuencia**  | Baja (la hoja de ruta se define una sola vez por producto). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | El tiempo por unidad se define aquí y no en el catálogo de etapas (CU-PROD-16), porque el mismo tipo de etapa puede durar distinto según el producto. Solo aplica a productos terminados de origen "Fabricado"; los de origen "Tercero" no tienen hoja de ruta. |  |
+| **Comentarios**  | El tiempo por unidad se define aquí y no en el catálogo de etapas (CU-PROD-16), porque el mismo tipo de etapa puede durar distinto según el producto. Solo aplica a productos terminados de origen "Fabricado"; los de origen "Tercero" no tienen hoja de ruta. El orden de las etapas en la hoja de ruta puede reordenarse (mover etapa) para reflejar la secuencia real de fabricación. |  |
 
 
 | CU-PROD-22 | Desasignar Etapa de Producto |  |
@@ -424,7 +554,7 @@
 |  | 2 | El sistema recopila las órdenes de producción activas y calcula su proyección temporal a partir del tiempo por unidad de cada etapa de su hoja de ruta. |
 |  | 3 | El sistema renderiza el diagrama de Gantt, mostrando cada orden y sus etapas ubicadas en el calendario según sus tiempos estimados. |
 |  | 4 | El usuario visualiza qué órdenes de producción y qué etapas corresponden a cada día. |
-|  | 5 | El usuario selecciona una orden del cronograma y la reordena (asignándole una nueva posición o prioridad) o ajusta su ventana temporal. Al cambiar la prioridad de una orden, el sistema solicita la justificación del cambio (catálogo de motivos con detalle libre opcional). |
+|  | 5 | El usuario selecciona una orden del cronograma y la reordena (asignándole una nueva posición o prioridad). Al cambiar la prioridad de una orden, el sistema solicita la justificación del cambio mediante un catálogo de motivos (Urgencia comercial, Falta de insumos, Decisión gerencial u Otro) con detalle libre opcional. |
 |  | 6 | El sistema recalcula el cronograma y despliega el impacto del reordenamiento sobre las demás órdenes. |
 |  | 7 | El usuario confirma los cambios y el sistema persiste el nuevo cronograma. |
 |  | 8 | El sistema informa al usuario que el cronograma fue actualizado con éxito. |
@@ -563,133 +693,144 @@
 | **Comentarios**  | Ninguno |  |
 
 
-| CU-PROD-11 | Asignar Recursos a Orden |  |
+| CU-PROD-29 | Agregar Insumo a la Receta |  |
 | :---- | ----- | :---- |
-| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
-| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance IRQ-05 Información sobre Maquinarias y Desgaste RF-01 Gestión de la Producción y Parte Diario RF-06 Gestión de Mantenimiento Preventivo de Maquinarias |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor necesite asignar los operarios responsables y la maquinaria a las etapas de una Orden de Producción específica antes de iniciarla. |  |
-| **Precondición**  | La Orden de Producción se encuentra en estado "Pendiente" o "Pendiente por Insumos". Existen operarios (CU-PROD-24..28) y maquinarias activas en el sistema. |  |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor de Producción desee agregar un insumo a la receta (lista de materiales) de un Producto Terminado. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Supervisor de Producción. El producto es de origen "Fabricado" y existe al menos un insumo activo (Materia Prima o Insumo Consumible) en el catálogo. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
-|  | 1 | El usuario selecciona una OP Pendiente y solicita la opción "Asignar Recursos". |
-|  | 2 | El sistema despliega las etapas de la hoja de ruta de la OP seleccionada. |
-|  | 3 | El usuario selecciona de las listas desplegables a los operarios responsables y la maquinaria para cada etapa. |
-|  | 4 | El usuario confirma la asignación. |
-|  | 5 | El sistema valida la disponibilidad de los recursos seleccionados. |
-|  | 6 | El sistema registra la asignación y cambia el estado de la OP a "Asignada". |
-|  | 7 | El sistema confirma el éxito de la operación. |
+|  | 1 | El usuario solicita al sistema acceder a la hoja de ruta del producto terminado. |
+|  | 2 | El sistema muestra la receta actual del producto (componentes y cantidades) y el listado de insumos disponibles. |
+|  | 3 | El usuario selecciona un insumo del catálogo e ingresa la cantidad requerida por unidad de producto. |
+|  | 4 | El usuario confirma la operación. |
+|  | 5 | El sistema valida los datos y agrega el insumo a la receta (creándola implícitamente si es el primer componente). |
+|  | 6 | El sistema informa al usuario que el insumo fue agregado con éxito. |
 |  |  |  |
-| **Postcondición**  | La OP queda en estado "Asignada", con sus operarios y maquinaria asignados, lista para ser iniciada. |  |
+| **Postcondición**  | El insumo queda agregado a la receta del producto con su cantidad por unidad, lista para alimentar el cálculo de reservas y consumo de stock de las órdenes de producción. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 5 | Si una maquinaria se encuentra bloqueada por Mantenimiento, el sistema la muestra deshabilitada y no permite su selección. |
-|  |  |  |
-|  |  |  |
-|  | 3 | **(Flujo de Desasignación):** Si el usuario desea quitar un recurso ya asignado, lo deselecciona de la lista y confirma; el sistema libera la asignación de esa etapa. |
+|  | 5 | Si el producto no es de origen "Fabricado", el sistema bloquea la operación: solo los productos fabricados tienen receta. |
+|  | 5 | Si el insumo seleccionado no es Materia Prima o Insumo Consumible, o está inactivo, el sistema rechaza la operación. |
+|  | 5 | Si la cantidad es cero o negativa, el sistema rechaza el guardado y solicita un valor válido. |
+|  | 5 | Si el insumo ya está en la receta del producto, el sistema bloquea la operación e informa que ya forma parte de la lista de materiales. |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
-|  | 5 | 1 segundo |
-| **Frecuencia**  | Diaria |  |
+|  | 5 | Menos de 1 segundo. |
+| **Frecuencia**  | Baja (la receta se define una vez por producto y se amplía esporádicamente). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | La asignación unifica operarios y maquinaria en una única operación. Desasignar un recurso es un flujo de modificación dentro de este caso de uso. |  |
+| **Comentarios**  | La receta no tiene un CU de "alta" separado: se crea implícitamente al agregar el primer insumo. Solo aplica a productos terminados de origen "Fabricado". |  |
 
 
-| CU-PROD-12 | Iniciar Orden de Producción |  |
+| CU-PROD-30 | Modificar Cantidad de Insumo de la Receta |  |
 | :---- | ----- | :---- |
-| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
-| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor desee iniciar explícitamente la ejecución de una Orden de Producción ya asignada. |  |
-| **Precondición**  | La Orden de Producción se encuentra en estado "Asignada", con operarios y maquinaria asignados. |  |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor de Producción desee modificar la cantidad requerida de un insumo ya presente en la receta de un Producto Terminado. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Supervisor de Producción. El insumo ya forma parte de la receta del producto. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
-|  | 1 | El usuario selecciona una OP en estado "Asignada" y solicita la opción "Iniciar Orden". |
-|  | 2 | El sistema confirma que los recursos están asignados. |
-|  | 3 | El usuario confirma el inicio de la orden. |
-|  | 4 | El sistema cambia el estado de la OP a "En Curso" y registra la fecha de inicio. |
-|  | 5 | El sistema informa al usuario que la orden fue iniciada con éxito. |
+|  | 1 | El usuario solicita al sistema acceder a la hoja de ruta del producto terminado. |
+|  | 2 | El sistema muestra la receta actual del producto con sus insumos y cantidades. |
+|  | 3 | El usuario modifica la cantidad de un insumo y confirma la operación. |
+|  | 4 | El sistema valida los datos y actualiza la cantidad del componente. |
+|  | 5 | El sistema informa al usuario que la modificación se completó con éxito. |
 |  |  |  |
-| **Postcondición**  | La Orden de Producción queda en estado "En Curso" y habilitada para el registro de Partes Diarios. |  |
+| **Postcondición**  | La cantidad del insumo en la receta queda actualizada. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 2 | Si la OP no tiene todos los recursos asignados, el sistema bloquea el inicio e informa al usuario que primero debe completar la asignación (CU-PROD-11). |
+|  | 4 | Si la cantidad es cero o negativa, el sistema rechaza el guardado y solicita un valor válido. |
+|  | 4 | Si el producto tiene órdenes de producción activas (no Cerrada ni Anulada), el sistema bloquea la modificación e informa que no se puede cambiar la receta. |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 4 | Menos de 1 segundo. |
-| **Frecuencia**  | Alta (una vez por cada orden lanzada). |  |
-| **Estabilidad**  | Alta |  |
-| **Comentarios**  | El inicio es explícito por decisión de negocio: la orden no arranca automáticamente al asignar recursos. |  |
-
-
-| CU-PROD-13 | Cargar Parte Diario |  |
-| :---- | ----- | :---- |
-| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-02 Prevención Proactiva de Cuellos de Botella |  |
-| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor registre las unidades fabricadas al finalizar su turno, delegando procesos automatizados en el sistema central y en el componente predictivo. |  |
-| **Precondición**  | Existe al menos una Orden de Producción en estado "En Curso". |  |
-| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
-|  | 1 | El Supervisor selecciona en su terminal una OP activa y solicita "Cargar Parte Diario". |
-|  | 2 | El sistema muestra la etapa actual de la orden y la cantidad objetivo. |
-|  | 3 | El Supervisor ingresa la cantidad de unidades completadas en su turno de trabajo y observaciones (opcional). |
-|  | 4 | El Supervisor pulsa en confirmar. |
-|  | 5 | El sistema asienta el avance, acumulando las unidades terminadas para la etapa en cuestión. |
-|  | 6 | El sistema consume el stock físico de insumos (libera la reserva lógica y descuenta existencias). |
-|  | 7 | El sistema incrementa el desgaste acumulado de la maquinaria utilizada. |
-|  | 8 | El sistema envía una petición asíncrona al Componente Predictivo para evaluar la Tasa de Rendimiento Real (TRR). |
-|  | 9 | El sistema notifica al usuario que el parte se registró exitosamente. |
-|  |  |  |
-| **Postcondición**  | El progreso de la OP se actualiza, el stock físico se consume, se incrementa el desgaste de la maquinaria y el motor predictivo recibe nueva información para evaluar desviaciones. |  |
-| **Excepciones**  | **Paso**  | **Acción**  |
-|  | 5 | Si la cantidad ingresada por el supervisor supera la cantidad total requerida por la OP, el sistema despliega una alerta de validación requiriendo confirmación doble antes de guardar. |
-| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
-|  | 5,6,7 | Menor a 2 segundos para la respuesta al usuario. |
-| **Frecuencia**  | Alta |  |
-| **Estabilidad**  | Alta |  |
-| **Comentarios**  | El consumo de stock se produce aquí (reserva al crear la orden, consumo al cargar el Parte Diario). |  |
-
-
-| CU-PROD-14 | Registrar Control de Calidad |  |
-| :---- | ----- | :---- |
-| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
-| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor inspeccione el lote producido y determine mermas o rechazos. |  |
-| **Precondición**  | Existe un Parte Diario previamente cargado con unidades declaradas listas para su inspección. |  |
-| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
-|  | 1 | El Supervisor selecciona el registro de un Parte Diario y solicita "Registrar Inspección de Calidad". |
-|  | 2 | El sistema muestra las unidades declaradas. |
-|  | 3 | El Supervisor ingresa la cantidad de unidades rechazadas y selecciona el motivo de la falla (ej. error de corte, rotura). |
-|  | 4 | El Supervisor confirma la operación. |
-|  | 5 | El sistema registra la merma y descuenta las unidades rechazadas de unidades válidas de la OP. |
-|  | 6 | El sistema emite un mensaje de éxito. |
-|  |  |  |
-|  |  |  |
-| **Postcondición**  | La métrica de unidades reales terminadas queda corregida, asegurando que la OP no se cierre con "falsos positivos" de producción. |  |
-| **Excepciones**  | **Paso**  | **Acción**  |
-|  | 3 | Si todas las unidades están correctas, el Supervisor ingresa "0" en rechazos. El sistema asienta el lote como 100% conforme. |
-|  |  |  |
-|  |  |  |
-|  | 5 | Si las unidades rechazadas ingresadas superan la cantidad total reportada en el Parte Diario, el sistema rechaza el guardado y exige su corrección inmediata. |
-| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
-|  | 5 | 1 segundo |
-| **Frecuencia**  | Media (Una vez por cada lote finalizado) |  |
+| **Frecuencia**  | Baja (ajustes puntuales de la receta). |  |
 | **Estabilidad**  | Alta |  |
 | **Comentarios**  | Ninguno |  |
 
 
-| CU-PROD-15 | Cerrar Orden de Producción |  |
+| CU-PROD-31 | Quitar Insumo de la Receta |  |
+| :---- | ----- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-05 Gestión de Inventario mediante Reservas Lógicas |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor de Producción desee quitar un insumo de la receta de un Producto Terminado. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Supervisor de Producción. El insumo forma parte de la receta del producto. |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario solicita al sistema acceder a la hoja de ruta del producto terminado. |
+|  | 2 | El sistema muestra la receta actual del producto con sus insumos y cantidades. |
+|  | 3 | El usuario selecciona un insumo y elige la opción "Quitar". |
+|  | 4 | El usuario confirma la operación. |
+|  | 5 | El sistema quita el insumo de la receta e informa el éxito. |
+|  |  |  |
+| **Postcondición**  | El insumo queda quitado de la receta del producto. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 5 | Si el insumo no pertenece a la receta del producto, el sistema rechaza la operación. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 5 | Menos de 1 segundo. |
+| **Frecuencia**  | Baja (ajustes puntuales de la receta). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | Quitar un insumo no elimina el artículo del catálogo (CU-INV-02), solo lo quita de la receta del producto. |  |
+
+
+| CU-PROD-32 | Ver Receta del Producto |  |
 | :---- | ----- | :---- |
 | **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa |  |
-| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
-| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor desee cerrar explícitamente una Orden de Producción al terminar la última etapa. |  |
-| **Precondición**  | La Orden de Producción se encuentra en estado "En Curso". La última etapa reportó su avance completo y existe control de calidad registrado para dicha etapa. |  |
+| **Requisitos**  **asociados**  | IRQ-01 Información sobre Artículos e Inventario RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor de Producción desee visualizar la receta (lista de materiales) de un Producto Terminado. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Supervisor de Producción. |  |
 | **Secuencia**  **normal**  | **Paso**  | **Acción**  |
-|  | 1 | El usuario selecciona una OP en estado "En Curso" y solicita la opción "Cerrar Orden". |
-|  | 2 | El sistema muestra el resumen de unidades producidas y valida que exista control de calidad para la última etapa. |
-|  | 3 | El usuario registra las unidades producidas finales y confirma el cierre. |
-|  | 4 | El sistema consolida las unidades válidas y cambia el estado de la OP a "Cerrada". |
-|  | 5 | El sistema informa al usuario que la orden fue cerrada con éxito. |
+|  | 1 | El usuario solicita al sistema acceder a la hoja de ruta del producto terminado. |
+|  | 2 | El sistema muestra la receta del producto: sus insumos, la cantidad por unidad y la unidad de medida de cada uno, junto con el listado de insumos disponibles para agregar. |
 |  |  |  |
-| **Postcondición**  | La Orden de Producción queda en estado "Cerrada" con sus unidades válidas consolidadas. |  |
+| **Postcondición**  | El usuario visualiza la receta del producto. |  |
 | **Excepciones**  | **Paso**  | **Acción**  |
-|  | 2 | Si no existe control de calidad registrado para la última etapa, el sistema bloquea el cierre e informa que primero debe registrarse la inspección (CU-PROD-14). |
+|  | 2 | Si el producto no tiene receta definida, el sistema muestra la receta vacía con la leyenda "El producto no tiene receta". |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 2 | Menos de 2 segundos. |
+| **Frecuencia**  | Media (consultas periódicas). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | La receta se gestiona junto con la hoja de ruta del producto (CU-PROD-21, CU-PROD-22). |  |
+
+
+| CU-PROD-33 | Posponer Orden de Producción |  |
+| :---- | ----- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-02 Prevención Proactiva de Cuellos de Botella |  |
+| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor de Producción desee posponer una Orden de Producción, apartándola temporalmente del cronograma. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Supervisor de Producción. La Orden de Producción se encuentra en estado "Pendiente", "Pendiente por Insumos", "Asignada" o "En Curso". |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario selecciona una orden y solicita la opción "Posponer". |
+|  | 2 | El sistema solicita la fecha prevista de reanudación, el motivo y si se liberan las reservas lógicas. |
+|  | 3 | El usuario confirma la operación. |
+|  | 4 | El sistema cambia el estado de la orden a "Pospuesta", registra la fecha prevista de inicio y, si se indicó, libera las reservas lógicas. |
+|  | 5 | El sistema informa al usuario que la orden fue pospuesta. |
+|  |  |  |
+| **Postcondición**  | La Orden de Producción queda en estado "Pospuesta" y el cronograma la proyecta a partir de su nueva fecha prevista de inicio. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 4 | Si la orden se encuentra en un estado no posponible (Cerrada o Anulada), el sistema bloquea la operación e informa al usuario. |
 | **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
 |  | 4 | Menos de 1 segundo. |
-| **Frecuencia**  | Alta (una vez por cada orden finalizada). |  |
+| **Frecuencia**  | Media (ajustes de planificación). |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  | El cierre es explícito y la calidad es prerrequisito, por decisión de negocio. |  |
+| **Comentarios**  | La orden pospuesta no se considera activa en el cronograma hasta ser reanudada (CU-PROD-34). |  |
+
+
+| CU-PROD-34 | Reanudar Orden de Producción |  |
+| :---- | ----- | :---- |
+| **Objetivos**  **asociados**  | OBJ-01 Digitalización e Integración Operativa OBJ-02 Prevención Proactiva de Cuellos de Botella |  |
+| **Requisitos**  **asociados**  | IRQ-02 Información sobre Órdenes de Producción y Avance RF-01 Gestión de la Producción y Parte Diario |  |
+| **Descripción**  | El sistema deberá comportarse tal como se describe en el siguiente caso de uso cuando el Supervisor de Producción desee reanudar una Orden de Producción previamente pospuesta, devolviéndola al flujo productivo. |  |
+| **Precondición**  | El usuario ha iniciado sesión con el rol de Supervisor de Producción. La Orden de Producción se encuentra en estado "Pospuesta". |  |
+| **Secuencia**  **normal**  | **Paso**  | **Acción**  |
+|  | 1 | El usuario selecciona una orden en estado "Pospuesta" y solicita la opción "Reanudar". |
+|  | 2 | El sistema recalcula las necesidades de insumos según la receta del producto y verifica la cobertura de stock. |
+|  | 3 | Si el stock alcanza, el sistema repone la orden a su estado previo (Pendiente, Pendiente por Insumos o Asignada) y la devuelve al cronograma. |
+|  | 4 | El sistema informa al usuario que la orden fue reanudada. |
+|  |  |  |
+| **Postcondición**  | La Orden de Producción queda reincorporada al flujo productivo y al cronograma. |  |
+| **Excepciones**  | **Paso**  | **Acción**  |
+|  | 3 | Si el stock no alcanza para cubrir las necesidades, el sistema deja la orden en estado "Pendiente por Insumos" e informa los faltantes. |
+|  | 2 | Si la orden no se encuentra en estado "Pospuesta", el sistema bloquea la operación e informa que solo puede reanudarse una orden pospuesta. |
+| **Rendimiento**  | **Paso**  | **Cota de tiempo**  |
+|  | 2 | Menos de 2 segundos. |
+| **Frecuencia**  | Media (una por cada orden pospuesta). |  |
+| **Estabilidad**  | Alta |  |
+| **Comentarios**  | El estado al que retorna la orden depende de su avance y de los recursos asignados al momento de posponer. |  |
 
 
 ## Subdominio Mantenimiento

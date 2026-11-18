@@ -35,7 +35,7 @@ Cada actor interactúa únicamente con los módulos pertinentes a su función. L
 
 ## Funcionalidades y pasos
 
-### F1 — Iniciar/Cerrar sesión (nuevo — CU-USR-03)
+### F1 — Iniciar/Cerrar sesión (CU-USR-06)
 
 1. El usuario ingresa email y contraseña.
 2. El sistema valida las credenciales y carga el rol del usuario.
@@ -43,14 +43,14 @@ Cada actor interactúa únicamente con los módulos pertinentes a su función. L
 4. Excepción: credenciales inválidas → error de autenticación.
 5. El usuario puede cerrar sesión, terminando su sesión activa.
 
-### F2 — Gestionar usuarios y roles (CU-USR-01)
+### F2 — Gestionar usuarios y roles (CU-USR-01…05)
 
 1. El Administrador da de alta un usuario: nombre, email, contraseña temporal y rol.
 2. El sistema valida que el email no esté en uso y crea la cuenta.
 3. Modificación: cambiar rol o forzar blanqueo de contraseña.
 4. Baja: inhabilitación (baja lógica) conservando el historial de auditoría.
 
-### F3 — Configurar parámetros del sistema (CU-USR-02)
+### F3 — Configurar parámetros del sistema (CU-USR-07)
 
 1. El Administrador o Gerente accede a la configuración del sistema.
 2. El sistema muestra los parámetros globales agrupados por categoría (Producción, Compras, Motor Predictivo).

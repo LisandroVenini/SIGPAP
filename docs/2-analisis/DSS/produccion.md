@@ -2,7 +2,7 @@
 
 > **Disciplina:** Análisis · Proceso Unificado
 > **Fuente vinculante:** `docs/1-requisitos/casos-de-uso/produccion.md`
-> **Alcance:** CU-PROD-01 a CU-PROD-28 (módulo Producción core). Los CU-MANT-* se tratan en otro artefacto.
+> **Alcance:** CU-PROD-01 a CU-PROD-34 (módulo Producción core). Los CU-MANT-* se tratan en otro artefacto.
 
 ## Criterio de modelado
 
@@ -290,4 +290,64 @@ sequenceDiagram
     participant Sistema as :Sistema
     Supervisor->>Sistema: buscarOperario(criterio)
     Sistema-->>Supervisor: resultadosBusqueda(operarios)
+```
+
+## CU-PROD-29 — Agregar Insumo a la Receta
+
+```mermaid
+sequenceDiagram
+    actor Supervisor as SupervisorDeProduccion
+    participant Sistema as :Sistema
+    Supervisor->>Sistema: agregarInsumoReceta(producto, insumo, cantidad)
+    Sistema-->>Supervisor: confirmacionAlta()
+```
+
+## CU-PROD-30 — Modificar Cantidad de Insumo de la Receta
+
+```mermaid
+sequenceDiagram
+    actor Supervisor as SupervisorDeProduccion
+    participant Sistema as :Sistema
+    Supervisor->>Sistema: modificarCantidadInsumoReceta(producto, insumo, cantidad)
+    Sistema-->>Supervisor: confirmacionModificacion()
+```
+
+## CU-PROD-31 — Quitar Insumo de la Receta
+
+```mermaid
+sequenceDiagram
+    actor Supervisor as SupervisorDeProduccion
+    participant Sistema as :Sistema
+    Supervisor->>Sistema: quitarInsumoReceta(producto, insumo)
+    Sistema-->>Supervisor: confirmacionBaja()
+```
+
+## CU-PROD-32 — Ver Receta del Producto
+
+```mermaid
+sequenceDiagram
+    actor Supervisor as SupervisorDeProduccion
+    participant Sistema as :Sistema
+    Supervisor->>Sistema: solicitarRecetaProducto(producto)
+    Sistema-->>Supervisor: recetaProducto(componentes, insumosDisponibles)
+```
+
+## CU-PROD-33 — Posponer Orden de Producción
+
+```mermaid
+sequenceDiagram
+    actor Supervisor as SupervisorDeProduccion
+    participant Sistema as :Sistema
+    Supervisor->>Sistema: posponerOrdenProduccion(orden, fechaPrevistaInicio, liberarReservas, motivo)
+    Sistema-->>Supervisor: confirmacionPosposicion()
+```
+
+## CU-PROD-34 — Reanudar Orden de Producción
+
+```mermaid
+sequenceDiagram
+    actor Supervisor as SupervisorDeProduccion
+    participant Sistema as :Sistema
+    Supervisor->>Sistema: reanudarOrdenProduccion(orden)
+    Sistema-->>Supervisor: confirmacionReanudacion()
 ```

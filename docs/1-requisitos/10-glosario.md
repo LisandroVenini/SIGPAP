@@ -5,9 +5,11 @@
 | DSS (Decision Support System) | Dominio | Sistema de Soporte a la Toma de Decisiones. Naturaleza principal de SIGPAP: no solo registra datos, sino que los analiza para anticipar problemas y apoyar decisiones gerenciales. |
 | TRR (Tasa de Rendimiento Real) | Dominio | Métrica calculada por el componente predictivo a partir de los Partes Diarios. Compara la velocidad real de producción de una etapa contra su estándar esperado para detectar desviaciones. |
 | Parte Diario | Dominio | Registro diario que carga el Supervisor con las unidades completadas por etapa al final del turno. Es el insumo transaccional del motor predictivo. |
-| Orden de Producción (OP) | Dominio | Entidad central de Producción. Agrupa un producto, una cantidad y una fecha de entrega, y transita estados: Pendiente, Asignada, En Curso, Cerrada (más Pendiente por Insumos y Anulada). |
+| Orden de Producción (OP) | Dominio | Entidad central de Producción. Agrupa un producto, una cantidad y una fecha de entrega, y transita estados: Pendiente, Asignada, En Curso, Pospuesta, Cerrada (más Pendiente por Insumos y Anulada). |
 | Planificación de Producción | Dominio | Campaña marco que agrupa múltiples órdenes de producción (ej. "septiembre-noviembre 2026"). |
 | Hoja de Ruta | Dominio | Conjunto de etapas de un producto con su tiempo estimado por unidad. Se define una vez por producto y la OP la instancia al crearse. |
+| Receta | Dominio | Lista de materiales (BOM) de un producto terminado Fabricado: el conjunto de insumos y su cantidad requerida por unidad de producto. Cada producto fabricado tiene a lo sumo una receta; se crea implícitamente al agregar el primer insumo. Es el insumo de cálculo para reservar y consumir stock al lanzar/avanzar una OP. |
+| Componente de Receta | Dominio | Inclusión de un insumo (Materia Prima o Insumo Consumible) en la receta de un producto, junto con la cantidad requerida para fabricar una unidad. La cantidad se expresa en la unidad de medida del insumo. |
 | Etapa de Producción | Dominio | Paso del catálogo de fabricación (ej. Lijado, Pintado, Armado, Embalado). Es genérica; el tiempo por unidad se define al asignarla a un producto. |
 | Stock Físico | Dominio | Existencias reales en el depósito. |
 | Stock Comprometido (Reserva Lógica) | Dominio | Cantidad reservada para órdenes de producción en curso. No se descuenta físicamente hasta el consumo real. |
@@ -29,7 +31,7 @@
 | Intervención de Mantenimiento | Dominio | Registro de una intervención concreta realizada sobre una maquinaria (fecha, tipo, responsable). Al registrarse libera el bloqueo preventivo y resetea el desgaste acumulado. |
 | Artículo | Dominio | Unidad central del catálogo de Inventario. Puede ser Materia Prima, Insumo Consumible o Producto Terminado. Lleva SKU, descripción, tipo, unidad de medida y stock; soporta múltiples unidades y factores de conversión. |
 | Movimiento de Stock | Dominio | Registro de una variación de existencias: ingreso de mercancía, consumo por producción, salida o ajuste manual. Conserva un historial inmutable para trazabilidad. |
-| Unidad de Medida | Dominio | Unidad en la que se expresa un artículo (metro, kilogramo, unidad) junto con su factor de conversión respecto a otras unidades. |
+| Unidad de Medida | Dominio | Unidad en la que se expresa un artículo (metro, kilogramo, unidad). Se gestiona con un ABM propio en Inventario; no puede eliminarse mientras esté en uso por artículos. |
 | Proveedor | Dominio | Entidad comercial externa que abastece de insumos. Datos: razón social, CUIT y contacto. Acumula desempeño histórico (retrasos, faltantes, roturas) que alimenta el ranking. Es a la vez actor externo (ACT-04) y concepto del dominio. |
 | Cotización | Dominio | Respuesta de un proveedor a una Solicitud de Cotización (RFQ): precio unitario, cantidad ofrecida y fecha prometida. Es la entrada que se compara en la licitación multicriterio. |
 | Incidencia | Dominio | Evento de desempeño negativo de un proveedor (retraso, faltante o rotura). Se registra automáticamente y alimenta el ranking dinámico. |
