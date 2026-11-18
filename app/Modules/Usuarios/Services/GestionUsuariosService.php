@@ -8,7 +8,9 @@ use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Queries\UsuariosQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class GestionUsuariosService
@@ -45,11 +47,17 @@ class GestionUsuariosService
     public function crear(Usuario $actor, array $datos, ?string $direccionIp = null): Usuario
     {
         return DB::transaction(function () use ($actor, $datos, $direccionIp): Usuario {
-            $usuario = Usuario::create([
-                'nombre' => $datos['nombre'],
-                'email' => $datos['email'],
-                'clave_acceso' => $datos['password'],
-            ]);
+            try {
+                $usuario = Usuario::create([
+                    'nombre' => $datos['nombre'],
+                    'email' => Str::lower(trim($datos['email'])),
+                    'clave_acceso' => $datos['password'],
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                throw ValidationException::withMessages([
+                    'email' => 'El email ya está registrado.',
+                ]);
+            }
 
             $usuario->assignRole($datos['rol']);
 
@@ -87,7 +95,7 @@ class GestionUsuariosService
             $passwordReset = ! empty($datos['password']);
 
             $usuario->nombre = $datos['nombre'];
-            $usuario->email = $datos['email'];
+            $usuario->email = Str::lower(trim($datos['email']));
             $usuario->estado = $datos['estado'];
 
             if ($passwordReset) {

@@ -9,6 +9,7 @@ use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -61,13 +62,19 @@ class GestionProveedoresService
             $this->validarCuitDisponible($datos['cuit']);
             $this->validarEmailDisponible($datos['email'] ?? null);
 
-            $proveedor = Proveedor::create([
-                'razon_social' => $datos['razon_social'],
-                'cuit' => $datos['cuit'],
-                'email' => $datos['email'] ?? null,
-                'telefono' => $datos['telefono'] ?? null,
-                'estado' => self::ESTADO_ACTIVO,
-            ]);
+            try {
+                $proveedor = Proveedor::create([
+                    'razon_social' => $datos['razon_social'],
+                    'cuit' => $datos['cuit'],
+                    'email' => $datos['email'] ?? null,
+                    'telefono' => $datos['telefono'] ?? null,
+                    'estado' => self::ESTADO_ACTIVO,
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                throw ValidationException::withMessages([
+                    'cuit' => 'El CUIT ya está registrado.',
+                ]);
+            }
 
             $this->auditoria->registrarEvento(
                 $actor->id,

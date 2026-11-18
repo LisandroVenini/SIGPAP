@@ -129,6 +129,15 @@ const props = defineProps<{
 
 const page = usePage<SharedProps>();
 
+const hayFiltros = computed(() =>
+    Boolean(
+        props.filtros.buscar ||
+        props.filtros.estado ||
+        props.filtros.fecha_desde ||
+        props.filtros.fecha_hasta,
+    ),
+);
+
 const busqueda = ref(props.filtros.buscar ?? '');
 const estado = ref(props.filtros.estado ?? '');
 const fechaDesde = ref(props.filtros.fecha_desde ?? '');
@@ -1087,7 +1096,11 @@ function labelDePagina(label: string): string {
                     v-if="props.ordenes.data.length === 0"
                     class="px-4 py-10 text-center text-sm text-steel"
                 >
-                    No hay órdenes de producción registradas.
+                    {{
+                        hayFiltros
+                            ? 'No hay órdenes para los filtros aplicados.'
+                            : 'No hay órdenes de producción registradas.'
+                    }}
                 </div>
 
                 <div
@@ -1102,7 +1115,10 @@ function labelDePagina(label: string): string {
                         <Link
                             v-for="link in props.ordenes.links"
                             :key="link.label"
-                            :href="link.url ?? '#'"
+                            :href="link.url ?? undefined"
+                            :aria-current="link.active ? 'page' : undefined"
+                            :aria-disabled="link.url === null ? 'true' : undefined"
+                            :tabindex="link.url === null ? -1 : undefined"
                             class="rounded px-2 py-0.5"
                             :class="
                                 link.active
@@ -1123,6 +1139,7 @@ function labelDePagina(label: string): string {
             @click.self="cerrarDrawer"
         >
             <aside
+                v-dialog="cerrarDrawer"
                 class="flex h-full w-full max-w-[460px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >
                 <div class="flex items-center justify-between border-b border-hairline pb-3">
@@ -1233,6 +1250,7 @@ function labelDePagina(label: string): string {
                                 step="0.01"
                                 min="0.01"
                                 required
+                                aria-label="Cantidad por artículo"
                                 placeholder="Cantidad"
                                 class="w-28 rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                             />
@@ -1252,6 +1270,7 @@ function labelDePagina(label: string): string {
                         <label class="flex items-center gap-2 text-sm text-ink">
                             <input
                                 v-model="formNueva.modo"
+                                name="modo-creacion"
                                 type="radio"
                                 value="solo_disponibles"
                                 class="text-teja focus:ring-teja"
@@ -1261,6 +1280,7 @@ function labelDePagina(label: string): string {
                         <label class="flex items-center gap-2 text-sm text-ink">
                             <input
                                 v-model="formNueva.modo"
+                                name="modo-creacion"
                                 type="radio"
                                 value="todas"
                                 class="text-teja focus:ring-teja"

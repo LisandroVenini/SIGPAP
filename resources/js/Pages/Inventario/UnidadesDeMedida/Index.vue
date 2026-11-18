@@ -200,6 +200,7 @@ async function eliminar(unidad: Unidad): Promise<void> {
             @click.self="cerrarDrawer"
         >
             <aside
+                v-dialog="cerrarDrawer"
                 class="flex h-full w-full max-w-[420px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >
                 <div class="flex items-center justify-between border-b border-hairline pb-3">
@@ -244,6 +245,7 @@ async function eliminar(unidad: Unidad): Promise<void> {
                         </button>
                         <button
                             type="submit"
+                            :disabled="form.processing"
                             class="rounded-control bg-teja px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teja-deep active:scale-[0.98]"
                         >
                             Guardar

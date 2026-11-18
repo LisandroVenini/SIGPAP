@@ -66,6 +66,10 @@ function abrir(fila: FilaCronograma): void {
 
 const enviando = ref(false);
 
+function cerrarDrawer(): void {
+    drawerOpen.value = false;
+}
+
 function guardar(): void {
     if (!filaActiva.value || enviando.value) {
         return;
@@ -269,9 +273,10 @@ function guardar(): void {
         <div
             v-if="drawerOpen"
             class="fixed inset-0 z-40 flex justify-end bg-ink/20"
-            @click.self="drawerOpen = false"
+            @click.self="cerrarDrawer"
         >
             <aside
+                v-dialog="cerrarDrawer"
                 class="flex h-full w-full max-w-[420px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >
                 <div class="flex items-center justify-between border-b border-hairline pb-3">
@@ -279,7 +284,7 @@ function guardar(): void {
                     <button
                         type="button"
                         class="text-sm text-steel hover:text-ink"
-                        @click="drawerOpen = false"
+                        @click="cerrarDrawer"
                     >
                         Cerrar
                     </button>
@@ -405,7 +410,7 @@ function guardar(): void {
                         <button
                             type="button"
                             class="rounded-control border border-hairline px-4 py-2 text-sm text-ink transition-colors hover:bg-canvas"
-                            @click="drawerOpen = false"
+                            @click="cerrarDrawer"
                         >
                             Cancelar
                         </button>

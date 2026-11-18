@@ -266,6 +266,7 @@ async function anularIngreso(ingreso: IngresoRegistrado): Promise<void> {
                                             type="number"
                                             min="0"
                                             step="0.01"
+                                            aria-label="Cantidad a recibir"
                                             class="w-28 rounded-control border border-hairline bg-surface px-3 py-1.5 text-right text-sm text-ink focus:ring-2 focus:ring-teja/40 focus:outline-none"
                                         />
                                     </td>

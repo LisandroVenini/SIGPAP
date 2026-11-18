@@ -198,6 +198,28 @@ class IngresoMercanciaControllerTest extends TestCase
         $this->assertSame(3.0, (float) $contexto['articulo']->refresh()->stock_fisico);
     }
 
+    public function test_a_quantity_over_the_column_limit_is_rejected(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoStock);
+        $contexto = $this->contexto(cantidadPedida: 5);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/inventario/ingresos', [
+            'numero_oc' => $contexto['orden']->numero_oc,
+            'numero_remito' => 'REM-MAX',
+            'entrega_parcial' => false,
+            'confirmar_excedente' => true,
+            'lineas' => [
+                ['articulo_id' => $contexto['articulo']->id, 'cantidad' => 99999999999.99],
+            ],
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('lineas.0.cantidad');
+        $this->assertSame('Confirmada', $contexto['orden']->refresh()->estado);
+    }
+
     public function test_an_stock_manager_can_annul_a_reception(): void
     {
         // Arrange

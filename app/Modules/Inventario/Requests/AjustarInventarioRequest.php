@@ -19,7 +19,7 @@ class AjustarInventarioRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nuevo_stock' => ['required', 'numeric', 'min:0'],
+            'nuevo_stock' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
             'motivo' => ['required', 'string', Rule::in(MotivoAjuste::values())],
         ];
     }

@@ -21,8 +21,10 @@ class AdminUserSeeder extends Seeder
         $configuredPassword = config('sigpap.admin.password');
         $password = $configuredPassword ?: Str::password(16);
 
+        $email = Str::lower(trim((string) config('sigpap.admin.email')));
+
         $admin = Usuario::firstOrCreate(
-            ['email' => config('sigpap.admin.email')],
+            ['email' => $email],
             ['nombre' => 'Administrador', 'clave_acceso' => $password],
         );
 

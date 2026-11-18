@@ -35,7 +35,7 @@ class UpdateSolicitudRequest extends FormRequest
             ],
             'lineas' => ['required', 'array', 'min:1'],
             'lineas.*.articulo_id' => ['required', 'integer', 'exists:articulos,id'],
-            'lineas.*.cantidad_solicitada' => ['required', 'numeric', 'gt:0'],
+            'lineas.*.cantidad_solicitada' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
             'proveedores' => ['required', 'array', 'min:1'],
             'proveedores.*' => ['required', 'integer', 'distinct', 'exists:proveedores,id'],
         ];

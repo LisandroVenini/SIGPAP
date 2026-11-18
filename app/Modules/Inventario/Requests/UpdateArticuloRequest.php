@@ -29,8 +29,8 @@ class UpdateArticuloRequest extends FormRequest
                 Rule::requiredIf(fn () => $this->input('tipo') === TipoArticulo::ProductoTerminado->value),
             ],
             'unidad_de_medida_id' => ['required', 'integer', 'exists:unidades_de_medida,id'],
-            'stock_minimo' => ['nullable', 'numeric', 'min:0'],
-            'stock_maximo' => ['nullable', 'numeric', 'min:0', 'gte:stock_minimo'],
+            'stock_minimo' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            'stock_maximo' => ['nullable', 'numeric', 'min:0', 'gte:stock_minimo', 'max:9999999999.99'],
             'fecha_vencimiento' => ['nullable', 'date', 'after_or_equal:today'],
         ];
     }

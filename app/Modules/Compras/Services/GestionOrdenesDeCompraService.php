@@ -23,6 +23,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -443,13 +444,22 @@ class GestionOrdenesDeCompraService
             fn (LineaOrdenCompra $linea): float => (float) $linea->cantidad * (float) $linea->precio_pactado,
         );
 
-        Mail::to($proveedor->email)->send(new OrdenDeCompraMail(
-            numeroOc: $orden->numero_oc,
-            proveedor: $proveedor->razon_social,
-            lineas: $lineas,
-            total: (float) $total,
-            token: $token,
-        ));
+        try {
+            Mail::to($proveedor->email)->send(new OrdenDeCompraMail(
+                numeroOc: $orden->numero_oc,
+                proveedor: $proveedor->razon_social,
+                lineas: $lineas,
+                total: (float) $total,
+                token: $token,
+            ));
+        } catch (\Throwable $excepcion) {
+            Log::error('No se pudo enviar la orden de compra al proveedor.', [
+                'orden_de_compra_id' => $orden->id,
+                'numero_oc' => $orden->numero_oc,
+                'proveedor_id' => $proveedor->id,
+                'error' => $excepcion->getMessage(),
+            ]);
+        }
     }
 
     /**

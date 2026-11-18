@@ -412,7 +412,10 @@ function labelDePagina(label: string): string {
                         <Link
                             v-for="link in props.planes.links"
                             :key="link.label"
-                            :href="link.url ?? '#'"
+                            :href="link.url ?? undefined"
+                            :aria-current="link.active ? 'page' : undefined"
+                            :aria-disabled="link.url === null ? 'true' : undefined"
+                            :tabindex="link.url === null ? -1 : undefined"
                             class="rounded px-2 py-0.5"
                             :class="
                                 link.active
@@ -525,6 +528,7 @@ function labelDePagina(label: string): string {
             @click.self="cerrarPlanDrawer"
         >
             <aside
+                v-dialog="cerrarPlanDrawer"
                 class="flex h-full w-full max-w-[420px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >
                 <div class="flex items-center justify-between border-b border-hairline pb-3">
@@ -629,6 +633,7 @@ function labelDePagina(label: string): string {
             @click.self="cerrarIntervencionDrawer"
         >
             <aside
+                v-dialog="cerrarIntervencionDrawer"
                 class="flex h-full w-full max-w-[420px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >
                 <div class="flex items-center justify-between border-b border-hairline pb-3">

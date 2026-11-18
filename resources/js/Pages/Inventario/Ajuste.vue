@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
+import { formatearCantidad } from '@/lib/numeros';
 
 interface Articulo {
     id: number;
@@ -187,7 +188,7 @@ function labelDePagina(label: string): string {
                                 <td
                                     class="px-4 py-2.5 text-right font-mono text-xs font-medium text-ink"
                                 >
-                                    {{ articulo.stock_fisico }}
+                                    {{ formatearCantidad(articulo.stock_fisico) }}
                                 </td>
                                 <td class="px-4 py-2.5 text-right text-xs">
                                     <button
@@ -207,7 +208,11 @@ function labelDePagina(label: string): string {
                     v-if="props.articulos.data.length === 0"
                     class="px-4 py-10 text-center text-sm text-steel"
                 >
-                    No se encontraron artículos para el criterio especificado.
+                    {{
+                        props.filtros.buscar
+                            ? 'No se encontraron artículos para el criterio especificado.'
+                            : 'No hay artículos disponibles para ajustar.'
+                    }}
                 </div>
 
                 <div
@@ -222,7 +227,10 @@ function labelDePagina(label: string): string {
                         <Link
                             v-for="link in props.articulos.links"
                             :key="link.label"
-                            :href="link.url ?? '#'"
+                            :href="link.url ?? undefined"
+                            :aria-current="link.active ? 'page' : undefined"
+                            :aria-disabled="link.url === null ? 'true' : undefined"
+                            :tabindex="link.url === null ? -1 : undefined"
                             class="rounded px-2 py-0.5"
                             :class="
                                 link.active
@@ -243,6 +251,7 @@ function labelDePagina(label: string): string {
             @click.self="cerrarAjuste"
         >
             <aside
+                v-dialog="cerrarAjuste"
                 class="flex h-full w-full max-w-[420px] flex-col overflow-y-auto border-l border-hairline bg-surface p-5 shadow-diffused"
             >
                 <div class="flex items-center justify-between border-b border-hairline pb-3">

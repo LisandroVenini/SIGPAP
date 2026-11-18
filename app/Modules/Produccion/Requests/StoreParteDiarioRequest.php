@@ -36,7 +36,7 @@ class StoreParteDiarioRequest extends FormRequest
                     }
                 },
             ],
-            'cantidad' => ['required', 'numeric', 'gt:0'],
+            'cantidad' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
             'observaciones' => ['nullable', 'string', 'max:500'],
         ];
     }

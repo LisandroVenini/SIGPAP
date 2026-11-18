@@ -1,6 +1,7 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h, type DefineComponent } from 'vue';
+import dialog from './lib/dialog';
 
 const appName = import.meta.env.VITE_APP_NAME || 'SIGPAP';
 
@@ -14,6 +15,7 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         return createApp({ render: () => h(App, props) })
             .use(plugin)
+            .directive('dialog', dialog)
             .mount(el);
     },
 });

@@ -21,6 +21,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -211,6 +212,22 @@ class GestionOrdenesDeCompraServiceTest extends TestCase
         }
 
         $this->assertDatabaseCount('ordenes_de_compra', 0);
+    }
+
+    public function test_a_mail_failure_does_not_roll_back_the_orden(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $contexto = $this->contexto();
+        Log::spy();
+        Mail::shouldReceive('to->send')->andThrow(new \RuntimeException('SMTP caído'));
+
+        // Act
+        $orden = $this->service()->emitir($actor, $contexto['cotizacion']->id);
+
+        // Assert
+        $this->assertDatabaseHas('ordenes_de_compra', ['id' => $orden->id, 'estado' => 'Emitida']);
+        Log::shouldHaveReceived('error')->once();
     }
 
     public function test_updates_lines_only_when_the_orden_is_emitted(): void

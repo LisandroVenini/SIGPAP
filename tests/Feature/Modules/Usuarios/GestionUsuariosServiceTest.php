@@ -83,6 +83,25 @@ class GestionUsuariosServiceTest extends TestCase
         ]);
     }
 
+    public function test_actualizar_normaliza_el_email_a_minusculas(): void
+    {
+        // Arrange
+        $admin = $this->admin();
+        $usuario = Usuario::factory()->create(['email' => 'laura@confort.test']);
+
+        // Act
+        $this->service()->actualizar($admin, $usuario, [
+            'nombre' => 'Laura Cáceres',
+            'email' => 'Laura@Confort.Test',
+            'password' => '',
+            'rol' => Rol::Gerente->value,
+            'estado' => 'Activo',
+        ]);
+
+        // Assert
+        $this->assertSame('laura@confort.test', $usuario->refresh()->email);
+    }
+
     public function test_alternar_estado_inhabilitates_and_audits(): void
     {
         // Arrange

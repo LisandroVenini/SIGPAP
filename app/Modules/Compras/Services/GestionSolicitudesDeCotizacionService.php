@@ -18,6 +18,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -374,14 +375,22 @@ class GestionSolicitudesDeCotizacionService
             ->all();
 
         foreach ($envios as $envio) {
-            Mail::to($envio['proveedor']->email)->send(
-                new SolicitudDeCotizacionMail(
-                    $solicitud,
-                    $envio['proveedor'],
-                    $envio['token'],
-                    $lineas,
-                ),
-            );
+            try {
+                Mail::to($envio['proveedor']->email)->send(
+                    new SolicitudDeCotizacionMail(
+                        $solicitud,
+                        $envio['proveedor'],
+                        $envio['token'],
+                        $lineas,
+                    ),
+                );
+            } catch (\Throwable $excepcion) {
+                Log::error('No se pudo enviar la invitación de cotización.', [
+                    'solicitud_de_cotizacion_id' => $solicitud->id,
+                    'proveedor_id' => $envio['proveedor']->id,
+                    'error' => $excepcion->getMessage(),
+                ]);
+            }
         }
     }
 

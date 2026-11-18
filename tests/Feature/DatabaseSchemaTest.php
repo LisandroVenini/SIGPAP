@@ -211,6 +211,53 @@ class DatabaseSchemaTest extends TestCase
         ]);
     }
 
+    public function test_foreign_keys_and_hot_filter_columns_are_indexed(): void
+    {
+        // Arrange
+        $indices = DB::table('pg_indexes')
+            ->where('schemaname', 'public')
+            ->pluck('indexname')
+            ->all();
+
+        $esperados = [
+            'usuarios_email_lower_unique',
+            'mov_articulo_fecha_idx',
+            'mov_oc_remito_idx',
+            'reservas_articulo_estado_idx',
+            'loc_orden_idx',
+            'lc_cotizacion_idx',
+            'lsc_solicitud_idx',
+            'aud_fecha_idx',
+            'desempeno_oc_idx',
+            'incidencia_oc_idx',
+            'oc_estado_idx',
+            'solicitud_estado_idx',
+            'cotizacion_solicitud_idx',
+            'scp_proveedor_idx',
+            'articulo_estado_idx',
+            'op_estado_idx',
+            'intervencion_maq_fecha_idx',
+            'maquinaria_estado_idx',
+            'alerta_articulo_idx',
+            'proveedor_estado_idx',
+            'usuarios_estado_idx',
+            'rhp_role_idx',
+            'opo_operario_idx',
+            'parte_etapa_idx',
+            'control_orden_idx',
+            'prioridad_orden_idx',
+            'disponibilidad_articulo_idx',
+            'cotizacion_disponibilidad_idx',
+            'tasa_etapa_idx',
+            'componente_articulo_idx',
+        ];
+
+        // Act / Assert
+        foreach ($esperados as $indice) {
+            $this->assertContains($indice, $indices, "Falta el índice {$indice}.");
+        }
+    }
+
     private function insertOrden(int $articuloId, int $planificacionId): int
     {
         return DB::table('ordenes_de_produccion')->insertGetId([

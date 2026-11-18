@@ -18,6 +18,7 @@ use Database\Factories\SolicitudDeCotizacionFactory;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -107,6 +108,29 @@ class GestionSolicitudesDeCotizacionServiceTest extends TestCase
             'auditable_type' => SolicitudDeCotizacion::class,
             'auditable_id' => $solicitud->id,
         ]);
+    }
+
+    public function test_a_mail_failure_does_not_roll_back_the_solicitud(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $articulo = $this->articulo('Tabla de pino');
+        $proveedor = $this->proveedor('Aceros del Sur', 'ventas@aceros.test');
+        Log::spy();
+        Mail::shouldReceive('to->send')->andThrow(new \RuntimeException('SMTP caído'));
+
+        // Act
+        $solicitud = $this->service()->crear($actor, [
+            'fecha_vencimiento' => today()->addWeek()->toDateString(),
+            'lineas' => [
+                ['articulo_id' => $articulo->id, 'cantidad_solicitada' => 10],
+            ],
+            'proveedores' => [$proveedor->id],
+        ]);
+
+        // Assert
+        $this->assertDatabaseHas('solicitudes_de_cotizacion', ['id' => $solicitud->id]);
+        Log::shouldHaveReceived('error')->once();
     }
 
     public function test_rejects_a_provider_without_email_and_creates_nothing(): void

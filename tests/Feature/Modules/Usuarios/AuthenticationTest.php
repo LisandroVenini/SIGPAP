@@ -3,7 +3,9 @@
 namespace Tests\Feature\Modules\Usuarios;
 
 use App\Modules\Usuarios\Enums\EstadoUsuario;
+use App\Modules\Usuarios\Models\ParametroGlobal;
 use App\Modules\Usuarios\Models\Usuario;
+use Database\Seeders\ParametroGlobalSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -37,6 +39,25 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect('/dashboard');
         $this->assertAuthenticatedAs($usuario);
         $this->get('/dashboard')->assertOk();
+    }
+
+    public function test_a_usuario_can_authenticate_with_a_different_email_case(): void
+    {
+        // Arrange
+        $usuario = Usuario::factory()->create([
+            'email' => 'laura@confort.test',
+            'clave_acceso' => 'secret-password',
+        ]);
+
+        // Act
+        $response = $this->post('/login', [
+            'email' => 'Laura@Confort.Test',
+            'password' => 'secret-password',
+        ]);
+
+        // Assert
+        $response->assertRedirect('/dashboard');
+        $this->assertAuthenticatedAs($usuario);
     }
 
     public function test_a_usuario_cannot_authenticate_with_an_invalid_password(): void
@@ -111,6 +132,64 @@ class AuthenticationTest extends TestCase
 
         // Assert
         $this->assertTrue($throttled);
+    }
+
+    public function test_an_array_email_returns_a_validation_error(): void
+    {
+        // Act
+        $response = $this->post('/login', [
+            'email' => ['a@b.test'],
+            'password' => 'secret-password',
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_the_login_lockout_threshold_is_configurable(): void
+    {
+        // Arrange
+        $this->seed(ParametroGlobalSeeder::class);
+        ParametroGlobal::where('nombre', 'seguridad_intentos_fallidos')->update(['valor' => '2']);
+        $usuario = Usuario::factory()->create(['clave_acceso' => 'secret-password']);
+
+        // Act
+        $this->post('/login', ['email' => $usuario->email, 'password' => 'incorrecta']);
+        $this->post('/login', ['email' => $usuario->email, 'password' => 'incorrecta']);
+        $response = $this->post('/login', ['email' => $usuario->email, 'password' => 'secret-password']);
+
+        // Assert
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_a_session_expires_after_the_configured_idle_limit(): void
+    {
+        // Arrange
+        $usuario = Usuario::factory()->create();
+        $this->actingAs($usuario)->get('/dashboard')->assertOk();
+
+        // Act
+        $this->travel(31)->minutes();
+        $response = $this->get('/dashboard');
+
+        // Assert
+        $response->assertRedirect('/login');
+        $this->assertGuest();
+    }
+
+    public function test_a_session_inside_the_idle_limit_stays_open(): void
+    {
+        // Arrange
+        $usuario = Usuario::factory()->create();
+        $this->actingAs($usuario)->get('/dashboard')->assertOk();
+
+        // Act
+        $this->travel(5)->minutes();
+
+        // Assert
+        $this->get('/dashboard')->assertOk();
     }
 
     public function test_a_usuario_can_logout(): void

@@ -19,7 +19,7 @@ class StorePlanRequest extends FormRequest
     {
         return [
             'maquinaria_id' => ['required', 'integer', 'exists:maquinarias,id'],
-            'umbral_uso' => ['required', 'numeric', 'gt:0'],
+            'umbral_uso' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
             'descripcion' => ['required', 'string', 'max:1000'],
         ];
     }

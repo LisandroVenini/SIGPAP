@@ -86,6 +86,23 @@ class ProveedorControllerTest extends TestCase
         ]);
     }
 
+    public function test_a_duplicate_cuit_is_rejected_by_the_request(): void
+    {
+        // Arrange
+        $usuario = $this->usuarioConRol(Rol::EncargadoCompras);
+        Proveedor::factory()->create(['cuit' => '30-71234567-8']);
+
+        // Act
+        $response = $this->actingAs($usuario)->post('/compras/proveedores', [
+            'razon_social' => 'Otra empresa',
+            'cuit' => '30-71234567-8',
+        ]);
+
+        // Assert
+        $response->assertSessionHasErrors('cuit');
+        $this->assertDatabaseCount('proveedores', 1);
+    }
+
     public function test_a_purchasing_manager_can_update_a_supplier_without_changing_the_cuit(): void
     {
         // Arrange

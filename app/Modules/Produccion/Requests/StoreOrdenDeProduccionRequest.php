@@ -49,7 +49,7 @@ class StoreOrdenDeProduccionRequest extends FormRequest
                     }
                 },
             ],
-            'lineas.*.cantidad' => ['required', 'numeric', 'gt:0'],
+            'lineas.*.cantidad' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
         ];
     }
 }
