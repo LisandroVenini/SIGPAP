@@ -241,6 +241,15 @@ class DatabaseSchemaTest extends TestCase
             'alerta_articulo_idx',
             'proveedor_estado_idx',
             'usuarios_estado_idx',
+            'rhp_role_idx',
+            'opo_operario_idx',
+            'parte_etapa_idx',
+            'control_orden_idx',
+            'prioridad_orden_idx',
+            'disponibilidad_articulo_idx',
+            'cotizacion_disponibilidad_idx',
+            'tasa_etapa_idx',
+            'componente_articulo_idx',
         ];
 
         // Act / Assert
