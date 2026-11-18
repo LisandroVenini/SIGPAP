@@ -24,7 +24,7 @@ class RegistrarIngresoRequest extends FormRequest
             'cerrar_con_faltantes' => ['boolean'],
             'lineas' => ['required', 'array', 'min:1'],
             'lineas.*.articulo_id' => ['required', 'integer'],
-            'lineas.*.cantidad' => ['required', 'numeric', 'gt:0'],
+            'lineas.*.cantidad' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
         ];
     }
 }

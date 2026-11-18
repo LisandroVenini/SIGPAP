@@ -21,7 +21,7 @@ class UpdateOrdenDeProduccionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cantidad' => ['required', 'numeric', 'gt:0'],
+            'cantidad' => ['required', 'numeric', 'gt:0', 'max:9999999999.99'],
             'fecha_entrega' => [
                 'required',
                 'date',
