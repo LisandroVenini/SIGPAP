@@ -89,3 +89,43 @@ sequenceDiagram
     Encargado->>Sistema: parametrizarUmbralesStock(codigoSKU, stockMinimo, stockMaximo)
     Sistema-->>Encargado: confirmacionUmbrales()
 ```
+
+## CU-INV-09 — Alta de Unidad de Medida
+
+```mermaid
+sequenceDiagram
+    actor Encargado as EncargadoDeStock
+    participant Sistema as :Sistema
+    Encargado->>Sistema: altaUnidadDeMedida(nombre)
+    Sistema-->>Encargado: confirmacionAlta()
+```
+
+## CU-INV-10 — Baja de Unidad de Medida
+
+```mermaid
+sequenceDiagram
+    actor Encargado as EncargadoDeStock
+    participant Sistema as :Sistema
+    Encargado->>Sistema: bajaUnidadDeMedida(unidad)
+    Sistema-->>Encargado: confirmacionBaja()
+```
+
+## CU-INV-11 — Modificación de Unidad de Medida
+
+```mermaid
+sequenceDiagram
+    actor Encargado as EncargadoDeStock
+    participant Sistema as :Sistema
+    Encargado->>Sistema: modificarUnidadDeMedida(unidad, nombre)
+    Sistema-->>Encargado: confirmacionModificacion()
+```
+
+## CU-INV-12 — Listado de Unidades de Medida
+
+```mermaid
+sequenceDiagram
+    actor Encargado as EncargadoDeStock
+    participant Sistema as :Sistema
+    Encargado->>Sistema: solicitarListadoUnidadesDeMedida()
+    Sistema-->>Encargado: listadoUnidadesDeMedida(unidades)
+```

@@ -76,6 +76,18 @@ Cada relación se documenta en su propia tabla de dos columnas: la izquierda exp
 
 | Concepto | Relación |
 | --- | --- |
+| A se vincula a B | Receta - Articulo |
+
+| Concepto | Relación |
+| --- | --- |
+| A es una parte lógica de B | ComponenteDeReceta - Receta |
+
+| Concepto | Relación |
+| --- | --- |
+| A se vincula a B | ComponenteDeReceta - Articulo |
+
+| Concepto | Relación |
+| --- | --- |
 | A se vincula a B | Articulo - UnidadDeMedida |
 
 | Concepto | Relación |
@@ -128,7 +140,11 @@ Cada relación se documenta en su propia tabla de dos columnas: la izquierda exp
 
 | Concepto | Relación |
 | --- | --- |
-| A se emite/origina sobre B | Cotizacion - Articulo |
+| A es una parte lógica de B | LineaCotizacion - Cotizacion |
+
+| Concepto | Relación |
+| --- | --- |
+| A se vincula a B | LineaCotizacion - Articulo |
 
 | Concepto | Relación |
 | --- | --- |

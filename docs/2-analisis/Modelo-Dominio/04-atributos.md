@@ -25,10 +25,11 @@
 
 | Concepto | Atributo – Descripción |
 | --- | --- |
-| OrdenDeProduccion | estado: etapa del ciclo de vida en que se encuentra la orden (Pendiente, Pendiente por Insumos, Asignada, En Curso, Cerrada o Anulada). |
+| OrdenDeProduccion | estado: etapa del ciclo de vida en que se encuentra la orden (Pendiente, Pendiente por Insumos, Asignada, En Curso, Pospuesta, Cerrada o Anulada). |
 | OrdenDeProduccion | cantidadRequerida: número de unidades del producto que se deben fabricar. |
 | OrdenDeProduccion | fechaEntrega: fecha límite en la que el pedido debe estar terminado para el cliente. |
 | OrdenDeProduccion | fechaInicio: fecha en que la orden inició efectivamente su ejecución (registrada en el inicio de la orden). |
+| OrdenDeProduccion | fechaPrevistaInicio: fecha prevista en la que se reanudará la ejecución de una orden pospuesta; se registra al posponerla y el cronograma la proyecta a partir de ella. |
 | OrdenDeProduccion | cantidadProducida: número de unidades válidas consolidadas al cierre de la orden. |
 | OrdenDeProduccion | prioridadActual: posición actual de la orden en el cronograma de producción (1 = mayor prioridad); su historial de cambios se registra en `RegistroPrioridad`. |
 
@@ -39,7 +40,7 @@
 | RegistroPrioridad | prioridadAnterior: prioridad que tenía la orden antes del cambio (vacía en el primer registro, cuando se le asigna prioridad por primera vez en el cronograma). |
 | RegistroPrioridad | prioridadNueva: prioridad asignada a la orden a partir del cambio. |
 | RegistroPrioridad | fechaCambio: fecha y hora en que se registró el cambio de prioridad. |
-| RegistroPrioridad | motivo: justificación del reordenamiento, elegida de un catálogo (cliente urgente, insumo atrasado, desvío de producción, mantenimiento de máquina, reordenamiento manual) con detalle libre opcional. |
+| RegistroPrioridad | motivo: justificación del reordenamiento, elegida de un catálogo (Urgencia comercial, Falta de insumos, Decisión gerencial, Otro) con detalle libre opcional. |
 
 ### Etapa
 
@@ -53,6 +54,18 @@
 | Concepto | Atributo – Descripción |
 | --- | --- |
 | AsignacionDeEtapa | tiempoPorUnidad: tiempo estimado que insume producir una unidad en la etapa asignada. |
+
+### Receta
+
+| Concepto | Atributo – Descripción |
+| --- | --- |
+| Receta | (sin atributos propios: se define por su asociación al `Articulo` producto y por sus `ComponenteDeReceta`). |
+
+### ComponenteDeReceta
+
+| Concepto | Atributo – Descripción |
+| --- | --- |
+| ComponenteDeReceta | cantidad: cantidad del insumo requerida para fabricar una unidad del producto, expresada en la unidad de medida del insumo. |
 
 ### ParteDiario
 
@@ -174,10 +187,16 @@
 
 | Concepto | Atributo – Descripción |
 | --- | --- |
-| Cotizacion | precioUnitario: precio ofertado por cada unidad. |
-| Cotizacion | cantidadOfertada: cantidad que el proveedor se compromete a entregar. |
-| Cotizacion | fechaPrometida: fecha en la que el proveedor promete entregar. |
-| Cotizacion | adjudicada: marca si la cotización fue seleccionada como oferta ganadora (verdadero) o no (falso). |
+| Cotizacion | fecha: fecha en la que el proveedor presentó la respuesta. |
+
+### LineaCotizacion
+
+| Concepto | Atributo – Descripción |
+| --- | --- |
+| LineaCotizacion | precioUnitario: precio ofertado por cada unidad del artículo. |
+| LineaCotizacion | cantidadOfertada: cantidad que el proveedor se compromete a entregar. |
+| LineaCotizacion | fechaPrometida: fecha en la que el proveedor promete entregar. |
+| LineaCotizacion | adjudicada: marca si la línea fue seleccionada como oferta ganadora (verdadero) o no (falso). |
 
 ### OrdenDeCompra
 

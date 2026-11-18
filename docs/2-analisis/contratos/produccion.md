@@ -6,8 +6,8 @@
 
 ## Nota de alcance
 
-- Se documenta un contrato por **operación del sistema** con reglas de negocio (altas, modificaciones y flujos críticos), en total **16**. El `Nombre` coincide carácter por carácter con el mensaje del DSS (trazabilidad vertical estricta).
-- Los ABM triviales y las consultas **no llevan contrato** (Larman): CU-PROD-02, 04, 05, 07, 09, 10, 17, 19, 20, 25, 27, 28.
+- Se documenta un contrato por **operación del sistema** con reglas de negocio (altas, modificaciones y flujos críticos), en total **21**. El `Nombre` coincide carácter por carácter con el mensaje del DSS (trazabilidad vertical estricta).
+- Los ABM triviales y las consultas **no llevan contrato** (Larman): CU-PROD-02, 04, 05, 07, 09, 10, 17, 19, 20, 25, 27, 28, 32.
 - Convención de firmas: parámetros por nombre de dominio sin tipo de dato (consistente con `DSS/produccion.md` y `DSS/inventario.md`).
 - Los parámetros de la firma que no tienen atributo en el Modelo de Dominio se señalan en `Notas` de cada contrato y se consolidan en el informe de trazabilidad (no se modifica el dominio).
 
@@ -234,3 +234,73 @@
 | **Salida** | `confirmacionDesasignacion()`. |
 | **Precondiciones** | Existe la `AsignacionDeEtapa` entre el `Articulo` (producto) y la `Etapa`. |
 | **Postcondiciones** | Se destruyó la instancia de `AsignacionDeEtapa` que vinculaba el `Articulo` (producto) con la `Etapa`. Se rompió la asociación producto-etapa. |
+
+## CU-PROD-29 — Agregar Insumo a la Receta
+
+| Campo | Contenido |
+| --- | --- |
+| **Nombre** | `agregarInsumoReceta(producto, insumo, cantidad)` |
+| **Responsabilidades** | Agregar un insumo a la receta (lista de materiales) de un producto terminado Fabricado, creando la receta implícitamente si es el primer componente. |
+| **Tipo** | Sistema |
+| **Referencias cruzadas** | CU-PROD-29 |
+| **Notas** | `producto` e `insumo` corresponden al concepto `Articulo` (el producto de origen Fabricado y el insumo de tipo Materia Prima o Insumo Consumible, respectivamente). La `Receta` se crea implícitamente al agregar el primer `ComponenteDeReceta`. |
+| **Excepciones** | Si el producto no es de origen Fabricado, se bloquea (solo los fabricados tienen receta). Si el insumo no es Materia Prima o Insumo Consumible, o está inactivo, se rechaza. Si `cantidad` es cero o negativa, se rechaza. Si el insumo ya está en la receta, se bloquea. |
+| **Salida** | `confirmacionAlta()`. |
+| **Precondiciones** | Existe el `Articulo` (producto terminado Fabricado) y el `Articulo` (insumo activo). El insumo no forma parte de la receta. |
+| **Postcondiciones** | Se creó una instancia de `Receta` (si no existía), asociada al `Articulo` (producto). Se creó una instancia de `ComponenteDeReceta` con `cantidad` asignada, asociada a la `Receta` y al `Articulo` (insumo). |
+
+## CU-PROD-30 — Modificar Cantidad de Insumo de la Receta
+
+| Campo | Contenido |
+| --- | --- |
+| **Nombre** | `modificarCantidadInsumoReceta(producto, insumo, cantidad)` |
+| **Responsabilidades** | Actualizar la cantidad requerida de un insumo ya presente en la receta de un producto. |
+| **Tipo** | Sistema |
+| **Referencias cruzadas** | CU-PROD-30 |
+| **Notas** | `producto` e `insumo` corresponden al concepto `Articulo`. Solo se modifica la cantidad del `ComponenteDeReceta` existente. |
+| **Excepciones** | Si `cantidad` es cero o negativa, se rechaza el guardado. Si el producto tiene `OrdenDeProduccion` activas (no Cerrada ni Anulada), se bloquea la modificación. |
+| **Salida** | `confirmacionModificacion()`. |
+| **Precondiciones** | Existe el `ComponenteDeReceta` entre la `Receta` del `Articulo` (producto) y el `Articulo` (insumo). |
+| **Postcondiciones** | Se modificó `ComponenteDeReceta.cantidad`. |
+
+## CU-PROD-31 — Quitar Insumo de la Receta
+
+| Campo | Contenido |
+| --- | --- |
+| **Nombre** | `quitarInsumoReceta(producto, insumo)` |
+| **Responsabilidades** | Quitar un insumo de la receta de un producto, rompiendo el componente existente. |
+| **Tipo** | Sistema |
+| **Referencias cruzadas** | CU-PROD-31 |
+| **Notas** | Rompe la asociación materializada en `ComponenteDeReceta` (rotura de asociación, postcondición contractual según la plantilla). No elimina el `Articulo` insumo del catálogo. |
+| **Excepciones** | Si el insumo no pertenece a la receta del producto, se rechaza la operación. |
+| **Salida** | `confirmacionBaja()`. |
+| **Precondiciones** | Existe el `ComponenteDeReceta` entre la `Receta` del `Articulo` (producto) y el `Articulo` (insumo). |
+| **Postcondiciones** | Se destruyó la instancia de `ComponenteDeReceta` que vinculaba la `Receta` con el `Articulo` (insumo). Se rompió la asociación receta-insumo. |
+
+## CU-PROD-33 — Posponer Orden de Producción
+
+| Campo | Contenido |
+| --- | --- |
+| **Nombre** | `posponerOrdenProduccion(orden, fechaPrevistaInicio, liberarReservas, motivo)` |
+| **Responsabilidades** | Posponer una orden, apartándola temporalmente del cronograma con su fecha prevista de reanudación. |
+| **Tipo** | Sistema |
+| **Referencias cruzadas** | CU-PROD-33 |
+| **Notas** | `liberarReservas` determina si se liberan las `Reserva` comprometidas al posponer. La orden pospuesta deja de proyectarse como activa en el cronograma hasta su reanudación (CU-PROD-34). |
+| **Excepciones** | Si la orden está en estado "Cerrada" o "Anulada", se bloquea la operación. |
+| **Salida** | `confirmacionPosposicion()`. |
+| **Precondiciones** | Existe la `OrdenDeProduccion` en un estado posponible (Pendiente, Pendiente por Insumos, Asignada o En Curso). |
+| **Postcondiciones** | Se modificó `OrdenDeProduccion.estado` a "Pospuesta". Se inicializó `OrdenDeProduccion.fechaPrevistaInicio` con `fechaPrevistaInicio` (si se indicó). Si `liberarReservas` es verdadero, se rompió la asociación entre las `Reserva` comprometidas y la `OrdenDeProduccion`. |
+
+## CU-PROD-34 — Reanudar Orden de Producción
+
+| Campo | Contenido |
+| --- | --- |
+| **Nombre** | `reanudarOrdenProduccion(orden)` |
+| **Responsabilidades** | Reanudar una orden pospuesta, devolviéndola al flujo productivo y re-reservando sus insumos según la receta. |
+| **Tipo** | Sistema |
+| **Referencias cruzadas** | CU-PROD-34 |
+| **Notas** | El estado al que retorna la orden depende de su avance y de los recursos asignados al posponer. La cobertura de stock se recalcula contra la receta del producto. |
+| **Excepciones** | Si la orden no está en estado "Pospuesta", se bloquea. Si el stock no alcanza, la orden queda en "Pendiente por Insumos" y se informan los faltantes. |
+| **Salida** | `confirmacionReanudacion()`; en su caso, el detalle de faltantes. |
+| **Precondiciones** | Existe la `OrdenDeProduccion` en estado "Pospuesta". |
+| **Postcondiciones** | Se modificó `OrdenDeProduccion.estado` a su estado de reanudación (Pendiente, Pendiente por Insumos o Asignada). Se restableció la asociación entre las `Reserva` y la `OrdenDeProduccion` (re-reserva de insumos). |

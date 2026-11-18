@@ -1,4 +1,4 @@
-# Modelo de Dominio — Diagrama Mermaid (31 conceptos)
+# Modelo de Dominio — Diagrama Mermaid (34 conceptos)
 
 > **Disciplina:** Análisis · Proceso Unificado
 > **Fuente:** `01-conceptos.md`, `02-descripciones.md`, `03-relaciones.md`, `04-atributos.md`
@@ -18,6 +18,7 @@ classDiagram
         cantidadRequerida
         fechaEntrega
         fechaInicio
+        fechaPrevistaInicio
         cantidadProducida
         prioridadActual
     }
@@ -33,6 +34,10 @@ classDiagram
     }
     class AsignacionDeEtapa {
         tiempoPorUnidad
+    }
+    class Receta
+    class ComponenteDeReceta {
+        cantidad
     }
     class ParteDiario {
         fecha
@@ -112,6 +117,9 @@ classDiagram
         estado
     }
     class Cotizacion {
+        fecha
+    }
+    class LineaCotizacion {
         precioUnitario
         cantidadOfertada
         fechaPrometida
@@ -186,6 +194,9 @@ classDiagram
     PlanificacionDeProduccion "1" --> "0..*" OrdenDeProduccion : agrupa
     Articulo "1" --> "0..*" AsignacionDeEtapa : incluye
     Etapa "1" --> "0..*" AsignacionDeEtapa : define
+    Articulo "1" --> "0..1" Receta : tiene
+    Receta "1" *-- "0..*" ComponenteDeReceta : contiene
+    ComponenteDeReceta "0..*" --> "1" Articulo : usa
     OrdenDeProduccion "1" --> "0..*" ParteDiario : registra
     OrdenDeProduccion "1" --> "0..*" RegistroPrioridad : registra
     OrdenDeProduccion "1" --> "0..*" ControlDeCalidad : inspecciona
@@ -213,7 +224,8 @@ classDiagram
     Cotizacion "0..*" --> "1" SolicitudDeCotizacion : responde a
     Cotizacion "0..*" --> "0..1" SolicitudDeDisponibilidad : responde a
     Cotizacion "0..*" --> "1" Proveedor : es emitida por
-    Cotizacion "0..*" --> "1" Articulo : cotiza
+    Cotizacion "1" *-- "0..*" LineaCotizacion : contiene
+    LineaCotizacion "0..*" --> "1" Articulo : cotiza
     OrdenDeCompra "0..*" --> "1" Proveedor : se emite a
     OrdenDeCompra "0..*" --> "0..1" Cotizacion : deriva de
     OrdenDeCompra "0..*" --> "0..1" SolicitudDeDisponibilidad : deriva de
@@ -242,9 +254,9 @@ classDiagram
 ## Leyenda
 
 - **Clases:** rectángulo con dos compartimentos (Nombre PascalCase + atributos camelCase). Sin métodos, sin visibilidad, sin claves foráneas.
-- **Composición (rombo relleno `*--`):** solo para las líneas de detalle con ciclo de vida acoplado a su cabecera — `LineaSolicitudCotizacion` (parte de `SolicitudDeCotizacion`) y `LineaOrdenCompra` (parte de `OrdenDeCompra`). La línea muere con su cabecera.
+- **Composición (rombo relleno `*--`):** solo para las líneas de detalle con ciclo de vida acoplado a su cabecera — `ComponenteDeReceta` (parte de `Receta`), `LineaSolicitudCotizacion` (parte de `SolicitudDeCotizacion`), `LineaCotizacion` (parte de `Cotizacion`) y `LineaOrdenCompra` (parte de `OrdenDeCompra`). La línea muere con su cabecera.
 - **Asociación simple (`-->`):** el resto de los vínculos. Sin agregación (rombo blanco) en ningún caso.
-- **Clases de asociación** (`AsignacionDeEtapa`, `LineaSolicitudCotizacion`, `LineaOrdenCompra`, `DesempenoProveedor`): se dibujan como clases normales con sus atributos, conectadas a ambos extremos que vinculan (no como rombo).
+- **Clases de asociación** (`AsignacionDeEtapa`, `ComponenteDeReceta`, `LineaSolicitudCotizacion`, `LineaCotizacion`, `LineaOrdenCompra`, `DesempenoProveedor`): se dibujan como clases normales con sus atributos, conectadas a ambos extremos que vinculan (no como rombo).
 - **Multiplicidades derivadas de `03-relaciones.md`** (propuesta de lectura del modelador, no cambios al dominio):
   - *"A es un registro de B"* → B `1`, A `0..*`.
   - *"A se emite/origina sobre B"* → B `1` (o `0..1` cuando el origen es opcional, ej. `Cotizacion`→`SolicitudDeDisponibilidad`, `OrdenDeCompra`→`Cotizacion`), A `0..*`.
