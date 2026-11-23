@@ -17,6 +17,8 @@ class ParametroGlobalSeeder extends Seeder
             ['nombre' => 'prod_turno_manana_fin', 'valor' => '14:00', 'categoria' => 'Producción'],
             ['nombre' => 'prod_turno_tarde_inicio', 'valor' => '14:00', 'categoria' => 'Producción'],
             ['nombre' => 'prod_turno_tarde_fin', 'valor' => '22:00', 'categoria' => 'Producción'],
+            ['nombre' => 'prod_calendario_laboral', 'valor' => '{"1":[["08:00","12:00"],["16:00","20:00"]],"2":[["08:00","12:00"],["16:00","20:00"]],"3":[["08:00","12:00"],["16:00","20:00"]],"4":[["08:00","12:00"],["16:00","20:00"]],"5":[["08:00","12:00"],["16:00","20:00"]],"6":[["08:00","12:00"]],"7":[]}', 'categoria' => 'Producción'],
+            ['nombre' => 'prod_feriados_tipos_bloqueantes', 'valor' => '["inamovible","trasladable","especial","turistico"]', 'categoria' => 'Producción'],
             ['nombre' => 'prod_tolerancia_desvio_dias', 'valor' => '2', 'categoria' => 'Producción'],
             ['nombre' => 'prod_umbral_calidad', 'valor' => '95', 'categoria' => 'Producción'],
             ['nombre' => 'compras_vigencia_cotizacion_dias', 'valor' => '7', 'categoria' => 'Compras'],
