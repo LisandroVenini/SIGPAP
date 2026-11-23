@@ -148,6 +148,7 @@ class GestionOrdenesDeProduccionService
         $ordenIds = $resultados->pluck('id')->unique()->all();
         $partesPorOrden = $this->partesDiarios->porOrdenes($ordenIds);
         $conformadoPorOrden = $this->partesDiarios->conformadoPorOrdenes($ordenIds);
+        $controlesPorOrden = $this->calidad->controlesPorOrdenes($ordenIds);
         $aprobadasParaCierre = $this->calidad->aprobadoParaCierre($ordenIds, $ultimasEtapas);
         $etapasDetallePorOrden = $this->avancePorEtapas->porOrdenes(
             $resultados->pluck('articulo_id', 'id')->all(),
@@ -164,6 +165,7 @@ class GestionOrdenesDeProduccionService
             $ultimasEtapas,
             $partesPorOrden,
             $conformadoPorOrden,
+            $controlesPorOrden,
             $aprobadasParaCierre,
             $etapasDetallePorOrden,
         ): array {
@@ -218,6 +220,7 @@ class GestionOrdenesDeProduccionService
                 'etapas_con_ids' => $etapasConIdPorArticulo[$orden->articulo_id] ?? [],
                 'etapas_detalle' => $etapasDetallePorOrden[$orden->id] ?? [],
                 'partes' => $partes->all(),
+                'controles' => $controlesPorOrden[$orden->id] ?? [],
                 'conformado_primera_etapa' => $conformadoPrimeraEtapa,
                 'conformado_ultima_etapa' => $conformadoUltimaEtapa,
                 'aprobadas_ultima_etapa' => $resumenCalidad['aprobado'],

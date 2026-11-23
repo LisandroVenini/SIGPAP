@@ -23,7 +23,10 @@ use App\Modules\Produccion\Models\Receta;
 use App\Modules\Produccion\Services\GestionCierreService;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
+use App\Shared\Alertas\Models\Alerta;
+use App\Shared\Alertas\Models\ReglaDeAlerta;
 use Database\Seeders\PermissionSeeder;
+use Database\Seeders\ReglaDeAlertaSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -184,6 +187,45 @@ class GestionCierreServiceTest extends TestCase
         $orden->refresh();
         $this->assertSame(EstadoOrdenProduccion::Cerrada->value, $orden->estado);
         $this->assertSame(10.0, (float) $orden->cantidad_producida);
+    }
+
+    public function test_closes_the_open_quality_alert_when_the_order_is_closed(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $this->seed(ReglaDeAlertaSeeder::class);
+        $regla = ReglaDeAlerta::query()->where('tipo', 'calidad_baja')->firstOrFail();
+        $producto = $this->productoFabricado();
+        [$corte, $ensamble] = $this->hojaDeRutaDeDosEtapas($producto);
+        $orden = $this->ordenEnCurso($producto);
+        ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $ensamble->id,
+            'cantidad_conformada' => 10,
+        ]);
+        ControlDeCalidad::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => null,
+            'cantidad_aprobada' => 10,
+            'cantidad_rechazada' => 0,
+        ]);
+        $alerta = Alerta::create([
+            'regla_id' => $regla->id,
+            'tipo' => 'calidad_baja',
+            'severidad' => $regla->severidad,
+            'origen_tipo' => $regla->origen_tipo,
+            'fecha' => now(),
+            'descripcion' => 'Alerta abierta',
+            'contexto' => ['orden' => $orden->id],
+            'clave_dedupe' => $regla->id.':calidad_baja:orden:'.$orden->id,
+            'orden_de_produccion_id' => $orden->id,
+        ]);
+
+        // Act
+        $this->service()->cerrar($actor, $orden, 10, '127.0.0.1');
+
+        // Assert
+        $this->assertNotNull($alerta->fresh()->resuelta_en);
     }
 
     public function test_rejects_close_without_quality_control(): void

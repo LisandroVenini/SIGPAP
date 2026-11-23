@@ -11,6 +11,7 @@ use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
+use App\Shared\Alertas\Services\AlertaService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -18,6 +19,7 @@ class GestionCierreService
 {
     public function __construct(
         private readonly AuditoriaService $auditoria,
+        private readonly AlertaService $alertas,
         private readonly GestionRecetasService $recetas,
         private readonly GestionReservasService $reservas,
         private readonly CalidadQuery $calidad,
@@ -80,6 +82,10 @@ class GestionCierreService
 
             // Whatever was not consumed by the daily parts is no longer needed.
             $this->reservas->liberar($orden->id);
+
+            // A closed order can no longer receive quality controls, so its open
+            // quality alert is stale.
+            $this->alertas->resolverPorTipo('calidad_baja', 'orden:'.$orden->id);
 
             $this->auditoria->registrarEvento(
                 $actor->id,

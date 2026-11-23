@@ -437,6 +437,52 @@ class GestionOrdenesDeProduccionServiceTest extends TestCase
         ], $fila['etapas_detalle']);
     }
 
+    public function test_lists_quality_controls_with_their_stage_and_reason(): void
+    {
+        // Arrange
+        $planificacion = $this->planificacion();
+        $producto = $this->productoFabricado();
+        $etapa = Etapa::factory()->create(['nombre' => 'Corte']);
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $producto->id,
+            'etapa_id' => $etapa->id,
+            'orden' => 1,
+        ]);
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $producto->id,
+            'planificacion_de_produccion_id' => $planificacion->id,
+            'cantidad_requerida' => 10,
+        ]);
+        $parte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $etapa->id,
+            'cantidad_conformada' => 16,
+        ]);
+        $control = ControlDeCalidad::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => $parte->id,
+            'fecha' => '2026-11-18',
+            'cantidad_aprobada' => 15,
+            'cantidad_rechazada' => 1,
+            'motivo_rechazo' => 'Detalle de laca en el borde.',
+        ]);
+
+        // Act
+        $fila = $this->service()->listar([])->items()[0];
+
+        // Assert
+        $this->assertSame([
+            [
+                'id' => $control->id,
+                'fecha' => '2026-11-18',
+                'etapa' => 'Corte',
+                'aprobada' => 15.0,
+                'rechazada' => 1.0,
+                'motivo' => 'Detalle de laca en el borde.',
+            ],
+        ], $fila['controles']);
+    }
+
     public function test_lists_orders_with_filters_and_ordering(): void
     {
         // Arrange

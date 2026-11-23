@@ -13,6 +13,7 @@ final class TipoDeAlerta
      * @param  array<int, Rol>  $rolesPorDefecto
      * @param  array<int, array{clave: string, etiqueta: string, tipo: string, operador: string, variable: string, minimo?: float|int, maximo?: float|int, por_defecto: float|int}>  $condiciones
      * @param  array<int, string>  $variables
+     * @param  string|null  $detalle  Optional template used to render the readable detail line.
      */
     public function __construct(
         public readonly string $clave,
@@ -24,5 +25,6 @@ final class TipoDeAlerta
         public readonly array $rolesPorDefecto,
         public readonly array $condiciones,
         public readonly array $variables,
+        public readonly ?string $detalle = null,
     ) {}
 }

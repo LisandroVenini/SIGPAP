@@ -3,6 +3,7 @@
 namespace App\Modules\Produccion\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
+use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Models\ControlDeCalidad;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
@@ -21,6 +22,7 @@ class GestionCalidadService
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly CalidadQuery $calidad,
+        private readonly GestionArticulosService $articulos,
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly PartesDiariosQuery $partesDiarios,
         private readonly UsuariosService $usuarios,
@@ -61,8 +63,11 @@ class GestionCalidadService
                 ]);
             }
 
+            $etapaNombre = null;
+
             if ($parteDiarioId !== null) {
                 $parte = ParteDiario::query()
+                    ->with('etapa')
                     ->where('id', $parteDiarioId)
                     ->where('orden_de_produccion_id', $orden->id)
                     ->first();
@@ -74,6 +79,7 @@ class GestionCalidadService
                 }
 
                 $base = (float) $parte->cantidad_conformada;
+                $etapaNombre = $parte->etapa?->nombre;
             } else {
                 $ultimaEtapaId = $this->hojaDeRuta->ultimaEtapaPorArticulo([$orden->articulo_id])[$orden->articulo_id] ?? null;
 
@@ -106,14 +112,21 @@ class GestionCalidadService
 
             $rechazoPct = $base > 0 ? round($rechazadas / $base * 100, 2) : 0.0;
 
-            if ($rechazoPct > 0) {
-                $this->alertas->emitirPorTipo('calidad_baja', [
-                    'orden' => $orden->id,
-                    'producto' => $orden->articulo?->descripcion ?? 'Orden #'.$orden->id,
-                    'rechazo_pct' => $rechazoPct,
-                    'orden_de_produccion_id' => $orden->id,
-                ], 'calidad:'.$control->id);
-            }
+            $resumenProducto = $this->articulos
+                ->resumenesDeArticulos([$orden->articulo_id])[$orden->articulo_id] ?? null;
+
+            // One alert per order: the next control refreshes it when quality is
+            // still below the threshold, or resolves it when rejection improves.
+            $this->alertas->emitirPorTipo('calidad_baja', [
+                'orden' => $orden->id,
+                'producto' => $resumenProducto['descripcion'] ?? 'Orden #'.$orden->id,
+                'rechazo_pct' => $rechazoPct,
+                'rechazadas' => $rechazadas,
+                'unidades' => $base,
+                'etapa' => $etapaNombre ?? 'la orden completa',
+                'motivo' => $motivo,
+                'orden_de_produccion_id' => $orden->id,
+            ], 'orden:'.$orden->id);
 
             $this->auditoria->registrarEvento(
                 $actor->id,
