@@ -32,7 +32,7 @@ Usuario: "ahora lo que quiero es que migremos la base de datos por modulos... Em
 - Guard `app()->environment(['local', 'testing'])`: en producción no hace nada.
 
 ### Supuestos
-- A1: los seeders son on-demand (`db:seed --class=...`), no se enganchan al `DatabaseSeeder`.
+- A1: los seeders de módulo se engancharon al `DatabaseSeeder` (decisión revisada, ver L6). Siguen protegidos por el guard `local/testing` de `ProduccionSeeder`, que además arrastra `InventarioBaseSeeder` y `SupervisorDemoSeeder`.
 - A2: las fechas son relativas a `now()` para que el cronograma y el "hoy" sigan teniendo sentido.
 - A3: el cierre y los cambios de prioridad se hacen a través de `GestionCierreService` y `GestionCronogramaService`, igual que la UI, para que queden auditados y consistentes; la semilla solo registra partes y calidad antes.
 
@@ -63,3 +63,8 @@ L3 (decisión del usuario): "On-demand, con guard local (Recomendado)". No se en
 L4 (cierre): implementado. `php artisan db:seed --class="App\Modules\Produccion\Database\Seeders\ProduccionSeeder"` crea 15 órdenes nuevas (18 en total con las previas), 6 etapas, 5 operarios, 4 máquinas, 4 planificaciones, 4 rutas, 18 partes, 5 controles y 9 registros de prioridad. Segunda corrida con conteos idénticos (18/18/10/9). Tests: 4 nuevos, suite completa en verde.
 
 L5 (cierre tras revisión): el hook `gga` marcó violaciones de contrato entre módulos y de capas. Se corrigió: `ProduccionSeeder` ya no toca `Articulo`, `Reserva` ni `Usuario`; usa `GestionArticulosService::porSku`, `GestionReservasService::cubierta` y `UsuariosService::buscarPorEmail`. El usuario demo vive en `Usuarios/Database/Seeders/SupervisorDemoSeeder`. El cierre usa `GestionCierreService::cerrar` y las prioridades `GestionCronogramaService::reordenar` (con guarda de idempotencia). Los catálogos son create-only para no pisar datos reales. Se agregaron tests propios para `porSku` y `buscarPorEmail`. Suite completa: 625/625.
+
+L6 (2026-11-18, corrección del usuario, verbatim):
+"migra la base de datos con todos los datos que incluimos de los modulos, hice db:seed pero no estan en el seeder maestro"
+
+Decisión revisada: `DatabaseSeeder` ahora invoca `ProduccionSeeder` al final, dentro de la lista del seeder maestro. Ese seeder corre solo en `local/testing` y arrastra `InventarioBaseSeeder` (insumos, productos y unidades) y `SupervisorDemoSeeder` (actor de auditoría). `InventarioBaseSeeder` no se invoca directo desde el maestro para no sembrar catálogo demo en producción. Test: `DatabaseSeederTest::test_it_seeds_the_module_demo_data` verifica supervisor demo, artículos, etapas y 15 órdenes sobre una base limpia. `php artisan db:seed` local dejó 12 artículos, 15 órdenes, 14 partes, 4 controles, 4 recetas, 4 planes de mantenimiento y 23 movimientos de stock.
