@@ -14,18 +14,18 @@ use App\Modules\Produccion\Queries\PartesDiariosQuery;
 use App\Modules\Usuarios\Models\Usuario;
 use App\Modules\Usuarios\Services\UsuariosService;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class GestionCronogramaService
 {
-    private const HORAS_JORNADA = 8;
-
     private const DIAS_MINIMOS = 14;
 
     public function __construct(
         private readonly AuditoriaService $auditoria,
+        private readonly CalendarioLaboral $calendario,
         private readonly CronogramaQuery $query,
         private readonly GestionArticulosService $articulos,
         private readonly HojaDeRutaQuery $hojaDeRuta,
@@ -34,7 +34,7 @@ class GestionCronogramaService
     ) {}
 
     /**
-     * @return array{inicio: string, hoy: string, dias: int, filas: array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa:string, inicio:string, fin:string, dias:int, producida:float}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>}
+     * @return array{inicio: string, hoy: string, dias: int, filas: array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa_id:int, etapa:string, inicio:string, fin:string, inicio_en:string, fin_en:string, dias:int, minutos:int, segmentos: array<int, array{inicio:string, fin:string}>, producida:float}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>}
      */
     public function proyectar(): array
     {
@@ -44,12 +44,12 @@ class GestionCronogramaService
         $ultimoFin = collect($filas)
             ->pluck('etapas')
             ->flatten(1)
-            ->pluck('fin')
+            ->pluck('fin_en')
             ->filter()
             ->max();
 
         $dias = $ultimoFin !== null
-            ? (int) $inicio->diffInDays(Carbon::parse($ultimoFin)) + 1
+            ? (int) $inicio->diffInDays(Carbon::parse($ultimoFin)->startOfDay()) + 1
             : 0;
 
         return [
@@ -128,7 +128,7 @@ class GestionCronogramaService
 
     /**
      * @param  Collection<int, OrdenDeProduccion>  $ordenes
-     * @return array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa:string, inicio:string, fin:string, dias:int, producida:float}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>
+     * @return array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa_id:int, etapa:string, inicio:string, fin:string, inicio_en:string, fin_en:string, dias:int, minutos:int, segmentos: array<int, array{inicio:string, fin:string}>, producida:float}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>
      */
     private function construirFilas(Collection $ordenes): array
     {
@@ -138,7 +138,7 @@ class GestionCronogramaService
         $primerasEtapas = $this->hojaDeRuta->primeraEtapaPorArticulo($articuloIds);
         $conformado = $this->partesDiarios->conformadoPorOrdenes($ordenes->pluck('id')->all());
 
-        $cursor = Carbon::today();
+        $cursor = CarbonImmutable::instance(now());
         $filas = [];
 
         foreach ($ordenes as $orden) {
@@ -160,7 +160,7 @@ class GestionCronogramaService
             if ($orden->estado === EstadoOrdenProduccion::Pospuesta->value
                 && $orden->fecha_prevista_inicio !== null
                 && $orden->fecha_prevista_inicio->copy()->startOfDay()->gt($inicio)) {
-                $inicio = $orden->fecha_prevista_inicio->copy()->startOfDay();
+                $inicio = CarbonImmutable::instance($orden->fecha_prevista_inicio)->startOfDay();
             }
 
             $segmentos = [];
@@ -168,23 +168,40 @@ class GestionCronogramaService
 
             foreach ($rutaDelProducto as $etapa) {
                 $minutos = $cantidad * $etapa['tiempo_por_unidad'];
-                $diasEtapa = max(1, (int) ceil($minutos / (60 * self::HORAS_JORNADA)));
+                $bloques = $this->calendario->segmentos($inicio, $minutos);
 
-                $fin = $inicio->copy()->addDays($diasEtapa - 1);
+                if ($bloques === []) {
+                    // Zero workload: the stage still occupies an instant on the
+                    // next working moment, so the Gantt can place it.
+                    $instante = $this->calendario->siguienteInicio($inicio);
+                    $bloques = [['inicio' => $instante, 'fin' => $instante]];
+                }
+
+                $primerInicio = $bloques[0]['inicio'];
+                $finEtapa = $bloques[array_key_last($bloques)]['fin'];
+
                 $segmentos[] = [
+                    'etapa_id' => $etapa['etapa_id'],
                     'etapa' => $etapa['etapa'],
-                    'inicio' => $inicio->toDateString(),
-                    'fin' => $fin->toDateString(),
-                    'dias' => $diasEtapa,
+                    'inicio' => $primerInicio->toDateString(),
+                    'fin' => $finEtapa->toDateString(),
+                    'inicio_en' => $primerInicio->toDateTimeString(),
+                    'fin_en' => $finEtapa->toDateTimeString(),
+                    'dias' => max(1, (int) $primerInicio->startOfDay()->diffInDays($finEtapa->startOfDay()) + 1),
+                    'minutos' => (int) ceil($minutos),
+                    'segmentos' => array_map(fn (array $bloque): array => [
+                        'inicio' => $bloque['inicio']->toDateTimeString(),
+                        'fin' => $bloque['fin']->toDateTimeString(),
+                    ], $bloques),
                     'producida' => round((float) ($conformadoPorEtapa[$etapa['etapa_id']] ?? 0.0), 2),
                 ];
 
-                $ultimoFin = $fin->copy();
-                $inicio = $fin->copy()->addDay();
+                $ultimoFin = $finEtapa;
+                $inicio = $finEtapa;
             }
 
             if ($ultimoFin !== null) {
-                $cursor = $ultimoFin->copy()->addDay();
+                $cursor = $ultimoFin;
             }
 
             $fechaEntrega = $orden->fecha_entrega?->toDateString();
@@ -220,7 +237,7 @@ class GestionCronogramaService
                 'reubicable' => $orden->estado !== EstadoOrdenProduccion::EnCurso->value,
                 'conflicto_entrega' => $fechaEntrega !== null
                     && $ultimoFin !== null
-                    && $ultimoFin->greaterThan(Carbon::parse($fechaEntrega)),
+                    && $ultimoFin->startOfDay()->greaterThan(Carbon::parse($fechaEntrega)->startOfDay()),
                 'cantidad_requerida' => $cantidadRequerida,
                 'etapa_actual' => $etapaActual,
                 'avance' => $avance,
