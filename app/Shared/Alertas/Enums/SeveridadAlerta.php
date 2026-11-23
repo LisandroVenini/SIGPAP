@@ -24,4 +24,18 @@ enum SeveridadAlerta: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    /**
+     * @return array<int, array{valor: string, etiqueta: string}>
+     */
+    public static function opciones(): array
+    {
+        return array_map(
+            fn (self $severidad): array => [
+                'valor' => $severidad->value,
+                'etiqueta' => $severidad->etiqueta(),
+            ],
+            self::cases(),
+        );
+    }
 }

@@ -54,6 +54,15 @@ interface Parte {
     observaciones: string | null;
 }
 
+interface ControlCalidad {
+    id: number;
+    fecha: string | null;
+    etapa: string | null;
+    aprobada: number;
+    rechazada: number;
+    motivo: string | null;
+}
+
 interface Orden {
     id: number;
     producto: Producto | null;
@@ -73,6 +82,7 @@ interface Orden {
     etapas_con_ids: EtapaOpcion[];
     etapas_detalle: EtapaDetalle[];
     partes: Parte[];
+    controles: ControlCalidad[];
     conformado_primera_etapa: number;
     conformado_ultima_etapa: number;
     aprobadas_ultima_etapa: number | null;
@@ -549,7 +559,7 @@ function puedeAnular(orden: Orden): boolean {
 }
 
 function tieneAcciones(orden: Orden): boolean {
-    return !['Cerrada', 'Anulada'].includes(orden.estado);
+    return orden.controles.length > 0 || !['Cerrada', 'Anulada'].includes(orden.estado);
 }
 
 interface Accion {
@@ -598,10 +608,10 @@ function accionesDeOrden(orden: Orden): Accion[] {
         });
     }
 
-    if (puedeRegistrarCalidad(orden.estado)) {
+    if (puedeRegistrarCalidad(orden.estado) || orden.controles.length > 0) {
         acciones.push({
             key: 'calidad',
-            label: 'Registrar calidad',
+            label: puedeRegistrarCalidad(orden.estado) ? 'Registrar calidad' : 'Ver calidad',
             class: 'text-purple-700 hover:text-purple-900',
             onClick: (): void => abrirCalidad(orden),
         });
@@ -642,6 +652,25 @@ function textoAvance(orden: Orden): string {
 
     return `${conformado.toFixed(0)} / ${orden.cantidad_requerida}`;
 }
+
+const controlesCalidad = computed<ControlCalidad[]>(() => ordenActiva.value?.controles ?? []);
+
+const resumenCalidad = computed(() => {
+    const controles = controlesCalidad.value;
+    const rechazadas = controles.reduce((total, control) => total + control.rechazada, 0);
+    const ultimo = controles[0] ?? null;
+    const unidadesDelUltimo = ultimo ? ultimo.aprobada + ultimo.rechazada : 0;
+    const porcentajeDelUltimo =
+        ultimo && unidadesDelUltimo > 0
+            ? Math.round((ultimo.rechazada / unidadesDelUltimo) * 10000) / 100
+            : 0;
+
+    return {
+        controles: controles.length,
+        rechazadas,
+        ultimoPorcentaje: porcentajeDelUltimo,
+    };
+});
 
 function estadoEtapa(etapa: EtapaDetalle): string {
     if (etapa.producida === 0) {
@@ -1047,6 +1076,11 @@ function labelDePagina(label: string): string {
                                                     <th
                                                         class="px-2 py-1.5 text-right text-[0.625rem] font-semibold tracking-wider text-steel uppercase"
                                                     >
+                                                        Rechazadas
+                                                    </th>
+                                                    <th
+                                                        class="px-2 py-1.5 text-right text-[0.625rem] font-semibold tracking-wider text-steel uppercase"
+                                                    >
                                                         Faltante
                                                     </th>
                                                 </tr>
@@ -1073,6 +1107,16 @@ function labelDePagina(label: string): string {
                                                         class="num px-2 py-1.5 text-right text-xs text-steel"
                                                     >
                                                         {{ etapa.producida }}
+                                                    </td>
+                                                    <td
+                                                        class="num px-2 py-1.5 text-right text-xs"
+                                                        :class="
+                                                            etapa.rechazadas > 0
+                                                                ? 'text-oxide'
+                                                                : 'text-steel'
+                                                        "
+                                                    >
+                                                        {{ etapa.rechazadas }}
                                                     </td>
                                                     <td
                                                         class="num px-2 py-1.5 text-right text-xs text-steel"
@@ -1154,7 +1198,7 @@ function labelDePagina(label: string): string {
                                     : drawerAbierto === 'asignar'
                                       ? 'Asignar recursos'
                                       : drawerAbierto === 'calidad'
-                                        ? 'Registrar control de calidad'
+                                        ? 'Calidad de la orden'
                                         : drawerAbierto === 'cerrar'
                                           ? 'Cerrar orden'
                                           : drawerAbierto === 'posponer'
@@ -1472,8 +1516,110 @@ function labelDePagina(label: string): string {
                     </div>
                 </form>
 
-                <form
+                <div
                     v-if="drawerAbierto === 'calidad' && ordenActiva"
+                    class="mt-4 flex flex-col gap-3"
+                    data-testid="historial-calidad"
+                >
+                    <div
+                        class="grid gap-2 rounded-control border border-hairline bg-canvas p-3 text-sm text-ink sm:grid-cols-3"
+                    >
+                        <div class="flex justify-between sm:flex-col">
+                            <span class="text-steel">Controles</span>
+                            <span class="font-mono">{{ resumenCalidad.controles }}</span>
+                        </div>
+                        <div class="flex justify-between sm:flex-col">
+                            <span class="text-steel">Total rechazado</span>
+                            <span
+                                class="font-mono"
+                                :class="resumenCalidad.rechazadas > 0 ? 'text-oxide' : ''"
+                                >{{ resumenCalidad.rechazadas }}</span
+                            >
+                        </div>
+                        <div class="flex justify-between sm:flex-col">
+                            <span class="text-steel">Último rechazo</span>
+                            <span class="font-mono">{{ resumenCalidad.ultimoPorcentaje }}%</span>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="controlesCalidad.length === 0"
+                        class="rounded-control border border-dashed border-hairline px-3 py-4 text-center text-xs text-steel"
+                    >
+                        Todavía no hay controles de calidad registrados para esta orden.
+                    </div>
+
+                    <div
+                        v-else
+                        class="overflow-x-auto rounded-control border border-hairline"
+                    >
+                        <table
+                            class="w-full text-left"
+                            data-testid="controles-calidad-orden"
+                        >
+                            <thead class="border-b border-hairline bg-workshop">
+                                <tr>
+                                    <th
+                                        class="px-3 py-2 text-[0.625rem] font-semibold tracking-wider text-steel uppercase"
+                                    >
+                                        Fecha
+                                    </th>
+                                    <th
+                                        class="px-3 py-2 text-[0.625rem] font-semibold tracking-wider text-steel uppercase"
+                                    >
+                                        Etapa
+                                    </th>
+                                    <th
+                                        class="px-3 py-2 text-right text-[0.625rem] font-semibold tracking-wider text-steel uppercase"
+                                    >
+                                        Aprobadas
+                                    </th>
+                                    <th
+                                        class="px-3 py-2 text-right text-[0.625rem] font-semibold tracking-wider text-steel uppercase"
+                                    >
+                                        Rechazadas
+                                    </th>
+                                    <th
+                                        class="px-3 py-2 text-[0.625rem] font-semibold tracking-wider text-steel uppercase"
+                                    >
+                                        Motivo
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-hairline">
+                                <tr v-for="control in controlesCalidad" :key="control.id">
+                                    <td class="num px-3 py-2 text-xs text-steel">
+                                        {{ control.fecha ?? '—' }}
+                                    </td>
+                                    <td class="px-3 py-2 text-sm text-ink">
+                                        {{ control.etapa ?? 'Orden completa' }}
+                                    </td>
+                                    <td class="num px-3 py-2 text-right text-xs text-steel">
+                                        {{ control.aprobada }}
+                                    </td>
+                                    <td
+                                        class="num px-3 py-2 text-right text-xs"
+                                        :class="
+                                            control.rechazada > 0 ? 'text-oxide' : 'text-steel'
+                                        "
+                                    >
+                                        {{ control.rechazada }}
+                                    </td>
+                                    <td class="px-3 py-2 text-xs text-steel">
+                                        {{ control.motivo ?? '—' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <form
+                    v-if="
+                        drawerAbierto === 'calidad' &&
+                        ordenActiva &&
+                        puedeRegistrarCalidad(ordenActiva.estado)
+                    "
                     class="mt-4 flex flex-col gap-4"
                     data-testid="calidad-form"
                     @submit.prevent="guardarCalidad"

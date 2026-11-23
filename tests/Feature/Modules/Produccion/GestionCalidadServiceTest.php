@@ -17,7 +17,9 @@ use App\Modules\Produccion\Models\Receta;
 use App\Modules\Produccion\Services\GestionCalidadService;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
+use App\Shared\Alertas\Models\Alerta;
 use Database\Seeders\PermissionSeeder;
+use Database\Seeders\ReglaDeAlertaSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -140,10 +142,92 @@ class GestionCalidadServiceTest extends TestCase
         ]);
     }
 
+    public function test_emits_a_readable_alert_with_the_product_quantities_stage_and_reason(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $this->seed(ReglaDeAlertaSeeder::class);
+        $producto = $this->productoFabricado(['descripcion' => 'Silla Misionera Tapizada Lino']);
+        [$corte] = $this->hojaDeRutaDeDosEtapas($producto);
+        $orden = $this->ordenEnCurso($producto);
+        $parte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'cantidad_conformada' => 16,
+        ]);
+
+        // Act
+        $this->service()->registrar(
+            $actor,
+            $orden,
+            $parte->id,
+            1,
+            'Detalle de laca en el borde.',
+            '127.0.0.1',
+        );
+
+        // Assert
+        $alerta = Alerta::query()->where('tipo', 'calidad_baja')->firstOrFail();
+
+        $this->assertSame(
+            "«Silla Misionera Tapizada Lino» tiene 6.25% de rechazo: 1 de 16 unidades en {$corte->nombre}.",
+            $alerta->descripcion,
+        );
+        $this->assertSame('Silla Misionera Tapizada Lino', $alerta->contexto['producto']);
+        $this->assertSame(6.25, (float) $alerta->contexto['rechazo_pct']);
+        $this->assertSame(1.0, (float) $alerta->contexto['rechazadas']);
+        $this->assertSame(16.0, (float) $alerta->contexto['unidades']);
+        $this->assertSame($corte->nombre, $alerta->contexto['etapa']);
+        $this->assertSame('Detalle de laca en el borde.', $alerta->contexto['motivo']);
+        $this->assertStringEndsWith(':orden:'.$orden->id, $alerta->clave_dedupe);
+    }
+
+    public function test_quality_alert_is_one_per_order_and_resolves_when_rejection_improves(): void
+    {
+        // Arrange
+        $actor = $this->actor();
+        $this->seed(ReglaDeAlertaSeeder::class);
+        $producto = $this->productoFabricado(['descripcion' => 'Mesa Paraíso']);
+        [$corte] = $this->hojaDeRutaDeDosEtapas($producto);
+        $orden = $this->ordenEnCurso($producto);
+        $primerParte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'fecha' => '2026-11-17',
+            'cantidad_conformada' => 16,
+        ]);
+        $segundoParte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $corte->id,
+            'fecha' => '2026-11-18',
+            'cantidad_conformada' => 8,
+        ]);
+
+        // Act: two controls above the threshold refresh the same alert.
+        $this->service()->registrar($actor, $orden, $primerParte->id, 1, 'Detalle de laca.', '127.0.0.1');
+        $this->service()->registrar($actor, $orden, $segundoParte->id, 2, 'Otra laca.', '127.0.0.1');
+
+        // Assert: one alert, updated with the latest control.
+        $this->assertDatabaseCount('alertas', 1);
+        $alerta = Alerta::query()->where('tipo', 'calidad_baja')->firstOrFail();
+        $this->assertStringEndsWith(':orden:'.$orden->id, $alerta->clave_dedupe);
+        $this->assertSame(
+            "«Mesa Paraíso» tiene 25% de rechazo: 2 de 8 unidades en {$corte->nombre}.",
+            $alerta->descripcion,
+        );
+
+        // Act: a control without rejections brings the percentage below the threshold.
+        $this->service()->registrar($actor, $orden, $segundoParte->id, 0, null, '127.0.0.1');
+
+        // Assert
+        $this->assertNotNull($alerta->fresh()->resuelta_en);
+    }
+
     public function test_registers_quality_control_by_order_using_last_stage(): void
     {
         // Arrange
         $actor = $this->actor();
+        $this->seed(ReglaDeAlertaSeeder::class);
         $insumo = $this->insumo(['stock_fisico' => 100]);
         $producto = $this->productoFabricado();
         $this->recetaConComponente($producto, $insumo, 2);
@@ -167,6 +251,14 @@ class GestionCalidadServiceTest extends TestCase
         $this->assertNull($control->parte_diario_id);
         $this->assertSame(8.0, (float) $control->cantidad_aprobada);
         $this->assertSame(1.0, (float) $control->cantidad_rechazada);
+
+        $alerta = Alerta::query()->where('tipo', 'calidad_baja')->firstOrFail();
+
+        $this->assertSame(
+            "«{$producto->descripcion}» tiene 11.11% de rechazo: 1 de 9 unidades en la orden completa.",
+            $alerta->descripcion,
+        );
+        $this->assertSame('la orden completa', $alerta->contexto['etapa']);
     }
 
     public function test_rejects_rejected_greater_than_conformed(): void

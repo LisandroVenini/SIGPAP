@@ -33,6 +33,23 @@ final class CatalogoDeAlertas
     }
 
     /**
+     * Lightweight catalog for UI selects.
+     *
+     * @return array<int, array{clave: string, etiqueta: string, detalle: string|null}>
+     */
+    public static function opciones(): array
+    {
+        return array_values(array_map(
+            fn (TipoDeAlerta $tipo): array => [
+                'clave' => $tipo->clave,
+                'etiqueta' => $tipo->etiqueta,
+                'detalle' => $tipo->detalle,
+            ],
+            self::todos(),
+        ));
+    }
+
+    /**
      * @return array<int, TipoDeAlerta>
      */
     public static function porModulo(ModuloDeAlerta $modulo): array
@@ -207,7 +224,8 @@ final class CatalogoDeAlertas
                 SeveridadAlerta::Atencion,
                 [Rol::SupervisorProduccion, Rol::Gerente],
                 [self::decimal('rechazo_minimo_pct', 'Rechazo mínimo (%)', 1, 100, 5, 'gte', 'rechazo_pct')],
-                ['orden', 'producto', 'rechazo_pct'],
+                ['orden', 'producto', 'rechazo_pct', 'rechazadas', 'unidades', 'etapa', 'motivo'],
+                'Etapa: {{etapa}} · {{rechazadas}} de {{unidades}} rechazadas · Motivo: {{motivo}}',
             ),
             new TipoDeAlerta(
                 'mantenimiento_vencido',

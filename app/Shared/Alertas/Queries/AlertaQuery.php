@@ -63,6 +63,11 @@ class AlertaQuery
             ->count();
     }
 
+    public function esVisiblePara(Usuario $usuario, Alerta $alerta): bool
+    {
+        return $this->visiblesPara($usuario)->whereKey($alerta->getKey())->exists();
+    }
+
     /**
      * @return Collection<int, Alerta>
      */

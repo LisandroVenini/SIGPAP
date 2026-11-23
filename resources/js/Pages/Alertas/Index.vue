@@ -35,7 +35,7 @@ const props = defineProps<{
         no_leidas?: boolean | null;
     };
     noLeidas: number;
-    tipos: { clave: string; etiqueta: string }[];
+    tipos: { clave: string; etiqueta: string; detalle?: string | null }[];
     severidades: { valor: string; etiqueta: string }[];
 }>();
 
@@ -109,10 +109,77 @@ function contextoLegible(alerta: Alerta): string {
         return '';
     }
 
-    return Object.entries(alerta.contexto)
-        .filter(([, valor]) => valor !== null && valor !== '')
-        .map(([clave, valor]) => `${clave.replace(/_/g, ' ')}: ${valor}`)
+    const contexto = alerta.contexto;
+    const tipo = props.tipos.find((item) => item.clave === alerta.tipo);
+
+    if (tipo?.detalle && placeholdersCompletos(tipo.detalle, contexto)) {
+        return tipo.detalle.replace(
+            /\{\{\s*([a-z_]+)\s*\}\}/g,
+            (_coincidencia, clave: string) => formatearValor(clave, contexto[clave]),
+        );
+    }
+
+    return Object.entries(contexto)
+        .filter(([clave, valor]) => !clave.endsWith('_id') && valor !== null && valor !== '')
+        .map(
+            ([clave, valor]) =>
+                `${etiquetaDeContexto(clave)}: ${formatearValor(clave, valor)}`,
+        )
         .join(' · ');
+}
+
+function placeholdersCompletos(
+    plantilla: string,
+    contexto: Record<string, string | number | null>,
+): boolean {
+    return [...plantilla.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g)].every((coincidencia) => {
+        const valor = contexto[coincidencia[1]];
+
+        return valor !== null && valor !== undefined && valor !== '';
+    });
+}
+
+const ETIQUETAS_DE_CONTEXTO: Record<string, string> = {
+    articulo: 'Artículo',
+    avance: 'Avance',
+    cotizaciones: 'Cotizaciones',
+    desgaste: 'Desgaste',
+    dias: 'Días',
+    dias_para_vencer: 'Días para vencer',
+    disponible: 'Disponible',
+    error: 'Error',
+    etapa: 'Etapa',
+    fecha_entrega: 'Entrega',
+    fecha_vencimiento: 'Vencimiento',
+    insumos: 'Insumos',
+    maquinaria: 'Maquinaria',
+    minimo: 'Mínimo',
+    motivo: 'Motivo',
+    numero_oc: 'OC',
+    numero_solicitud: 'Solicitud',
+    orden: 'Orden',
+    producto: 'Producto',
+    proveedor: 'Proveedor',
+    puntaje: 'Puntaje',
+    rechazadas: 'Rechazadas',
+    rechazo_pct: 'Rechazo',
+    umbral: 'Umbral',
+    unidades: 'Unidades',
+    ventana: 'Ventana',
+};
+
+const CLAVES_PORCENTAJE = new Set(['rechazo_pct', 'avance', 'puntaje']);
+
+function etiquetaDeContexto(clave: string): string {
+    return ETIQUETAS_DE_CONTEXTO[clave] ?? clave.replace(/_/g, ' ');
+}
+
+function formatearValor(clave: string, valor: unknown): string {
+    if (valor === null || valor === undefined || valor === '') {
+        return '';
+    }
+
+    return CLAVES_PORCENTAJE.has(clave) ? `${valor}%` : String(valor);
 }
 
 function labelDePagina(label: string): string {

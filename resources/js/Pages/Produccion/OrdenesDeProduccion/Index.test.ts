@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { enableAutoUnmount, mount, type VueWrapper } from '@vue/test-utils';
 import { nextTick, reactive } from 'vue';
+import { hoyISO, sumarDias } from '../../../lib/fechas';
 
 enableAutoUnmount(afterEach);
 
@@ -100,6 +101,7 @@ const ordenBase = {
     ],
     etapas_detalle: etapasDetalle,
     partes: [],
+    controles: [],
     conformado_primera_etapa: 0,
     conformado_ultima_etapa: 0,
     aprobadas_ultima_etapa: null,
@@ -216,7 +218,8 @@ describe('Produccion OrdenesDeProduccion page', () => {
         await nuevo?.trigger('click');
 
         const form = wrapper.find('[data-testid="nueva-orden-form"]');
-        await form.find('#fecha_entrega').setValue('2026-11-20');
+        const fechaEntrega = sumarDias(hoyISO(), 5);
+        await form.find('#fecha_entrega').setValue(fechaEntrega);
 
         const selects = form.findAll('select');
         await selects[1].setValue(String(productoA.id));
@@ -249,7 +252,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(Number(payload.lineas[1].cantidad)).toBe(3);
         expect(payload.modo).toBe('solo_disponibles');
         expect(payload.planificacion_de_produccion_id).toBe(planificacion.id);
-        expect(payload.fecha_entrega).toBe('2026-11-20');
+        expect(payload.fecha_entrega).toBe(fechaEntrega);
     });
 
     it('preselects the assigned resources when opening the assignment drawer', async () => {
@@ -522,6 +525,19 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(subtabla.text()).toContain('5');
     });
 
+    it('shows rejected units per stage', async () => {
+        // Arrange
+        const wrapper = mount(Ordenes, { props });
+
+        // Act
+        await wrapper.find('[data-testid="expandir-orden-1"]').trigger('click');
+
+        // Assert
+        const subtabla = wrapper.find('[data-testid="etapas-orden-1"]');
+        expect(subtabla.text()).toContain('Rechazadas');
+        expect(subtabla.find('.text-oxide').text()).toBe('1');
+    });
+
     it('collapses the expanded order when triggered again', async () => {
         // Arrange
         const wrapper = mount(Ordenes, { props });
@@ -753,6 +769,68 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(Number(payload.parte_diario_id)).toBe(1);
         expect(Number(payload.cantidad_rechazada)).toBe(1);
         expect(payload.motivo).toBe('Defecto leve');
+    });
+
+    it('shows the quality control history and its summary in the calidad drawer', async () => {
+        // Arrange
+        const conControlesProps = ordenCon({
+            estado: 'En Curso',
+            controles: [
+                {
+                    id: 5,
+                    fecha: '2026-11-18',
+                    etapa: 'Corte',
+                    aprobada: 15,
+                    rechazada: 1,
+                    motivo: 'Detalle de laca en el borde.',
+                },
+            ],
+        });
+        const wrapper = mount(Ordenes, {
+            props: conControlesProps,
+            attachTo: document.body,
+        });
+
+        // Act
+        await ejecutarAccionDeOrden(wrapper, 'Registrar calidad');
+
+        // Assert
+        const historial = wrapper.find('[data-testid="historial-calidad"]');
+        expect(historial.exists()).toBe(true);
+        expect(historial.text()).toContain('Detalle de laca en el borde.');
+        expect(historial.text()).toContain('Corte');
+        expect(historial.text()).toContain('6.25%');
+    });
+
+    it('lets a closed order with controls open the quality history without the form', async () => {
+        // Arrange
+        const cerradaConControles = ordenCon({
+            estado: 'Cerrada',
+            controles: [
+                {
+                    id: 7,
+                    fecha: '2026-11-18',
+                    etapa: null,
+                    aprobada: 9,
+                    rechazada: 1,
+                    motivo: 'Defecto final',
+                },
+            ],
+        });
+        const wrapper = mount(Ordenes, {
+            props: cerradaConControles,
+            attachTo: document.body,
+        });
+
+        // Act
+        await ejecutarAccionDeOrden(wrapper, 'Ver calidad');
+
+        // Assert
+        const historial = wrapper.find('[data-testid="historial-calidad"]');
+        expect(historial.exists()).toBe(true);
+        expect(historial.text()).toContain('Defecto final');
+        expect(historial.text()).toContain('Orden completa');
+        expect(wrapper.find('[data-testid="calidad-form"]').exists()).toBe(false);
     });
 
     it('opens the cerrar drawer and posts unidades finales', async () => {
