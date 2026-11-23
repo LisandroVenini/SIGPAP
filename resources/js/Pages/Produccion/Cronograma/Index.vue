@@ -2,10 +2,10 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
-import GanttTimeline from './GanttTimeline.vue';
-import type { FilaCronograma, Horizonte } from './gantt';
+import GanttTimeline from '@/Components/Cronograma/GanttTimeline.vue';
+import type { FilaCronograma, Horizonte } from '@/Components/Cronograma/gantt';
 import { sumarDias } from '@/lib/fechas';
-import { HORIZONTES, lunesDe, numeroSemana, rangoVisible } from './gantt';
+import { HORIZONTES, lunesDe, numeroSemana, rangoVisible } from '@/Components/Cronograma/gantt';
 
 interface Cronograma {
     inicio: string;

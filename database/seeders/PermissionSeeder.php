@@ -39,8 +39,13 @@ class PermissionSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
-        Role::findByName(Rol::Administrador->value, 'web')->givePermissionTo([$inventario, $produccion, $compras, $auditoria, $alertas]);
-        Role::findByName(Rol::Gerente->value, 'web')->givePermissionTo([$auditoria, $alertas]);
+        $predictivo = Permission::firstOrCreate([
+            'name' => 'predictivo.consultar',
+            'guard_name' => 'web',
+        ]);
+
+        Role::findByName(Rol::Administrador->value, 'web')->givePermissionTo([$inventario, $produccion, $compras, $auditoria, $alertas, $predictivo]);
+        Role::findByName(Rol::Gerente->value, 'web')->givePermissionTo([$auditoria, $alertas, $predictivo]);
         Role::findByName(Rol::EncargadoStock->value, 'web')->givePermissionTo($inventario);
         Role::findByName(Rol::SupervisorProduccion->value, 'web')->givePermissionTo($produccion);
         Role::findByName(Rol::EncargadoCompras->value, 'web')->givePermissionTo($compras);
