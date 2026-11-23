@@ -27,7 +27,11 @@ vi.mock('@inertiajs/vue3', () => ({
     },
 }));
 
+import { hoyISO, sumarDias } from '../../lib/fechas';
 import Cotizacion from './Cotizacion.vue';
+
+const fechaPrometidaUno = sumarDias(hoyISO(), 3);
+const fechaPrometidaDos = sumarDias(hoyISO(), 1);
 
 const solicitud = {
     solicitud_id: 5,
@@ -69,10 +73,10 @@ describe('Portal Cotizacion page', () => {
         // Act
         await wrapper.find('[data-testid="precio-0"]').setValue('120.50');
         await wrapper.find('[data-testid="cantidad-0"]').setValue('8');
-        await wrapper.find('[data-testid="fecha-0"]').setValue('2026-11-20');
+        await wrapper.find('[data-testid="fecha-0"]').setValue(fechaPrometidaUno);
         await wrapper.find('[data-testid="precio-1"]').setValue('5.25');
         await wrapper.find('[data-testid="cantidad-1"]').setValue('20');
-        await wrapper.find('[data-testid="fecha-1"]').setValue('2026-11-18');
+        await wrapper.find('[data-testid="fecha-1"]').setValue(fechaPrometidaDos);
         await wrapper.find('[data-testid="cotizacion-form"]').trigger('submit.prevent');
 
         // Assert
@@ -85,13 +89,13 @@ describe('Portal Cotizacion page', () => {
                         articulo_id: 10,
                         precio_unitario: 120.5,
                         cantidad_ofertada: 8,
-                        fecha_prometida: '2026-11-20',
+                        fecha_prometida: fechaPrometidaUno,
                     },
                     {
                         articulo_id: 11,
                         precio_unitario: 5.25,
                         cantidad_ofertada: 20,
-                        fecha_prometida: '2026-11-18',
+                        fecha_prometida: fechaPrometidaDos,
                     },
                 ],
             }),

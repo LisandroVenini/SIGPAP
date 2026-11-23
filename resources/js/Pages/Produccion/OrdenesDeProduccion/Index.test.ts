@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { enableAutoUnmount, mount, type VueWrapper } from '@vue/test-utils';
 import { nextTick, reactive } from 'vue';
+import { hoyISO, sumarDias } from '../../../lib/fechas';
 
 enableAutoUnmount(afterEach);
 
@@ -217,7 +218,8 @@ describe('Produccion OrdenesDeProduccion page', () => {
         await nuevo?.trigger('click');
 
         const form = wrapper.find('[data-testid="nueva-orden-form"]');
-        await form.find('#fecha_entrega').setValue('2026-11-20');
+        const fechaEntrega = sumarDias(hoyISO(), 5);
+        await form.find('#fecha_entrega').setValue(fechaEntrega);
 
         const selects = form.findAll('select');
         await selects[1].setValue(String(productoA.id));
@@ -250,7 +252,7 @@ describe('Produccion OrdenesDeProduccion page', () => {
         expect(Number(payload.lineas[1].cantidad)).toBe(3);
         expect(payload.modo).toBe('solo_disponibles');
         expect(payload.planificacion_de_produccion_id).toBe(planificacion.id);
-        expect(payload.fecha_entrega).toBe('2026-11-20');
+        expect(payload.fecha_entrega).toBe(fechaEntrega);
     });
 
     it('preselects the assigned resources when opening the assignment drawer', async () => {
