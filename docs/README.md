@@ -63,10 +63,28 @@ Estas especificaciones no son un entregable formal de la cátedra: son un artefa
 | [especificaciones-por-modulo/auditoria.md](1-requisitos/especificaciones-por-modulo/auditoria.md) | Auditoría |
 | [especificaciones-por-modulo/usuarios-seguridad.md](1-requisitos/especificaciones-por-modulo/usuarios-seguridad.md) | Usuarios y Seguridad |
 
+### Diagramas
+
+Imágenes de los diagramas de casos de uso y de subsistemas, en `1-requisitos/diagramas/`.
+
+| Archivo | Contenido |
+| --- | --- |
+| [cu-general.png](1-requisitos/diagramas/cu-general.png) | Diagrama general de casos de uso |
+| [subsistemas.png](1-requisitos/diagramas/subsistemas.png) | Diagrama de subsistemas |
+| [cu-produccion-catalogos.png](1-requisitos/diagramas/cu-produccion-catalogos.png) | Casos de uso de Producción: catálogos |
+| [cu-produccion-ordenes.png](1-requisitos/diagramas/cu-produccion-ordenes.png) | Casos de uso de Producción: órdenes y seguimiento |
+| [cu-inventario.png](1-requisitos/diagramas/cu-inventario.png) | Casos de uso de Inventario |
+| [cu-compras.png](1-requisitos/diagramas/cu-compras.png) | Casos de uso de Compras |
+| [cu-mantenimiento.png](1-requisitos/diagramas/cu-mantenimiento.png) | Casos de uso de Mantenimiento |
+| [cu-predictivo.png](1-requisitos/diagramas/cu-predictivo.png) | Casos de uso de Análisis Predictivo |
+| [cu-reportes-auditoria.png](1-requisitos/diagramas/cu-reportes-auditoria.png) | Casos de uso de Reportes y Auditoría |
+| [cu-usuarios.png](1-requisitos/diagramas/cu-usuarios.png) | Casos de uso de Usuarios y Seguridad |
+
 ## 2. Análisis (entregables formales de la cátedra)
 
 | Archivo | Contenido |
 | --- | --- |
+| [analisis-sigpap.docx](2-analisis/analisis-sigpap.docx) | Documento de la fase de Análisis: modelo conceptual y comportamiento del sistema |
 | [Modelo-Dominio/01-conceptos.md](2-analisis/Modelo-Dominio/01-conceptos.md) | Conceptos, descripciones, relaciones y atributos del modelo de dominio |
 | [DSS/](2-analisis/DSS/produccion.md) | Diagramas de Secuencia del Sistema por módulo |
 | [contratos/](2-analisis/contratos/produccion.md) | Contratos de operación por módulo |
