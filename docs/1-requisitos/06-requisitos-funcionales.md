@@ -32,7 +32,7 @@ Debe tener una lista de los requisitos funcionales, expresado en forma tradicion
 | **Requisitos asociados** | CU-PRED-01…CU-PRED-05 IRQ-04 Información Analítica, Predictiva y de Simulación |  |
 | **Descripción**  | El sistema principal deberá delegar asíncronamente al componente predictivo (Motor ML) el procesamiento matemático de la Tasa de Rendimiento Real y el consumo logístico. El sistema deberá recibir estos recálculos y presentarlos a la gerencia a través de Tableros y Alertas, indicando posibles cuellos de botella o sugiriendo la anticipación de compras. |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  |  |  |
+| **Comentarios**  | **Estado de implementación:** parcial. El monitoreo de alertas está operativo (módulo `Alertas`, PR #109). El cálculo predictivo **no** está implementado: el módulo `Predictivo` es un cascarón (modelos `TasaDeRendimiento` y `EscenarioDeSimulacion` con migraciones y factories, sin Service, Controller, rutas ni `MLEngine`). Seguimiento: issues #2, #5, #7 y #9. |
 
 | RF-05 | Simulación Gerencial de Escenarios |  |
 | :---- | :---- | ----- |
@@ -40,7 +40,7 @@ Debe tener una lista de los requisitos funcionales, expresado en forma tradicion
 | **Requisitos asociados** | CU-PRED-04 IRQ-04 Información Analítica, Predictiva y de Simulación |  |
 | **Descripción**  | El sistema deberá proveer un entorno seguro donde un usuario gerencial pueda ingresar los parámetros de un pedido urgente. El sistema proyectará el impacto operativo, listando qué órdenes preexistentes sufrirían retrasos y evaluando la viabilidad de la inserción sin alterar los datos productivos reales. |  |
 | **Estabilidad**  | Alta |  |
-| **Comentarios**  |  |  |
+| **Comentarios**  | **Estado de implementación:** no implementado; depende del componente predictivo (RF-04). Seguimiento: issue #6. |
 
 | RF-06 | Gestión de Mantenimiento Preventivo de Maquinarias |  |
 | :---- | :---- | ----- |

@@ -23,7 +23,7 @@
 - [x] T7 — Shared/Auditoría: alertas, eventos de auditoría
 - [x] T8 — Modelos + relaciones (30 modelos, `$table` explícito, casts y relaciones; `EloquentRelationshipsTest`)
 - [x] T9 — Factories (30) + `FactorySmokeTest` + tests de esquema/restricciones
-- [ ] T10 — Cierre: `Closes #3`
+- [x] T10 — Cierre: `Closes #3` (PR #92; issue #3 cerrado)
 
 ## Log
 
@@ -32,3 +32,4 @@
 - L3: T2–T7 implementados (32 migraciones) + `DatabaseSchemaTest` (XOR, RESTRICT, unique, existencia de tablas). 14 tests / 83 assertions verdes.
 - L4: T8 implementado (30 modelos Eloquent con `$table`, casts y relaciones) + `EloquentRelationshipsTest`. 22 tests / 112 assertions verdes.
 - L5: T9 implementado (30 factories + `FactorySmokeTest`). 21 tests / 133 assertions verdes.
+- L6 (saneamiento de docs, 2026-11-23): T10 se marca hecho. El PR #92 (`feat(modelo-datos): migraciones, modelos y factories (cierra #3)`) mergeó el cierre y el issue #3 figura CLOSED en GitHub. El checkbox había quedado abierto.

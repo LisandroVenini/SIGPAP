@@ -63,10 +63,28 @@ Estas especificaciones no son un entregable formal de la cátedra: son un artefa
 | [especificaciones-por-modulo/auditoria.md](1-requisitos/especificaciones-por-modulo/auditoria.md) | Auditoría |
 | [especificaciones-por-modulo/usuarios-seguridad.md](1-requisitos/especificaciones-por-modulo/usuarios-seguridad.md) | Usuarios y Seguridad |
 
+### Diagramas
+
+Imágenes de los diagramas de casos de uso y de subsistemas, en `1-requisitos/diagramas/`.
+
+| Archivo | Contenido |
+| --- | --- |
+| [cu-general.png](1-requisitos/diagramas/cu-general.png) | Diagrama general de casos de uso |
+| [subsistemas.png](1-requisitos/diagramas/subsistemas.png) | Diagrama de subsistemas |
+| [cu-produccion-catalogos.png](1-requisitos/diagramas/cu-produccion-catalogos.png) | Casos de uso de Producción: catálogos |
+| [cu-produccion-ordenes.png](1-requisitos/diagramas/cu-produccion-ordenes.png) | Casos de uso de Producción: órdenes y seguimiento |
+| [cu-inventario.png](1-requisitos/diagramas/cu-inventario.png) | Casos de uso de Inventario |
+| [cu-compras.png](1-requisitos/diagramas/cu-compras.png) | Casos de uso de Compras |
+| [cu-mantenimiento.png](1-requisitos/diagramas/cu-mantenimiento.png) | Casos de uso de Mantenimiento |
+| [cu-predictivo.png](1-requisitos/diagramas/cu-predictivo.png) | Casos de uso de Análisis Predictivo |
+| [cu-reportes-auditoria.png](1-requisitos/diagramas/cu-reportes-auditoria.png) | Casos de uso de Reportes y Auditoría |
+| [cu-usuarios.png](1-requisitos/diagramas/cu-usuarios.png) | Casos de uso de Usuarios y Seguridad |
+
 ## 2. Análisis (entregables formales de la cátedra)
 
 | Archivo | Contenido |
 | --- | --- |
+| [analisis-sigpap.docx](2-analisis/analisis-sigpap.docx) | Documento de la fase de Análisis: modelo conceptual y comportamiento del sistema |
 | [Modelo-Dominio/01-conceptos.md](2-analisis/Modelo-Dominio/01-conceptos.md) | Conceptos, descripciones, relaciones y atributos del modelo de dominio |
 | [DSS/](2-analisis/DSS/produccion.md) | Diagramas de Secuencia del Sistema por módulo |
 | [contratos/](2-analisis/contratos/produccion.md) | Contratos de operación por módulo |
@@ -86,3 +104,20 @@ Estas especificaciones no son un entregable formal de la cátedra: son un artefa
 | --- | --- |
 | [diseno-base-de-datos.md](4-implementacion/diseno-base-de-datos.md) | Diseño de la base de datos (tablas, claves y relaciones) |
 | [plan-de-pruebas.md](4-implementacion/plan-de-pruebas.md) | Plan de pruebas del sistema |
+
+## Estado de implementación
+
+El repositorio implementa el sistema descrito en `0-propuesta` y `1-requisitos` con Laravel 13 + Inertia/Vue 3 + PostgreSQL. Estado al cierre del PR #110:
+
+| Alcance | Estado | Evidencia |
+| --- | --- | --- |
+| Usuarios, seguridad y auditoría | Implementado | PRs #93, #99, #104 |
+| Inventario | Implementado | PRs #94, #97 |
+| Producción y mantenimiento | Implementado | PR #95 |
+| Compras (cotizaciones, OC, ranking, informe multicriterio) | Implementado salvo CU-COM-19/20 | PRs #96, #98 |
+| Reportes y tablero | Implementado | PRs #100, #101 |
+| Alertas por rol (shared kernel) | Implementado | PRs #109, #110 |
+| Análisis predictivo (CU-PRED-01…05) | **No implementado** | Módulo vacío; issues #2, #5, #6, #7, #9 |
+| Disponibilidad de compra (CU-COM-19/20) | **No implementado** | Solo esquema de datos; issues #28, #31 |
+
+Los módulos operativos cubren RF-01, RF-02, RF-03, RF-06 y RF-07. RF-04 queda parcial (alertas operativas, cálculo predictivo pendiente) y RF-05 no está implementado.
