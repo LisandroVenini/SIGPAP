@@ -18,8 +18,8 @@ Rama: `feat/fase-2-compras` (a crear desde `main`). Test runner: PHPUnit (`php a
 - [x] C2 — Solicitudes de cotización: alta con líneas y proveedores, token UUID por proveedor, envío real por SMTP (Mailtrap), portal público con token de un solo uso, listado con búsqueda (proveedor, estado, fechas), modificación bloqueada con cotizaciones y anulación. Commits `043dd82` y `93af01c`.
 - [x] C3 — Adjudicación y órdenes de compra: emisión desde una cotización con `numero_oc` secuencial, líneas derivadas, marca de adjudicación, listado con búsqueda, modificación y anulación solo en `Emitida`, y confirmación/rechazo del proveedor por token de un solo uso con correo. Commits `db66743`, `0110609` y `00004d8`.
 - [x] C4.1 — Ranking de proveedores (CU-COM-18): OTIF ponderado por gravedad con ventana de recencia, "Sin historial" aparte y pesos/ventana configurables desde Configuración. Commit `963b636`.
-- [ ] C4.2 — Informe multicriterio (precio + lead time + confiabilidad) para la adjudicación.
-- [ ] C4.3 — Disponibilidad y resolución (CU-COM-19/20), bloqueado por el Componente Predictivo y `Alerta`.
+- [x] C4.2 — Informe multicriterio (precio + lead time + confiabilidad) para la adjudicación. PR #98.
+- [ ] C4.3 — Disponibilidad y resolución (CU-COM-19/20). Depende del Componente Predictivo; el shared kernel `Alerta` ya existe (PR #109). Seguimiento: issues #28 y #31.
 
 ## Log
 
@@ -39,3 +39,4 @@ Rama: `feat/fase-2-compras` (a crear desde `main`). Test runner: PHPUnit (`php a
 - L14: El ranking mide confiabilidad; el informe multicriterio combinará esa confiabilidad con precio y lead time prometido como dimensiones separadas, para no contar el tiempo de entrega dos veces.
 - L15: Evidencia C4.1 — PHPUnit Compras + Usuarios: 194 tests, 818 assertions. Vitest Compras: 23 tests. gga PASSED tras mover `proveedoresActivos` a un scope del modelo.
 - L16: La precedencia de gravedad se resuelve por tipo (Rotura > Faltante > Retraso), no comparando pesos, para que siga siendo correcta si un administrador invierte los valores configurables.
+- L17 (saneamiento de docs, 2026-11-23): C4.2 se marca hecho (`GestionInformeMulticriterioService`, PR #98). C4.3 sigue abierto y se corrige su motivo: `Alerta` ya no es bloqueante porque el shared kernel existe desde el PR #109 (módulo de alertas por rol); el único bloqueo real es el Componente Predictivo. Su seguimiento queda en los issues #28 y #31.

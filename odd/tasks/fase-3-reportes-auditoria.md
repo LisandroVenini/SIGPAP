@@ -11,9 +11,10 @@ Rama: `feat/reportes-auditoria` (a crear desde `main`). Runner: PHPUnit, Vitest,
 ## Tasks
 
 - [x] R1 — Registro de auditoría. Commit `a218a12`.
-- [ ] R2 — Reportes: tipos, consolidación, exportación y tests.
+- [x] R2 — Reportes: tipos, consolidación, exportación y tests. PR #100.
 
 ## Log
 
 - L1: "perfecto, vamos con reportes, el modulo de analisis predictivo vamos a dejar por ultimo por ser el modulo que implementa modelos de ML"
 - L2: Dependencias de exportación: `maatwebsite/excel` resolvió a v1.1.5 (Laravel 4) y `phpoffice/phpspreadsheet` exige `ext-gd` que el entorno no tiene. Se instaló `openspout/openspout` v5.3 (XLSX sin gd) y `barryvdh/laravel-dompdf` v3.1. Smoke test de ambos: OK.
+- L3 (saneamiento de docs, 2026-11-23): R2 se marca hecho. Reportes se cerró en el PR #100 (`feat(reportes): generador de reportes con exportacion PDF y Excel`) y el módulo quedó completo con `GestionReportesService`, `ExportadorReportesService` y `DashboardService`. El checkbox había quedado abierto.

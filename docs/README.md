@@ -86,3 +86,20 @@ Estas especificaciones no son un entregable formal de la cátedra: son un artefa
 | --- | --- |
 | [diseno-base-de-datos.md](4-implementacion/diseno-base-de-datos.md) | Diseño de la base de datos (tablas, claves y relaciones) |
 | [plan-de-pruebas.md](4-implementacion/plan-de-pruebas.md) | Plan de pruebas del sistema |
+
+## Estado de implementación
+
+El repositorio implementa el sistema descrito en `0-propuesta` y `1-requisitos` con Laravel 13 + Inertia/Vue 3 + PostgreSQL. Estado al cierre del PR #110:
+
+| Alcance | Estado | Evidencia |
+| --- | --- | --- |
+| Usuarios, seguridad y auditoría | Implementado | PRs #93, #99, #104 |
+| Inventario | Implementado | PRs #94, #97 |
+| Producción y mantenimiento | Implementado | PR #95 |
+| Compras (cotizaciones, OC, ranking, informe multicriterio) | Implementado salvo CU-COM-19/20 | PRs #96, #98 |
+| Reportes y tablero | Implementado | PRs #100, #101 |
+| Alertas por rol (shared kernel) | Implementado | PRs #109, #110 |
+| Análisis predictivo (CU-PRED-01…05) | **No implementado** | Módulo vacío; issues #2, #5, #6, #7, #9 |
+| Disponibilidad de compra (CU-COM-19/20) | **No implementado** | Solo esquema de datos; issues #28, #31 |
+
+Los módulos operativos cubren RF-01, RF-02, RF-03, RF-06 y RF-07. RF-04 queda parcial (alertas operativas, cálculo predictivo pendiente) y RF-05 no está implementado.

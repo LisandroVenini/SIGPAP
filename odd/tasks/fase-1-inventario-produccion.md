@@ -16,7 +16,7 @@
 - [x] T1 — Catálogo backend: enums `TipoArticulo`/`OrigenArticulo`, seeder de unidades, `GestionArticulosService`, `ArticulosQuery`, Form Requests, `ArticuloPolicy`, `ArticuloController`, rutas + tests.
 - [x] T2 — Catálogo UI: `Inventario/Index` (listado + drawer) basado en Stitch I-01/I-02 + tests.
 - [x] T3 — Ajuste de inventario backend + UI (I-05, página dedicada `/inventario/ajustes`) + tests.
-- [ ] T4 — Producción.
+- [x] T4 — Producción (PR #95). Detalle en `odd/tasks/fase-1-produccion.md`.
 
 ## Log
 
@@ -25,3 +25,4 @@
 - L3: T1+T2 implementados (catálogo de artículos: servicio, query, requests, policy, controller, UI). Autorización por permiso `inventario.gestionar` vía `UsuariosService::autorizar`. 89 tests PHP / 364 assertions, 21 Vitest, gga PASSED.
 - L4: T3 implementado (ajuste de inventario: `GestionAjustesService`, `MovimientoDeStock` de tipo Ajuste, auditoría, lockForUpdate, UI). 96 tests PHP / 382 assertions, 22 Vitest. Convención aclarada en AGENTS.md: verbos de dominio en español + `Usuario` como principal permitido.
 - L5: El ajuste de inventario se movió del catálogo a la página dedicada `Inventario/Ajuste` (`/inventario/ajustes`, Stitch I-05), que es la que usa la solapa "Ajuste de Inventario" del sidebar. Se quitó la acción "Ajustar" y el drawer duplicado del catálogo. 98 tests PHP / 395 assertions, 24 Vitest, gga PASSED.
+- L6 (saneamiento de docs, 2026-11-23): T4 se marca hecho. Producción se cerró en el PR #95 (`feat(produccion): modulo de produccion y mantenimiento completo`) y su seguimiento vive en `fase-1-produccion.md` (T1..T8). El checkbox había quedado abierto por error.
