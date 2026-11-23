@@ -32,24 +32,54 @@ ORIGEN_ESTANDAR = "estandar"
 TASA_MINIMA = 0.0001
 
 
-def capacidad_estandar_diaria(tiempo_por_unidad: float) -> float:
-    """Standard units per day for a stage, from its minutes per unit."""
+def capacidad_estandar_diaria(tiempo_por_unidad: float, minutos_habiles: float) -> float:
+    """Standard units for a stage, from its minutes per unit and the working minutes."""
     if tiempo_por_unidad <= 0:
         raise ErrorDeDominio(
             "tiempo_por_unidad_invalido",
             "tiempo_por_unidad must be greater than zero",
         )
 
-    return (HORAS_JORNADA * 60) / tiempo_por_unidad
+    if minutos_habiles <= 0:
+        raise ErrorDeDominio(
+            "sin_capacidad_diaria",
+            "the day has no working minutes",
+        )
+
+    return minutos_habiles / tiempo_por_unidad
 
 
-def construir_muestras(muestras: Any, capacidad: float) -> pd.DataFrame:
-    """Normalize the raw daily samples into fecha, cantidad, indice and tasa."""
+def construir_muestras(
+    muestras: Any,
+    tiempo_por_unidad: float,
+    minutos_habiles_por_defecto: float,
+) -> pd.DataFrame:
+    """Normalize the raw daily samples into fecha, cantidad, indice and tasa.
+
+    Each sample carries the working minutes of its own date, so a Saturday
+    half-day is compared against its real capacity instead of a full day. A
+    sample registered on a non-working day carries no rate information and is
+    skipped.
+    """
+    if tiempo_por_unidad <= 0:
+        raise ErrorDeDominio(
+            "tiempo_por_unidad_invalido",
+            "tiempo_por_unidad must be greater than zero",
+        )
+
     registros: list[dict[str, Any]] = []
 
     for muestra in lista(muestras, "muestras"):
         if not isinstance(muestra, dict):
             raise ErrorDeDominio("muestra_invalida", "each sample must be a JSON object")
+
+        minutos = numero(
+            muestra.get("minutos_habiles", minutos_habiles_por_defecto),
+            "muestra.minutos_habiles",
+        )
+
+        if minutos <= 0:
+            continue
 
         registros.append(
             {
@@ -57,11 +87,12 @@ def construir_muestras(muestras: Any, capacidad: float) -> pd.DataFrame:
                 "cantidad_conformada": numero(
                     muestra.get("cantidad_conformada"), "muestra.cantidad_conformada"
                 ),
+                "minutos_habiles": minutos,
             }
         )
 
-    columnas = ["fecha", "cantidad_conformada", "indice_dia", "tasa"]
-    frame = pd.DataFrame(registros, columns=["fecha", "cantidad_conformada"])
+    columnas = ["fecha", "cantidad_conformada", "minutos_habiles", "indice_dia", "tasa"]
+    frame = pd.DataFrame(registros, columns=["fecha", "cantidad_conformada", "minutos_habiles"])
 
     if frame.empty:
         return pd.DataFrame(columns=columnas)
@@ -69,7 +100,7 @@ def construir_muestras(muestras: Any, capacidad: float) -> pd.DataFrame:
     frame["fecha"] = pd.to_datetime(frame["fecha"])
     frame = frame.sort_values("fecha").reset_index(drop=True)
     frame["indice_dia"] = (frame["fecha"] - frame["fecha"].min()).dt.days
-    frame["tasa"] = frame["cantidad_conformada"] / capacidad
+    frame["tasa"] = frame["cantidad_conformada"] / (frame["minutos_habiles"] / tiempo_por_unidad)
 
     return frame
 
@@ -123,8 +154,12 @@ def predecir(datos: dict[str, Any]) -> dict[str, Any]:
     if cantidad_pendiente < 0:
         raise ErrorDeDominio("cantidad_invalida", "cantidad_pendiente cannot be negative")
 
-    capacidad = capacidad_estandar_diaria(tiempo_por_unidad)
-    frame = construir_muestras(datos.get("muestras", []), capacidad)
+    minutos_base = numero(
+        datos.get("minutos_habiles_por_dia", HORAS_JORNADA * 60),
+        "minutos_habiles_por_dia",
+    )
+    capacidad = capacidad_estandar_diaria(tiempo_por_unidad, minutos_base)
+    frame = construir_muestras(datos.get("muestras", []), tiempo_por_unidad, minutos_base)
     ruta = ruta_modelo_trr(etapa_id)
 
     if ruta.is_file():

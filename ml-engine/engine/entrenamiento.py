@@ -12,16 +12,19 @@ from typing import Any
 import joblib
 
 from .protocol import ErrorDeDominio, entero, numero
-from .settings import MIN_MUESTRAS_TRR, ruta_modelo_trr
-from .trr import ajustar, capacidad_estandar_diaria, construir_muestras
+from .settings import HORAS_JORNADA, MIN_MUESTRAS_TRR, ruta_modelo_trr
+from .trr import ajustar, construir_muestras
 
 
 def entrenar(datos: dict[str, Any]) -> dict[str, Any]:
     """Fit the TRR model for one stage and persist it with its metrics."""
     etapa_id = entero(datos.get("etapa_id"), "etapa_id")
     tiempo_por_unidad = numero(datos.get("tiempo_por_unidad"), "tiempo_por_unidad")
-    capacidad = capacidad_estandar_diaria(tiempo_por_unidad)
-    frame = construir_muestras(datos.get("muestras", []), capacidad)
+    minutos_por_defecto = numero(
+        datos.get("minutos_habiles_por_dia", HORAS_JORNADA * 60),
+        "minutos_habiles_por_dia",
+    )
+    frame = construir_muestras(datos.get("muestras", []), tiempo_por_unidad, minutos_por_defecto)
 
     if len(frame) < MIN_MUESTRAS_TRR:
         raise ErrorDeDominio(

@@ -3,6 +3,7 @@
 namespace App\Modules\Predictivo\Services;
 
 use App\Modules\Predictivo\Models\TasaDeRendimiento;
+use App\Modules\Produccion\Services\CalendarioLaboral;
 use App\Modules\Produccion\Services\ConsultaProduccionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -27,6 +28,7 @@ class PrediccionDeTiemposService
 
     public function __construct(
         private readonly MLEngine $engine,
+        private readonly CalendarioLaboral $calendario,
         private readonly ConsultaProduccionService $produccion,
     ) {}
 
@@ -50,16 +52,26 @@ class PrediccionDeTiemposService
         $pendiente = max(0.0, round((float) $orden['cantidad_requerida'] + $rechazadas - $conformado, 2));
 
         $fechaBase = $fechaAvance ?? now()->toDateString();
+        $inicioTrabajo = $this->calendario->siguienteInicio(CarbonImmutable::parse($fechaBase)->startOfDay());
+        $minutosBase = $this->calendario->minutosDelDia($inicioTrabajo);
+
+        if ($minutosBase <= 0) {
+            throw PrediccionDeTiemposException::datosInvalidos(
+                'The working calendar has no available hours for the projection start.',
+            );
+        }
 
         $prediccion = $this->predecir([
             'etapa_id' => $etapaId,
             'tiempo_por_unidad' => (float) $ruta[$posicion]['tiempo_por_unidad'],
             'cantidad_pendiente' => $pendiente,
             'fecha_base' => $fechaBase,
+            'minutos_habiles_por_dia' => $minutosBase,
             'muestras' => $partesDeLaEtapa
                 ->map(fn (array $parte): array => [
                     'fecha' => $parte['fecha'],
                     'cantidad_conformada' => $parte['cantidad_conformada'],
+                    'minutos_habiles' => $this->calendario->minutosDelDia(CarbonImmutable::parse($parte['fecha'])),
                 ])
                 ->values()
                 ->all(),
@@ -72,15 +84,14 @@ class PrediccionDeTiemposService
             'fecha_calculo' => $fechaBase,
         ]);
 
-        $diasTotales = $this->diasHastaElFin(
+        $fechaProyectada = $this->fechaDeFinalizacion(
             $ruta,
             $posicion,
+            $pendiente,
             (float) $orden['cantidad_requerida'],
             (float) $prediccion['valor'],
-            (float) $prediccion['dias_proyectados'],
+            $inicioTrabajo,
         );
-
-        $fechaProyectada = CarbonImmutable::parse($fechaBase)->startOfDay()->addDays((int) ceil($diasTotales));
         $fechaEntrega = $orden['fecha_entrega'] !== null
             ? CarbonImmutable::parse($orden['fecha_entrega'])->startOfDay()
             : null;
@@ -95,8 +106,8 @@ class PrediccionDeTiemposService
             'dias_proyectados' => (float) $prediccion['dias_proyectados'],
             'fecha_proyectada' => $fechaProyectada->toDateString(),
             'fecha_entrega' => $orden['fecha_entrega'],
-            'dias_de_retraso' => $this->diasDeRetraso($fechaProyectada, $fechaEntrega),
-            'excede_plazo' => $fechaEntrega !== null && $fechaProyectada->greaterThan($fechaEntrega),
+            'dias_de_retraso' => $this->diasDeRetraso($fechaProyectada->startOfDay(), $fechaEntrega),
+            'excede_plazo' => $fechaEntrega !== null && $fechaProyectada->startOfDay()->greaterThan($fechaEntrega),
             'origen' => (string) $prediccion['origen'],
             'metricas' => $prediccion['metricas'],
         ];
@@ -183,24 +194,32 @@ class PrediccionDeTiemposService
     }
 
     /**
-     * Remaining days of the current stage plus the following stages, using the
-     * projected rate as a sustained level. The projected rate already reflects
-     * a sustained deviation; integrating an unbounded decay would produce
-     * absurd horizons.
+     * Exact finish of the order, walking the working calendar.
+     *
+     * The projected rate acts as a sustained level: the working minutes needed
+     * by each remaining stage are `quantity × standard / rate`, and the
+     * calendar turns those minutes into real working time. Integrating an
+     * unbounded decay would produce absurd horizons.
      *
      * @param  array<int, array{etapa_id:int, etapa:string, tiempo_por_unidad:float}>  $ruta
      */
-    private function diasHastaElFin(array $ruta, int $posicion, float $cantidadRequerida, float $valor, float $diasDeLaEtapaActual): float
-    {
+    private function fechaDeFinalizacion(
+        array $ruta,
+        int $posicion,
+        float $pendiente,
+        float $cantidadRequerida,
+        float $valor,
+        CarbonImmutable $inicio,
+    ): CarbonImmutable {
         $tasa = max($valor, 0.0001);
-        $dias = $diasDeLaEtapaActual;
+        $minutos = 0.0;
 
-        foreach (array_slice($ruta, $posicion + 1) as $etapa) {
-            $capacidad = (8 * 60) / (float) $etapa['tiempo_por_unidad'];
-            $dias += $cantidadRequerida / ($capacidad * $tasa);
+        foreach (array_slice($ruta, $posicion) as $indice => $etapa) {
+            $cantidad = $indice === 0 ? $pendiente : $cantidadRequerida;
+            $minutos += ($cantidad * (float) $etapa['tiempo_por_unidad']) / $tasa;
         }
 
-        return $dias;
+        return $this->calendario->avanzar($inicio, $minutos);
     }
 
     private function diasDeRetraso(CarbonImmutable $fechaProyectada, ?CarbonImmutable $fechaEntrega): int

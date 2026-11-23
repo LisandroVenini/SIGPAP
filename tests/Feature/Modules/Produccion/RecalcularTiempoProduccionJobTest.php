@@ -93,8 +93,8 @@ class RecalcularTiempoProduccionJobTest extends TestCase
 
         $this->assertSame($orden->id, $alerta->orden_de_produccion_id);
         $this->assertNull($alerta->resuelta_en);
-        $this->assertStringContainsString('se proyecta para el 2026-11-20', $alerta->descripcion);
-        $this->assertStringContainsString('5 días después de la entrega', $alerta->descripcion);
+        $this->assertStringContainsString('se proyecta para el 2026-11-21', $alerta->descripcion);
+        $this->assertStringContainsString('6 días después de la entrega', $alerta->descripcion);
     }
 
     public function test_it_closes_the_alert_when_the_order_stops_exceeding_its_deadline(): void

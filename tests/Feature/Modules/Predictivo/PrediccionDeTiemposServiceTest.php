@@ -94,9 +94,10 @@ class PrediccionDeTiemposServiceTest extends TestCase
 
         $resultado = $this->servicio()->recalcularTiempoProduccion($orden->id, $primera->id, '2026-11-10');
 
-        // Current stage: 48 pending at the projected rate (1 day). Next stage:
-        // 96 units at 24 units per day (4 days). Total: 5 days from 2026-11-10.
-        $this->assertSame('2026-11-15', $resultado['fecha_proyectada']);
+        // Tuesday 2026-11-10: 48 pending at the projected rate (480 min) ends at
+        // 20:00; the next stage needs 1920 min, which runs through the weekend
+        // and ends Monday 2026-11-16.
+        $this->assertSame('2026-11-16', $resultado['fecha_proyectada']);
         $this->assertSame('2026-11-20', $resultado['fecha_entrega']);
         $this->assertFalse($resultado['excede_plazo']);
         $this->assertSame(0, $resultado['dias_de_retraso']);
@@ -110,9 +111,10 @@ class PrediccionDeTiemposServiceTest extends TestCase
 
         $this->assertSame(48.0, $fake->llamadas[0]['datos']['cantidad_pendiente']);
         $this->assertSame(
-            [['fecha' => '2026-11-10', 'cantidad_conformada' => 48.0]],
+            [['fecha' => '2026-11-10', 'cantidad_conformada' => 48.0, 'minutos_habiles' => 480]],
             $fake->llamadas[0]['datos']['muestras'],
         );
+        $this->assertSame(480, $fake->llamadas[0]['datos']['minutos_habiles_por_dia']);
     }
 
     public function test_the_pending_quantity_adds_the_rejected_units(): void
@@ -134,6 +136,20 @@ class PrediccionDeTiemposServiceTest extends TestCase
         $this->assertSame(58.0, $fake->llamadas[0]['datos']['cantidad_pendiente']);
     }
 
+    public function test_the_payload_carries_the_working_minutes_of_each_sample(): void
+    {
+        [, $primera, , $orden] = $this->contexto();
+        // 2026-11-07 is a Saturday: four working hours.
+        $this->parte($orden, $primera, '2026-11-07', 12);
+
+        $fake = $this->fake();
+
+        $this->servicio()->recalcularTiempoProduccion($orden->id, $primera->id, '2026-11-07');
+
+        $this->assertSame(240, $fake->llamadas[0]['datos']['muestras'][0]['minutos_habiles']);
+        $this->assertSame(240, $fake->llamadas[0]['datos']['minutos_habiles_por_dia']);
+    }
+
     public function test_it_flags_the_deadline_when_the_projection_exceeds_it(): void
     {
         [, $primera, , $orden] = $this->contexto(fechaEntrega: '2026-11-15');
@@ -143,10 +159,11 @@ class PrediccionDeTiemposServiceTest extends TestCase
 
         $resultado = $this->servicio()->recalcularTiempoProduccion($orden->id, $primera->id, '2026-11-10');
 
-        // 2 days of the current stage + 96 / (24 * 0.5) = 8 days of the next one.
-        $this->assertSame('2026-11-20', $resultado['fecha_proyectada']);
+        // 4800 working minutes from Tuesday 2026-11-10 08:00 end on Saturday
+        // 2026-11-21 12:00 (Saturday is a half-day).
+        $this->assertSame('2026-11-21', $resultado['fecha_proyectada']);
         $this->assertTrue($resultado['excede_plazo']);
-        $this->assertSame(5, $resultado['dias_de_retraso']);
+        $this->assertSame(6, $resultado['dias_de_retraso']);
     }
 
     public function test_it_rejects_an_order_that_left_the_schedule(): void
