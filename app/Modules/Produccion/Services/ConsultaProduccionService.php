@@ -30,12 +30,14 @@ class ConsultaProduccionService
      * - `ordenes`: the orders that still occupy the schedule.
      * - `rutas`: each product's route sheet with its standard minutes per unit.
      * - `partes`: the daily parts registered for those orders, grouped by order.
+     * - `rechazadas`: rejected units per order and stage.
      * - `maquinaria`: machines with their accumulated wear.
      *
      * @return array{
      *     ordenes: array<int, array{id:int, articulo_id:int, estado:string, cantidad_requerida:float, cantidad_producida:float, fecha_entrega:string|null, fecha_inicio:string|null, fecha_fin:string|null, prioridad_actual:int}>,
      *     rutas: array<int, array<int, array{etapa_id:int, etapa:string, tiempo_por_unidad:float}>>,
      *     partes: array<int, array<int, array{etapa_id:int, etapa:string, fecha:string, cantidad_conformada:float, maquinaria:string|null}>>,
+     *     rechazadas: array<int, array<int, float>>,
      *     maquinaria: array<int, array{id:int, nombre:string, tipo:string|null, estado_operativo:string|null, desgaste_acumulado:float}>,
      *     generado_en: string,
      * }
@@ -63,6 +65,7 @@ class ConsultaProduccionService
                 ->all(),
             'rutas' => $this->hojaDeRuta->rutaPorArticulo($articuloIds),
             'partes' => $this->partesPorOrden($ordenIds),
+            'rechazadas' => $this->partesDiarios->rechazadasPorOrdenes($ordenIds),
             'maquinaria' => Maquinaria::query()
                 ->orderBy('nombre')
                 ->get(['id', 'nombre', 'tipo', 'estado_operativo', 'desgaste_acumulado'])

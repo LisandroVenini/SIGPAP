@@ -4,6 +4,7 @@ namespace Tests\Feature\Modules\Produccion;
 
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
+use App\Modules\Produccion\Models\ControlDeCalidad;
 use App\Modules\Produccion\Models\Etapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
@@ -136,6 +137,33 @@ class ConsultaProduccionServiceTest extends TestCase
         ], $datos['partes'][$orden->id]);
     }
 
+    public function test_it_returns_the_rejected_units_per_order_and_stage(): void
+    {
+        $articulo = Articulo::factory()->create();
+        $etapa = Etapa::factory()->create();
+
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $articulo->id,
+            'estado' => 'En Curso',
+        ]);
+
+        $parte = ParteDiario::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $etapa->id,
+            'fecha' => '2026-11-02',
+        ]);
+
+        ControlDeCalidad::factory()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'parte_diario_id' => $parte->id,
+            'cantidad_rechazada' => 3,
+        ]);
+
+        $datos = $this->servicio()->datosDeProduccion();
+
+        $this->assertSame(3.0, $datos['rechazadas'][$orden->id][$etapa->id]);
+    }
+
     public function test_it_does_not_return_parts_of_orders_outside_the_schedule(): void
     {
         $articulo = Articulo::factory()->create();
@@ -186,6 +214,7 @@ class ConsultaProduccionServiceTest extends TestCase
         $this->assertSame([], $datos['ordenes']);
         $this->assertSame([], $datos['rutas']);
         $this->assertSame([], $datos['partes']);
+        $this->assertSame([], $datos['rechazadas']);
         $this->assertSame([], $datos['maquinaria']);
         $this->assertArrayHasKey('generado_en', $datos);
     }

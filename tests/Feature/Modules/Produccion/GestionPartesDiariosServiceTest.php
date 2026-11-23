@@ -11,6 +11,7 @@ use App\Modules\Inventario\Models\Reserva;
 use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Enums\EstadoMaquinaria;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
+use App\Modules\Produccion\Jobs\RecalcularTiempoProduccionJob;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\ComponenteDeReceta;
 use App\Modules\Produccion\Models\ControlDeCalidad;
@@ -27,12 +28,21 @@ use Database\Factories\PlanDeMantenimientoFactory;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class GestionPartesDiariosServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The predictive recalculation is a side effect of registering a part.
+        Queue::fake();
+    }
 
     private function actor(): Usuario
     {
@@ -463,6 +473,22 @@ class GestionPartesDiariosServiceTest extends TestCase
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('estado', $e->errors());
         }
+    }
+
+    public function test_dispatches_the_predictive_recalculation_after_registering_a_part(): void
+    {
+        $actor = $this->actor();
+        $producto = $this->productoFabricado();
+        [$corte] = $this->hojaDeRutaDeDosEtapas($producto);
+        $orden = $this->ordenEnCurso($producto);
+
+        $this->service()->registrar($actor, $orden, $corte->id, null, '2026-11-10', 5.0, null);
+
+        Queue::assertPushed(RecalcularTiempoProduccionJob::class, function (RecalcularTiempoProduccionJob $job) use ($orden, $corte): bool {
+            return $job->ordenDeProduccionId === $orden->id
+                && $job->etapaId === $corte->id
+                && $job->fechaAvance === '2026-11-10';
+        });
     }
 
     public function test_management_permission_check_returns_true_for_supervisor(): void

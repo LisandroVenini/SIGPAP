@@ -238,6 +238,18 @@ final class CatalogoDeAlertas
                 [],
                 ['maquinaria', 'desgaste', 'umbral'],
             ),
+            new TipoDeAlerta(
+                'cuello_de_botella_predictivo',
+                'Cuello de botella predictivo',
+                'La fecha proyectada de una orden supera su fecha de entrega según la tasa de rendimiento real.',
+                ModuloDeAlerta::Predictivo,
+                OrigenAlerta::Condicion,
+                SeveridadAlerta::Atencion,
+                [Rol::Gerente, Rol::SupervisorProduccion],
+                [],
+                ['orden', 'producto', 'etapa', 'fecha_entrega', 'fecha_proyectada', 'dias_retraso', 'tasa_rendimiento'],
+                'Etapa: {{etapa}} · TRR: {{tasa_rendimiento}} · Proyectada: {{fecha_proyectada}} (entrega: {{fecha_entrega}})',
+            ),
         ];
     }
 

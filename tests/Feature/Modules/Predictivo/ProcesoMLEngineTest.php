@@ -24,6 +24,9 @@ class ProcesoMLEngineTest extends TestCase
             'training_timeout' => 10,
         ], $overrides));
 
+        // The suite binds an offline fake; drop it to exercise the real binding.
+        $this->app->forgetInstance(MLEngine::class);
+
         return app(MLEngine::class);
     }
 
