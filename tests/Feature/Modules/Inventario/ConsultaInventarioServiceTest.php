@@ -53,6 +53,25 @@ class ConsultaInventarioServiceTest extends TestCase
         $this->assertSame($insumo->id, $datos['articulos'][0]['id']);
     }
 
+    public function test_it_excludes_third_party_finished_products_from_the_supply_risk(): void
+    {
+        // A finished product of third-party origin is bought for resale, not for
+        // manufacturing. Without a sales module there is no outgoing velocity to
+        // project, so it stays out of the predictive risk; the static minimum
+        // alert still covers it.
+        Articulo::factory()->create([
+            'tipo' => TipoArticulo::ProductoTerminado->value,
+            'origen' => OrigenArticulo::Tercero->value,
+            'estado' => EstadoArticulo::Activo->value,
+            'stock_fisico' => 0,
+            'stock_minimo' => 50,
+        ]);
+
+        $datos = $this->servicio()->datosDeInventario();
+
+        $this->assertSame([], $datos['articulos']);
+    }
+
     public function test_it_subtracts_the_current_reservations_from_the_available_stock(): void
     {
         $insumo = $this->insumo(['stock_fisico' => 100]);
