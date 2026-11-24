@@ -18,11 +18,12 @@ vi.mock('@/Layouts/AppLayout.vue', () => ({
 
 vi.mock('@/Components/Cronograma/GanttTimeline.vue', () => ({
     default: {
-        props: ['filas', 'desde', 'dias', 'hoy'],
+        props: ['filas', 'desde', 'dias', 'hoy', 'marcas'],
         template: '<div data-testid="gantt" />',
     },
 }));
 
+import GanttTimeline from '@/Components/Cronograma/GanttTimeline.vue';
 import Tablero from './Index.vue';
 
 const fila = {
@@ -56,6 +57,7 @@ function props(overrides: Record<string, unknown> = {}) {
             tasa_promedio: 0.875,
         },
         alertas: [],
+        abastecimiento: [],
         tasas: {},
         estados: ['Pendiente', 'En Curso'],
         filtros: { estado: null, solo_riesgo: false },
@@ -129,5 +131,43 @@ describe('Tablero Predictivo', () => {
             { estado: undefined, solo_riesgo: 1 },
             { preserveState: true, preserveScroll: true },
         );
+    });
+    it('renders the supply layer and passes its order-by dates as markers', () => {
+        const wrapper = mount(Tablero, {
+            props: props({
+                abastecimiento: [
+                    {
+                        articulo_id: 9,
+                        articulo: 'Tabla de pino',
+                        disponible: 80,
+                        minimo: 20,
+                        dias_hasta_quiebre: 16,
+                        fecha_limite_pedido: '2026-11-05',
+                        fecha_quiebre: '2026-12-10',
+                        cantidad_sugerida: 120,
+                        riesgo: 'alto',
+                    },
+                ],
+            }),
+        });
+
+        const fila = wrapper.get('[data-testid="fila-abastecimiento"]');
+
+        expect(fila.text()).toContain('Tabla de pino');
+        expect(fila.text()).toContain('2026-11-05');
+
+        expect(wrapper.findComponent(GanttTimeline).props('marcas')).toEqual([
+            {
+                fecha: '2026-11-05',
+                etiqueta: 'Pedir Tabla de pino antes del 2026-11-05',
+                tono: 'riesgo',
+            },
+        ]);
+    });
+
+    it('shows the empty supply message', () => {
+        const wrapper = mount(Tablero, { props: props() });
+
+        expect(wrapper.text()).toContain('Sin insumos en riesgo de quiebre.');
     });
 });

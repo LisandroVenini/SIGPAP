@@ -43,6 +43,8 @@ class EvaluarRiesgoDeSuministroService
                 'minimo' => $fila['stock_minimo'] ?? 0.0,
                 'dias_hasta_quiebre' => $fila['dias_hasta_quiebre'],
                 'fecha_limite_pedido' => $fila['fecha_limite_pedido'],
+                'fecha_quiebre' => $fila['fecha_quiebre'] ?? null,
+                'riesgo' => $fila['riesgo'] ?? null,
                 'cantidad_sugerida' => $fila['cantidad_sugerida'],
                 'articulo_id' => $fila['articulo_id'],
             ];

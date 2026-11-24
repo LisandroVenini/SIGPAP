@@ -109,6 +109,28 @@ export function posicionarSegmento(
     };
 }
 
+/** A dated marker drawn over the timeline (e.g. a supply order-by date). */
+export interface MarcaDeAbastecimiento {
+    fecha: string;
+    etiqueta: string;
+    tono?: 'riesgo' | 'aviso';
+}
+
+/** Places a dated marker inside the visible window, or null when outside. */
+export function posicionarMarca(
+    marca: Pick<MarcaDeAbastecimiento, 'fecha'>,
+    desde: string,
+    dias: number,
+): { columna: number; left: number } | null {
+    const indice = diasEntre(desde, marca.fecha);
+
+    if (indice < 0 || indice >= dias) {
+        return null;
+    }
+
+    return { columna: indice + 1, left: (indice / dias) * 100 };
+}
+
 function formatearCorto(fecha: string): string {
     return `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 }

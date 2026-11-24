@@ -4,6 +4,7 @@ import {
     diasEntre,
     lunesDe,
     numeroSemana,
+    posicionarMarca,
     posicionarSegmento,
     rangoVisible,
 } from './gantt';
@@ -125,5 +126,30 @@ describe('cronograma gantt helpers', () => {
         expect(primeraSemana).toBe(1);
         expect(lunes).toBe(domingo);
         expect(rango).toBe('09/11 → 15/11');
+    });
+});
+
+describe('posicionarMarca', () => {
+    it('places a dated marker inside the visible window', () => {
+        expect(posicionarMarca({ fecha: '2026-11-04' }, '2026-11-02', 14)).toEqual({
+            columna: 3,
+            left: (2 / 14) * 100,
+        });
+    });
+
+    it('places the first and last visible days', () => {
+        expect(posicionarMarca({ fecha: '2026-11-02' }, '2026-11-02', 14)).toEqual({
+            columna: 1,
+            left: 0,
+        });
+        expect(posicionarMarca({ fecha: '2026-11-15' }, '2026-11-02', 14)).toEqual({
+            columna: 14,
+            left: (13 / 14) * 100,
+        });
+    });
+
+    it('returns null when the date falls outside the window', () => {
+        expect(posicionarMarca({ fecha: '2026-11-01' }, '2026-11-02', 14)).toBeNull();
+        expect(posicionarMarca({ fecha: '2026-11-16' }, '2026-11-02', 14)).toBeNull();
     });
 });

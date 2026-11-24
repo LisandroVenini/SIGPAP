@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { FilaCronograma, Segmento } from './gantt';
-import { columnasDe, posicionarSegmento } from './gantt';
+import type { FilaCronograma, MarcaDeAbastecimiento, Segmento } from './gantt';
+import { columnasDe, posicionarMarca, posicionarSegmento } from './gantt';
 
 const props = defineProps<{
     filas: FilaCronograma[];
     desde: string;
     dias: number;
     hoy: string;
+    marcas?: MarcaDeAbastecimiento[];
 }>();
 
 const emit = defineEmits<{ reordenar: [fila: FilaCronograma] }>();
@@ -15,6 +16,16 @@ const emit = defineEmits<{ reordenar: [fila: FilaCronograma] }>();
 const columnas = computed(() => columnasDe(props.desde, props.dias, props.hoy));
 
 const indiceHoy = computed(() => columnas.value.findIndex((columna) => columna.esHoy));
+
+const marcasVisibles = computed(() =>
+    (props.marcas ?? [])
+        .map((marca) => {
+            const posicion = posicionarMarca(marca, props.desde, props.dias);
+
+            return posicion === null ? null : { ...marca, ...posicion };
+        })
+        .filter((marca): marca is NonNullable<typeof marca> => marca !== null),
+);
 
 const estiloGrilla = computed(() => ({
     gridTemplateColumns: `repeat(${props.dias}, minmax(44px, 1fr))`,
@@ -189,6 +200,20 @@ function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento): string {
                             v-if="indiceHoy >= 0"
                             class="pointer-events-none absolute inset-y-0 z-20 border-l border-dashed border-teja/50"
                             :style="{ left: `${(indiceHoy / dias) * 100}%` }"
+                        ></div>
+
+                        <div
+                            v-for="marca in marcasVisibles"
+                            :key="`${marca.fecha}-${marca.etiqueta}`"
+                            class="pointer-events-none absolute inset-y-0 z-10 border-l"
+                            :class="
+                                marca.tono === 'riesgo'
+                                    ? 'border-oxide/60'
+                                    : 'border-amber-400/70'
+                            "
+                            :style="{ left: `${marca.left}%` }"
+                            :title="marca.etiqueta"
+                            :data-testid="`marca-${marca.fecha}`"
                         ></div>
 
                         <div class="grid h-full" :style="estiloGrilla">

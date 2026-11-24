@@ -136,6 +136,43 @@ class TableroPredictivoControllerTest extends TestCase
             );
     }
 
+    public function test_it_lists_the_supply_risk_from_the_open_alerts(): void
+    {
+        $articulo = Articulo::factory()->create(['descripcion' => 'Tabla de pino']);
+
+        $alerta = Alerta::query()->create([
+            'tipo' => 'quiebre_de_stock',
+            'severidad' => 'Critica',
+            'origen_tipo' => 'condicion',
+            'fecha' => now(),
+            'descripcion' => 'Tabla de pino se agota.',
+            'contexto' => [
+                'articulo' => 'Tabla de pino',
+                'disponible' => 80,
+                'minimo' => 20,
+                'dias_hasta_quiebre' => 16,
+                'fecha_limite_pedido' => '2026-11-30',
+                'fecha_quiebre' => '2026-12-10',
+                'riesgo' => 'alto',
+                'cantidad_sugerida' => 120,
+                'articulo_id' => $articulo->id,
+            ],
+            'articulo_id' => $articulo->id,
+        ]);
+        $alerta->roles()->sync([Role::findByName(Rol::Gerente->value, 'web')->id]);
+
+        $this->actingAs($this->usuarioConRol(Rol::Gerente))
+            ->get('/predictivo/tablero')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('abastecimiento', 1)
+                ->where('abastecimiento.0.fecha_limite_pedido', '2026-11-30')
+                ->where('abastecimiento.0.fecha_quiebre', '2026-12-10')
+                ->where('abastecimiento.0.riesgo', 'alto')
+                ->where('abastecimiento.0.cantidad_sugerida', 120)
+            );
+    }
+
     public function test_the_board_reports_the_configured_calendar(): void
     {
         $this->seed(ParametroGlobalSeeder::class);

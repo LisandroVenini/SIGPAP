@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import GanttTimeline from '@/Components/Cronograma/GanttTimeline.vue';
 import type { FilaCronograma, Horizonte } from '@/Components/Cronograma/gantt';
 import { HORIZONTES, lunesDe } from '@/Components/Cronograma/gantt';
@@ -29,6 +29,18 @@ interface AlertaResumen {
     orden_de_produccion_id: number | null;
 }
 
+interface AbastecimientoItem {
+    articulo_id: number | null;
+    articulo: string;
+    disponible: number;
+    minimo: number;
+    dias_hasta_quiebre: number | null;
+    fecha_limite_pedido: string | null;
+    fecha_quiebre: string | null;
+    cantidad_sugerida: number;
+    riesgo: string;
+}
+
 interface Filtros {
     estado: string | null;
     solo_riesgo: boolean;
@@ -38,12 +50,23 @@ const props = defineProps<{
     cronograma: Cronograma;
     kpis: Kpis;
     alertas: AlertaResumen[];
+    abastecimiento: AbastecimientoItem[];
     tasas: Record<string, { valor: number; desviacion: number; fecha_calculo: string | null }>;
     estados: string[];
     filtros: Filtros;
     sinDatos: boolean;
     calendarioConfigurado: boolean;
 }>();
+
+const marcas = computed(() =>
+    props.abastecimiento
+        .filter((item) => item.fecha_limite_pedido !== null)
+        .map((item) => ({
+            fecha: item.fecha_limite_pedido as string,
+            etiqueta: `Pedir ${item.articulo} antes del ${item.fecha_limite_pedido}`,
+            tono: item.riesgo === 'alto' ? ('riesgo' as const) : ('aviso' as const),
+        })),
+);
 
 const desde = ref(lunesDe(props.cronograma.hoy));
 const horizonte = ref<Horizonte>(14);
@@ -219,6 +242,7 @@ const tasaPromedio = (valor: number | null): string =>
                         :desde="desde"
                         :dias="horizonte"
                         :hoy="cronograma.hoy"
+                        :marcas="marcas"
                     />
                 </section>
 
@@ -246,6 +270,70 @@ const tasaPromedio = (valor: number | null): string =>
                     <p v-else class="mt-3 text-sm text-steel">Sin alertas de cuello de botella.</p>
                 </section>
             </template>
+
+            <section class="rounded-lg border border-hairline bg-white p-4">
+                <h2 class="text-sm font-semibold tracking-wider text-steel uppercase">
+                    Abastecimiento
+                </h2>
+
+                <p v-if="abastecimiento.length === 0" class="mt-3 text-sm text-steel">
+                    Sin insumos en riesgo de quiebre.
+                </p>
+
+                <div v-else class="mt-3 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr
+                                class="border-b border-hairline text-xs tracking-wider text-steel uppercase"
+                            >
+                                <th class="px-2 py-2 font-medium">Insumo</th>
+                                <th class="px-2 py-2 font-medium">Disponible</th>
+                                <th class="px-2 py-2 font-medium">Quiebre</th>
+                                <th class="px-2 py-2 font-medium">Pedir antes</th>
+                                <th class="px-2 py-2 font-medium">Sugerido</th>
+                                <th class="px-2 py-2 font-medium">Riesgo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="item in abastecimiento"
+                                :key="item.articulo_id ?? item.articulo"
+                                data-testid="fila-abastecimiento"
+                                class="border-b border-hairline/60"
+                            >
+                                <td class="px-2 py-2 text-ink">{{ item.articulo }}</td>
+                                <td class="num px-2 py-2 text-steel">{{ item.disponible }}</td>
+                                <td class="num px-2 py-2 text-steel">
+                                    {{ item.fecha_quiebre ?? '—' }}
+                                </td>
+                                <td
+                                    class="num px-2 py-2 font-medium"
+                                    :class="
+                                        item.riesgo === 'alto' ? 'text-oxide' : 'text-amber-700'
+                                    "
+                                >
+                                    {{ item.fecha_limite_pedido ?? '—' }}
+                                </td>
+                                <td class="num px-2 py-2 text-steel">
+                                    {{ item.cantidad_sugerida }}
+                                </td>
+                                <td class="px-2 py-2">
+                                    <span
+                                        class="rounded px-2 py-0.5 text-xs font-medium"
+                                        :class="
+                                            item.riesgo === 'alto'
+                                                ? 'bg-oxide/10 text-oxide'
+                                                : 'bg-amber-100 text-amber-800'
+                                        "
+                                    >
+                                        {{ item.riesgo }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     </AppLayout>
 </template>
