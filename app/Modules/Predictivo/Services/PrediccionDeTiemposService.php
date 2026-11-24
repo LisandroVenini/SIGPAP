@@ -3,6 +3,7 @@
 namespace App\Modules\Predictivo\Services;
 
 use App\Modules\Predictivo\Models\TasaDeRendimiento;
+use App\Modules\Predictivo\Queries\TasasDeRendimientoQuery;
 use App\Modules\Produccion\Services\CalendarioLaboral;
 use App\Modules\Produccion\Services\ConsultaProduccionService;
 use Carbon\CarbonImmutable;
@@ -30,7 +31,18 @@ class PrediccionDeTiemposService
         private readonly MLEngine $engine,
         private readonly CalendarioLaboral $calendario,
         private readonly ConsultaProduccionService $produccion,
+        private readonly TasasDeRendimientoQuery $tasas,
     ) {}
+
+    /**
+     * Latest calculated rate per stage, for the schedule projection.
+     *
+     * @return array<int, array{valor: float, desviacion: float, fecha_calculo: string|null}>
+     */
+    public function tasaVigentePorEtapa(): array
+    {
+        return $this->tasas->ultimasPorEtapa();
+    }
 
     /**
      * @return array{orden_de_produccion_id:int, articulo_id:int, etapa_id:int, etapa:string, valor:float, desviacion:float, dias_proyectados:float, fecha_proyectada:string, fecha_entrega:string|null, dias_de_retraso:int, excede_plazo:bool, origen:string, metricas:array{r2:float|null, mae:float|null, n_muestras:int}}

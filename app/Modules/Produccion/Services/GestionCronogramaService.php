@@ -4,6 +4,7 @@ namespace App\Modules\Produccion\Services;
 
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Services\GestionArticulosService;
+use App\Modules\Predictivo\Services\PrediccionDeTiemposService;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\MotivoCambioPrioridad;
 use App\Modules\Produccion\Models\LineaBaseDeCronograma;
@@ -32,15 +33,23 @@ class GestionCronogramaService
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly PartesDiariosQuery $partesDiarios,
         private readonly UsuariosService $usuarios,
+        private readonly PrediccionDeTiemposService $predicciones,
     ) {}
 
     /**
      * @return array{inicio: string, hoy: string, dias: int, filas: array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa_id:int, etapa:string, inicio:string, fin:string, inicio_en:string, fin_en:string, dias:int, minutos:int, segmentos: array<int, array{inicio:string, fin:string}>, producida:float, plan: array{inicio:string, fin:string}|null}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>}
      */
-    public function proyectar(): array
+    public function proyectar(?Collection $ordenesExtra = null): array
     {
         $inicio = Carbon::today();
-        $filas = $this->construirFilas($this->query->ordenesActivas());
+        $ordenes = $this->query->ordenesActivas();
+
+        if ($ordenesExtra !== null && $ordenesExtra->isNotEmpty()) {
+            // A simulated order jumps the queue: priority 1 wins over the rest.
+            $ordenes = $ordenesExtra->concat($ordenes);
+        }
+
+        $filas = $this->construirFilas($ordenes);
 
         $ultimoFin = collect($filas)
             ->pluck('etapas')
@@ -138,6 +147,7 @@ class GestionCronogramaService
         $rutas = $this->hojaDeRuta->rutaPorArticulo($articuloIds);
         $primerasEtapas = $this->hojaDeRuta->primeraEtapaPorArticulo($articuloIds);
         $conformado = $this->partesDiarios->conformadoPorOrdenes($ordenes->pluck('id')->all());
+        $tasas = $this->predicciones->tasaVigentePorEtapa();
         $lineasBase = LineaBaseDeCronograma::query()
             ->whereIn('orden_de_produccion_id', $ordenes->pluck('id')->all())
             ->get()
@@ -172,7 +182,10 @@ class GestionCronogramaService
             $ultimoFin = null;
 
             foreach ($rutaDelProducto as $etapa) {
-                $minutos = $cantidad * $etapa['tiempo_por_unidad'];
+                // A stage slower than standard (rate < 1) takes longer.
+                $tasa = (float) ($tasas[$etapa['etapa_id']]['valor'] ?? 1.0);
+                $tiempoAjustado = (float) $etapa['tiempo_por_unidad'] / max($tasa, 0.0001);
+                $minutos = $cantidad * $tiempoAjustado;
                 $bloques = $this->calendario->segmentos($inicio, $minutos);
 
                 if ($bloques === []) {

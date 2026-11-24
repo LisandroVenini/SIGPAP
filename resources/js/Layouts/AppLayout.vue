@@ -92,7 +92,7 @@ const navEntries = computed<NavEntry[]>(() => [
         label: 'Predictivo',
         items: [
             { label: 'Tablero Predictivo', href: '/predictivo/tablero' },
-            { label: 'Simulador' },
+            { label: 'Simulador', href: '/predictivo/simulador' },
         ],
     },
     { label: 'Reportes', href: '/reportes' },

@@ -6,6 +6,7 @@ use App\Modules\Inventario\Enums\EstadoArticulo;
 use App\Modules\Inventario\Enums\OrigenArticulo;
 use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
+use App\Modules\Predictivo\Models\TasaDeRendimiento;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\MotivoCambioPrioridad;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
@@ -558,5 +559,65 @@ class GestionCronogramaServiceTest extends TestCase
         // Assert
         $this->assertSame('2026-11-03 08:00:00', $etapa['inicio_en']);
         $this->assertSame('2026-11-03', $etapa['inicio']);
+    }
+
+    public function test_a_slow_stage_extends_the_projection(): void
+    {
+        // Arrange: 8 units × 60 min = 480 minutes without a rate.
+        $producto = $this->producto();
+        $this->ruta($producto, [60]);
+
+        $orden = $this->orden([
+            'articulo_id' => $producto->id,
+            'cantidad_requerida' => 8,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+
+        $etapaId = AsignacionDeEtapa::query()->where('articulo_id', $producto->id)->value('etapa_id');
+
+        // A rate of 0.5 doubles the required time.
+        TasaDeRendimiento::query()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $etapaId,
+            'valor' => 0.5,
+            'desviacion' => -0.5,
+            'fecha_calculo' => now()->toDateString(),
+        ]);
+
+        // Act
+        $etapa = app(GestionCronogramaService::class)->proyectar()['filas'][0]['etapas'][0];
+
+        // Assert
+        $this->assertSame(960, $etapa['minutos']);
+    }
+
+    public function test_a_simulated_order_jumps_the_queue(): void
+    {
+        // Arrange
+        $producto = $this->producto();
+        $this->ruta($producto, [60]);
+
+        $real = $this->orden([
+            'articulo_id' => $producto->id,
+            'prioridad_actual' => 1,
+            'cantidad_requerida' => 8,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+
+        $ficticia = new OrdenDeProduccion([
+            'articulo_id' => $producto->id,
+            'estado' => 'Pendiente',
+            'cantidad_requerida' => 8,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+            'prioridad_actual' => 1,
+        ]);
+        $ficticia->id = -1;
+
+        // Act
+        $simulada = app(GestionCronogramaService::class)->proyectar(collect([$ficticia]));
+
+        // Assert
+        $this->assertSame(-1, $simulada['filas'][0]['orden_id']);
+        $this->assertSame($real->id, $simulada['filas'][1]['orden_id']);
     }
 }
