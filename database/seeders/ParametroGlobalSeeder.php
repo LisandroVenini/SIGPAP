@@ -23,6 +23,7 @@ class ParametroGlobalSeeder extends Seeder
             ['nombre' => 'prod_umbral_calidad', 'valor' => '95', 'categoria' => 'Producción'],
             ['nombre' => 'compras_vigencia_cotizacion_dias', 'valor' => '7', 'categoria' => 'Compras'],
             ['nombre' => 'compras_minimo_cotizaciones', 'valor' => '3', 'categoria' => 'Compras'],
+            ['nombre' => 'compras_proveedores_por_licitacion', 'valor' => '3', 'categoria' => 'Compras'],
             ['nombre' => 'compras_umbral_aprobacion_gerente', 'valor' => '500000', 'categoria' => 'Compras'],
             ['nombre' => 'compras_ranking_peso_perfecta', 'valor' => '1', 'categoria' => 'Compras'],
             ['nombre' => 'compras_ranking_peso_retraso', 'valor' => '0.6', 'categoria' => 'Compras'],
@@ -39,6 +40,7 @@ class ParametroGlobalSeeder extends Seeder
             ['nombre' => 'predictivo_ventana_entrenamiento_meses', 'valor' => '12', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'predictivo_confianza_minima', 'valor' => '75', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'predictivo_dias_aviso_riesgo', 'valor' => '7', 'categoria' => 'Motor Predictivo'],
+            ['nombre' => 'predictivo_licitacion_automatica', 'valor' => '0', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'seguridad_expiracion_sesion_min', 'valor' => '30', 'categoria' => 'Seguridad y Sesión'],
             ['nombre' => 'seguridad_intentos_fallidos', 'valor' => '5', 'categoria' => 'Seguridad y Sesión'],
         ];

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             ParametroGlobalSeeder::class,
             UnidadDeMedidaSeeder::class,
             AdminUserSeeder::class,
+            SistemaUserSeeder::class,
             ReglaDeAlertaSeeder::class,
             // Module demo data. Guarded to local/testing, and it also seeds the
             // inventory catalog and the demo supervisor it depends on.

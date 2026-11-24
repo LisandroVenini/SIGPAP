@@ -49,15 +49,19 @@ class SolicitudesDeCotizacionQuery
     }
 
     /**
-     * Whether an open draft already covers the article, so the automatic
-     * process never duplicates a pending request.
+     * Id of the open draft that covers the article, so the automatic process
+     * never duplicates a pending request and can fire it when the deadline
+     * arrives.
      */
-    public function borradorAbiertoParaArticulo(int $articuloId): bool
+    public function idDeBorradorAbiertoParaArticulo(int $articuloId): ?int
     {
-        return SolicitudDeCotizacion::query()
+        $id = SolicitudDeCotizacion::query()
             ->where('estado', EstadoSolicitudDeCotizacion::Borrador->value)
             ->whereHas('lineas', fn (Builder $query) => $query->where('articulo_id', $articuloId))
-            ->exists();
+            ->orderBy('id')
+            ->value('id');
+
+        return $id !== null ? (int) $id : null;
     }
 
     /**

@@ -2,6 +2,11 @@
 
 namespace Tests\Feature\Modules\Inventario;
 
+use App\Modules\Compras\Mail\SolicitudDeCotizacionMail;
+use App\Modules\Compras\Models\Cotizacion;
+use App\Modules\Compras\Models\DesempenoProveedor;
+use App\Modules\Compras\Models\LineaCotizacion;
+use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
 use App\Modules\Inventario\Enums\EstadoArticulo;
 use App\Modules\Inventario\Enums\OrigenArticulo;
@@ -11,12 +16,14 @@ use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Inventario\Models\MovimientoDeStock;
 use App\Modules\Inventario\Services\EvaluarRiesgoDeSuministroService;
 use App\Modules\Predictivo\Services\MLEngine;
+use App\Modules\Usuarios\Models\ParametroGlobal;
 use App\Shared\Alertas\Models\Alerta;
 use Database\Seeders\ParametroGlobalSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ReglaDeAlertaSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\Fakes\FakeMLEngine;
 use Tests\TestCase;
 
@@ -71,10 +78,42 @@ class EvaluarRiesgoDeSuministroServiceTest extends TestCase
         return $insumo;
     }
 
+    private function solicitudDelArticulo(Articulo $insumo): SolicitudDeCotizacion
+    {
+        return SolicitudDeCotizacion::query()
+            ->whereHas('lineas', fn ($query) => $query->where('articulo_id', $insumo->id))
+            ->orderByDesc('id')
+            ->firstOrFail();
+    }
+
+    private function insumoConProveedor(): Articulo
+    {
+        $insumo = $this->insumo();
+
+        $proveedor = Proveedor::factory()->create(['email' => 'ventas@proveedor.test']);
+        DesempenoProveedor::factory()->create([
+            'proveedor_id' => $proveedor->id,
+            'tiempo_entrega_real' => 5,
+            'fecha_registro' => now()->subDays(3)->toDateString(),
+        ]);
+
+        $cotizacion = Cotizacion::factory()->create([
+            'proveedor_id' => $proveedor->id,
+            'fecha' => now()->toDateString(),
+        ]);
+
+        LineaCotizacion::factory()->create([
+            'cotizacion_id' => $cotizacion->id,
+            'articulo_id' => $insumo->id,
+        ]);
+
+        return $insumo;
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function criticidad(Articulo $insumo): array
+    private function criticidad(Articulo $insumo, string $riesgo = 'medio'): array
     {
         return [[
             'articulo_id' => $insumo->id,
@@ -84,7 +123,7 @@ class EvaluarRiesgoDeSuministroServiceTest extends TestCase
             'fecha_quiebre' => '2026-12-04',
             'lead_time_dias' => 5.0,
             'fecha_limite_pedido' => '2026-11-29',
-            'riesgo' => 'medio',
+            'riesgo' => $riesgo,
             'motivo' => 'quiebre_antes_de_reposicion',
             'cantidad_sugerida' => 200.0,
         ]];
@@ -142,8 +181,68 @@ class EvaluarRiesgoDeSuministroServiceTest extends TestCase
 
         $resultado = $this->servicio()->evaluar('2026-11-24');
 
-        $this->assertSame(['evaluados' => 1, 'criticos' => 0, 'alertas' => 0, 'borradores' => 0], $resultado);
+        $this->assertSame(['evaluados' => 1, 'criticos' => 0, 'alertas' => 0, 'borradores' => 0, 'licitaciones' => 0], $resultado);
         $this->assertSame(0, Alerta::query()->count());
         $this->assertSame(0, SolicitudDeCotizacion::query()->count());
+    }
+
+    public function test_it_fires_the_licitation_when_the_deadline_arrived_and_the_feature_is_enabled(): void
+    {
+        Mail::fake();
+        $insumo = $this->insumoConProveedor();
+        $this->fake($this->criticidad($insumo, 'alto'));
+        ParametroGlobal::query()->where('nombre', 'predictivo_licitacion_automatica')->update(['valor' => '1']);
+
+        $resultado = $this->servicio()->evaluar('2026-11-24');
+
+        $this->assertSame(1, $resultado['licitaciones']);
+
+        $solicitud = $this->solicitudDelArticulo($insumo);
+        $this->assertSame('Enviada', $solicitud->estado);
+        $this->assertSame(1, $solicitud->proveedores()->count());
+        $this->assertNotNull($solicitud->proveedores()->firstOrFail()->pivot->token);
+
+        Mail::assertSent(SolicitudDeCotizacionMail::class);
+        $this->assertDatabaseHas('eventos_de_auditoria', ['accion' => 'disparar_licitacion_automatica']);
+    }
+
+    public function test_it_does_not_fire_while_the_feature_is_disabled(): void
+    {
+        Mail::fake();
+        $insumo = $this->insumoConProveedor();
+        $this->fake($this->criticidad($insumo, 'alto'));
+
+        $resultado = $this->servicio()->evaluar('2026-11-24');
+
+        $this->assertSame(0, $resultado['licitaciones']);
+        $this->assertSame('Borrador', $this->solicitudDelArticulo($insumo)->estado);
+        Mail::assertNothingSent();
+    }
+
+    public function test_it_does_not_fire_a_medium_risk(): void
+    {
+        Mail::fake();
+        $insumo = $this->insumoConProveedor();
+        $this->fake($this->criticidad($insumo, 'medio'));
+        ParametroGlobal::query()->where('nombre', 'predictivo_licitacion_automatica')->update(['valor' => '1']);
+
+        $resultado = $this->servicio()->evaluar('2026-11-24');
+
+        $this->assertSame(0, $resultado['licitaciones']);
+        $this->assertSame('Borrador', $this->solicitudDelArticulo($insumo)->estado);
+    }
+
+    public function test_it_alerts_when_the_licitation_cannot_be_fired(): void
+    {
+        Mail::fake();
+        $insumo = $this->insumo();
+        $this->fake($this->criticidad($insumo, 'alto'));
+        ParametroGlobal::query()->where('nombre', 'predictivo_licitacion_automatica')->update(['valor' => '1']);
+
+        $resultado = $this->servicio()->evaluar('2026-11-24');
+
+        $this->assertSame(0, $resultado['licitaciones']);
+        $this->assertSame('Borrador', $this->solicitudDelArticulo($insumo)->estado);
+        $this->assertDatabaseHas('alertas', ['tipo' => 'licitacion_no_disparada', 'articulo_id' => $insumo->id]);
     }
 }

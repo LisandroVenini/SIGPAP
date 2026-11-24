@@ -675,4 +675,63 @@ class GestionSolicitudesDeCotizacionServiceTest extends TestCase
 
         $this->assertSame(0, $solicitud->proveedores()->count());
     }
+
+    public function test_it_fires_a_draft_and_sends_the_invitations(): void
+    {
+        Mail::fake();
+        $articulo = $this->articulo('Tabla de pino');
+        $proveedor = $this->proveedor('Aceros del Sur', 'ventas@aceros.test');
+
+        $cotizacion = CotizacionFactory::new()->create(['proveedor_id' => $proveedor->id]);
+        LineaCotizacionFactory::new()->create([
+            'cotizacion_id' => $cotizacion->id,
+            'articulo_id' => $articulo->id,
+        ]);
+
+        $id = $this->service()->crearBorradorPorRiesgo($articulo->id, 100);
+        $resultado = $this->service()->dispararLicitacion($id, Usuario::factory()->create()->id);
+
+        $this->assertTrue($resultado['disparada']);
+
+        $solicitud = SolicitudDeCotizacion::query()->findOrFail($id);
+
+        $this->assertSame('Enviada', $solicitud->estado);
+        $this->assertNotNull($solicitud->proveedores()->firstOrFail()->pivot->token);
+        Mail::assertSent(SolicitudDeCotizacionMail::class);
+    }
+
+    public function test_it_does_not_fire_without_suppliers_with_email(): void
+    {
+        $articulo = $this->articulo('Insumo nuevo');
+        $id = $this->service()->crearBorradorPorRiesgo($articulo->id, 50);
+
+        $resultado = $this->service()->dispararLicitacion($id, Usuario::factory()->create()->id);
+
+        $this->assertFalse($resultado['disparada']);
+        $this->assertSame('sin_proveedores_con_email', $resultado['motivo']);
+        $this->assertSame('Borrador', SolicitudDeCotizacion::query()->findOrFail($id)->estado);
+    }
+
+    public function test_it_does_not_fire_twice(): void
+    {
+        Mail::fake();
+        $articulo = $this->articulo('Tabla de pino');
+        $proveedor = $this->proveedor('Aceros del Sur', 'ventas@aceros.test');
+
+        $cotizacion = CotizacionFactory::new()->create(['proveedor_id' => $proveedor->id]);
+        LineaCotizacionFactory::new()->create([
+            'cotizacion_id' => $cotizacion->id,
+            'articulo_id' => $articulo->id,
+        ]);
+
+        $id = $this->service()->crearBorradorPorRiesgo($articulo->id, 100);
+        $actorId = Usuario::factory()->create()->id;
+
+        $primero = $this->service()->dispararLicitacion($id, $actorId);
+        $segundo = $this->service()->dispararLicitacion($id, $actorId);
+
+        $this->assertTrue($primero['disparada']);
+        $this->assertFalse($segundo['disparada']);
+        $this->assertSame('estado_invalido', $segundo['motivo']);
+    }
 }

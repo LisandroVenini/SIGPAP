@@ -251,6 +251,18 @@ final class CatalogoDeAlertas
                 'Disponible: {{disponible}} · Mínimo: {{minimo}} · Pedir antes del {{fecha_limite_pedido}}',
             ),
             new TipoDeAlerta(
+                'licitacion_no_disparada',
+                'Licitación no disparada',
+                'El riesgo de quiebre llegó a su fecha límite y la licitación automática no pudo enviarse.',
+                ModuloDeAlerta::Compras,
+                OrigenAlerta::Evento,
+                SeveridadAlerta::Atencion,
+                [Rol::EncargadoCompras, Rol::Gerente],
+                [],
+                ['articulo', 'motivo'],
+                'Motivo: {{motivo}}',
+            ),
+            new TipoDeAlerta(
                 'cuello_de_botella_predictivo',
                 'Cuello de botella predictivo',
                 'La fecha proyectada de una orden supera su fecha de entrega según la tasa de rendimiento real.',

@@ -4,6 +4,8 @@ namespace App\Modules\Inventario\Services;
 
 use App\Modules\Compras\Services\GestionSolicitudesDeCotizacionService;
 use App\Modules\Predictivo\Services\EvaluarRiesgoSuministroService;
+use App\Modules\Usuarios\Services\ParametroGlobalService;
+use App\Modules\Usuarios\Services\UsuariosService;
 use App\Shared\Alertas\Services\AlertaService;
 
 /**
@@ -11,8 +13,9 @@ use App\Shared\Alertas\Services\AlertaService;
  *
  * Inventario owns the stock, so it is the module that reacts: it asks the
  * predictive module for the criticality list, emits or closes the stock-break
- * alerts through the shared kernel and asks Compras for a draft request per
- * critical input.
+ * alerts through the shared kernel, asks Compras for a draft per critical
+ * input, and — when the manager enabled it — fires the licitation once the
+ * order-by date has arrived.
  */
 class EvaluarRiesgoDeSuministroService
 {
@@ -20,10 +23,12 @@ class EvaluarRiesgoDeSuministroService
         private readonly EvaluarRiesgoSuministroService $predictivo,
         private readonly GestionSolicitudesDeCotizacionService $compras,
         private readonly AlertaService $alertas,
+        private readonly ParametroGlobalService $parametros,
+        private readonly UsuariosService $usuarios,
     ) {}
 
     /**
-     * @return array{evaluados: int, criticos: int, alertas: int, borradores: int}
+     * @return array{evaluados: int, criticos: int, alertas: int, borradores: int, licitaciones: int}
      */
     public function evaluar(?string $fechaBase = null): array
     {
@@ -65,6 +70,60 @@ class EvaluarRiesgoDeSuministroService
             'criticos' => count($riesgo['criticidad']),
             'alertas' => $alertas,
             'borradores' => $borradores,
+            'licitaciones' => $this->dispararLicitaciones($riesgo['criticidad']),
         ];
+    }
+
+    /**
+     * Fire the pending drafts whose order-by date already arrived.
+     *
+     * @param  array<int, array<string, mixed>>  $criticidad
+     */
+    private function dispararLicitaciones(array $criticidad): int
+    {
+        if ($this->parametros->parametro('predictivo_licitacion_automatica') !== '1') {
+            return 0;
+        }
+
+        $actorId = $this->usuarios->usuarioSistema()->id;
+        $disparadas = 0;
+
+        foreach ($criticidad as $fila) {
+            if (($fila['riesgo'] ?? null) !== 'alto') {
+                continue;
+            }
+
+            $solicitudId = $this->compras->idDeBorradorAbiertoParaArticulo((int) $fila['articulo_id']);
+
+            if ($solicitudId === null) {
+                continue;
+            }
+
+            $resultado = $this->compras->dispararLicitacion($solicitudId, $actorId);
+
+            if ($resultado['disparada']) {
+                $disparadas++;
+
+                continue;
+            }
+
+            $this->alertas->emitirPorTipo('licitacion_no_disparada', [
+                'articulo' => $fila['descripcion'] ?? 'Artículo '.$fila['articulo_id'],
+                'motivo' => $this->motivoLicitacion($resultado['motivo']),
+                'articulo_id' => $fila['articulo_id'],
+            ], 'articulo:'.$fila['articulo_id'].':licitacion');
+        }
+
+        return $disparadas;
+    }
+
+    private function motivoLicitacion(?string $motivo): string
+    {
+        return match ($motivo) {
+            'sin_proveedores_con_email' => 'No hay proveedores con email para invitar.',
+            'estado_invalido' => 'La solicitud ya no está en borrador.',
+            'solicitud_inexistente' => 'La solicitud no existe.',
+            default => 'No se pudo disparar la licitación.',
+        };
     }
 }
