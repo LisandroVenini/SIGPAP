@@ -279,9 +279,6 @@ class GestionSolicitudesDeCotizacionService
     }
 
     /**
-     * @param  array<int, array{articulo_id: int, cantidad_solicitada: float|int|string}>  $lineas
-     */
-    /**
      * Create a draft request for an article at supply risk.
      *
      * The Inventario origin process calls this; it returns the new id or null

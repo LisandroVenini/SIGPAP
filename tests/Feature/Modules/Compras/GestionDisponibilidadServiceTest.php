@@ -154,12 +154,12 @@ class GestionDisponibilidadServiceTest extends TestCase
         $actor = $this->actor();
         $solicitud = $this->servicio()->crear($actor, $this->articulo()->id, 50, $this->proveedor()->id);
 
-        $antes = $this->servicio()->listar();
+        $antes = $this->servicio()->listarConRecomendacion();
         $this->assertFalse($antes[0]['respondida']);
 
         $this->servicio()->registrarRespuesta((string) $solicitud->token, 40, 100, '2026-12-05');
 
-        $despues = $this->servicio()->listar();
+        $despues = $this->servicio()->listarConRecomendacion();
         $this->assertTrue($despues[0]['respondida']);
         $this->assertSame('Aceros del Sur', $despues[0]['proveedor']);
     }

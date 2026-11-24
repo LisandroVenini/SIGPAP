@@ -9,6 +9,7 @@ use App\Modules\Compras\Models\Cotizacion;
 use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Compras\Models\SolicitudDeDisponibilidad;
 use App\Modules\Compras\Queries\PreciosDeReferenciaQuery;
+use App\Modules\Inventario\Services\ConsultaInventarioService;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Predictivo\Services\ResolverDisponibilidadService;
 use App\Modules\Usuarios\Models\Usuario;
@@ -35,6 +36,7 @@ class GestionDisponibilidadService
         private readonly AuditoriaService $auditoria,
         private readonly UsuariosService $usuarios,
         private readonly GestionArticulosService $articulos,
+        private readonly ConsultaInventarioService $inventario,
         private readonly ResolverDisponibilidadService $predictivo,
         private readonly PreciosDeReferenciaQuery $precios,
         private readonly ParametroGlobalService $parametros,
@@ -48,36 +50,51 @@ class GestionDisponibilidadService
     }
 
     /**
-     * @return array<int, array{id:int, articulo_id:int, articulo:string, proveedor_id:int, proveedor:string, cantidad_solicitada:float, fecha:string, fecha_requerida:string|null, estado:string, respondida:bool}>
+     * Inputs whose available stock is at or below their configured minimum.
+     *
+     * @return array<int, array{articulo_id:int, articulo:string, disponible:float, minimo:float}>
      */
-    public function listar(): array
+    public function bajosDeStock(): array
     {
-        $solicitudes = SolicitudDeDisponibilidad::query()
-            ->with('proveedor')
-            ->withExists(['cotizaciones as respondida'])
-            ->orderByDesc('fecha')
-            ->orderByDesc('id')
-            ->get();
-
-        $resumenes = $this->articulos->resumenesDeArticulos(
-            $solicitudes->pluck('articulo_id')->unique()->values()->all(),
-        );
-
-        return $solicitudes
-            ->map(fn (SolicitudDeDisponibilidad $solicitud): array => [
-                'id' => (int) $solicitud->id,
-                'articulo_id' => (int) $solicitud->articulo_id,
-                'articulo' => $resumenes[$solicitud->articulo_id]['descripcion'] ?? 'Artículo #'.$solicitud->articulo_id,
-                'proveedor_id' => (int) $solicitud->proveedor_id,
-                'proveedor' => $solicitud->proveedor->razon_social,
-                'cantidad_solicitada' => (float) $solicitud->cantidad_solicitada,
-                'fecha' => $solicitud->fecha->toDateString(),
-                'fecha_requerida' => $solicitud->fecha_requerida?->toDateString(),
-                'estado' => (string) $solicitud->estado,
-                'respondida' => (bool) $solicitud->respondida,
+        return collect($this->inventario->datosDeInventario()['articulos'])
+            ->filter(fn (array $articulo): bool => $articulo['stock_minimo'] > 0
+                && $articulo['disponible'] <= $articulo['stock_minimo'])
+            ->map(fn (array $articulo): array => [
+                'articulo_id' => (int) $articulo['id'],
+                'articulo' => (string) $articulo['descripcion'],
+                'disponible' => (float) $articulo['disponible'],
+                'minimo' => (float) $articulo['stock_minimo'],
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Register the supplier answer and evaluate it in one transaction.
+     *
+     * @return array<string, mixed>
+     */
+    public function responder(
+        string $token,
+        float $cantidadDisponible,
+        float $precioUnitario,
+        string $fechaPrometida,
+        ?string $direccionIp = null,
+    ): array {
+        return DB::transaction(function () use ($token, $cantidadDisponible, $precioUnitario, $fechaPrometida, $direccionIp): array {
+            $cotizacion = $this->registrarRespuesta(
+                $token,
+                $cantidadDisponible,
+                $precioUnitario,
+                $fechaPrometida,
+                $direccionIp,
+            );
+
+            $solicitud = SolicitudDeDisponibilidad::query()
+                ->findOrFail($cotizacion->solicitud_de_disponibilidad_id);
+
+            return $this->resolver($solicitud, null, $direccionIp);
+        });
     }
 
     public function crear(

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Compras\Controllers;
 
-use App\Modules\Compras\Models\SolicitudDeDisponibilidad;
 use App\Modules\Compras\Requests\StoreDisponibilidadRequest;
 use App\Modules\Compras\Services\GestionDisponibilidadService;
 use Illuminate\Http\RedirectResponse;
@@ -33,19 +32,13 @@ class PortalDisponibilidadController
 
     public function store(StoreDisponibilidadRequest $request, string $token): RedirectResponse
     {
-        $cotizacion = $this->disponibilidad->registrarRespuesta(
+        $this->disponibilidad->responder(
             $token,
             (float) $request->validated('cantidad_disponible'),
             (float) $request->validated('precio_unitario'),
             (string) $request->validated('fecha_prometida'),
             $request->ip(),
         );
-
-        $solicitud = SolicitudDeDisponibilidad::query()->find($cotizacion->solicitud_de_disponibilidad_id);
-
-        if ($solicitud !== null) {
-            $this->disponibilidad->resolver($solicitud, null, $request->ip());
-        }
 
         return redirect()
             ->route('portal.disponibilidad.show', ['token' => $token])
