@@ -38,7 +38,7 @@ class Feriado extends Model
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    public function scopeEnRango($query, string $desde, string $hasta): Builder
+    public function scopeEnRango(Builder $query, string $desde, string $hasta): Builder
     {
         return $query->whereBetween('fecha', [$desde, $hasta]);
     }
