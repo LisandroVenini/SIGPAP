@@ -200,6 +200,76 @@ export function barrasPorDia(
         .sort((a, b) => a.columna - b.columna);
 }
 
+/** Tailwind classes for a stage bar, shared by the day and hour views. */
+export function claseDeBarra(estado: string, conflicto: boolean): string {
+    if (conflicto) {
+        return 'border border-dashed border-oxide/70 bg-oxide/10 text-oxide';
+    }
+
+    if (estado === 'En Curso') {
+        return 'bg-teja text-white';
+    }
+
+    if (estado === 'Pospuesta') {
+        return 'border border-dashed border-oxide/50 bg-oxide/10 text-oxide';
+    }
+
+    if (estado === 'Asignada') {
+        return 'border border-dashed border-steel/60 bg-pine-wash text-pine';
+    }
+
+    return 'border border-dashed border-steel/50 bg-workshop text-steel';
+}
+
+export interface BloqueDelDia {
+    inicio: string;
+    fin: string;
+    izquierda: number;
+    ancho: number;
+}
+
+const MS_DIA_COMPLETO = 86_400_000;
+
+function aHoraLocal(valor: string): number {
+    return new Date(valor.replace(' ', 'T')).getTime();
+}
+
+/**
+ * Working blocks of a stage clipped to one calendar day, positioned as
+ * percentages of a 24-hour track.
+ */
+export function bloquesDelDia(
+    segmento: Pick<Segmento, 'segmentos' | 'inicio_en' | 'fin_en'>,
+    fecha: string,
+): BloqueDelDia[] {
+    const inicioDia = aHoraLocal(`${fecha} 00:00:00`);
+    const finDia = inicioDia + MS_DIA_COMPLETO;
+
+    const bloques =
+        segmento.segmentos ??
+        (segmento.inicio_en && segmento.fin_en
+            ? [{ inicio: segmento.inicio_en, fin: segmento.fin_en }]
+            : []);
+
+    return bloques
+        .map((bloque) => {
+            const inicio = Math.max(aHoraLocal(bloque.inicio), inicioDia);
+            const fin = Math.min(aHoraLocal(bloque.fin), finDia);
+
+            if (fin <= inicio) {
+                return null;
+            }
+
+            return {
+                inicio: bloque.inicio,
+                fin: bloque.fin,
+                izquierda: ((inicio - inicioDia) / MS_DIA_COMPLETO) * 100,
+                ancho: ((fin - inicio) / MS_DIA_COMPLETO) * 100,
+            };
+        })
+        .filter((bloque): bloque is BloqueDelDia => bloque !== null);
+}
+
 function formatearCorto(fecha: string): string {
     return `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 }

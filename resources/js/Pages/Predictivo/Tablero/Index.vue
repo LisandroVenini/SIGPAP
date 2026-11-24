@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import GanttHorario from '@/Components/Cronograma/GanttHorario.vue';
 import GanttTimeline from '@/Components/Cronograma/GanttTimeline.vue';
 import type { FilaCronograma, Horizonte } from '@/Components/Cronograma/gantt';
 import { HORIZONTES, lunesDe } from '@/Components/Cronograma/gantt';
@@ -70,6 +71,8 @@ const marcas = computed(() =>
 
 const desde = ref(lunesDe(props.cronograma.hoy));
 const horizonte = ref<Horizonte>(14);
+const vista = ref<'dias' | 'horas'>('dias');
+const fechaDetalle = ref(props.cronograma.hoy);
 const filtroEstado = ref(props.filtros.estado ?? '');
 const soloRiesgo = ref(props.filtros.solo_riesgo);
 
@@ -115,36 +118,69 @@ const tasaPromedio = (valor: number | null): string =>
                     </p>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        class="rounded-md border border-hairline bg-white px-3 py-1.5 text-sm text-steel hover:bg-workshop"
-                        @click="moverSemana(-1)"
+                <div class="flex flex-wrap items-center gap-2">
+                    <div
+                        class="flex items-center gap-1 rounded-md border border-hairline bg-white p-0.5"
                     >
-                        ← Semana
-                    </button>
-                    <button
-                        type="button"
-                        class="rounded-md border border-hairline bg-white px-3 py-1.5 text-sm text-steel hover:bg-workshop"
-                        @click="irAHoy"
-                    >
-                        Hoy
-                    </button>
-                    <button
-                        type="button"
-                        class="rounded-md border border-hairline bg-white px-3 py-1.5 text-sm text-steel hover:bg-workshop"
-                        @click="moverSemana(1)"
-                    >
-                        Semana →
-                    </button>
-                    <select
-                        v-model.number="horizonte"
+                        <button
+                            type="button"
+                            data-testid="vista-dias"
+                            class="rounded px-2 py-1 text-sm"
+                            :class="vista === 'dias' ? 'bg-teja text-white' : 'text-steel'"
+                            @click="vista = 'dias'"
+                        >
+                            Días
+                        </button>
+                        <button
+                            type="button"
+                            data-testid="vista-horas"
+                            class="rounded px-2 py-1 text-sm"
+                            :class="vista === 'horas' ? 'bg-teja text-white' : 'text-steel'"
+                            @click="vista = 'horas'"
+                        >
+                            Horas
+                        </button>
+                    </div>
+
+                    <input
+                        v-if="vista === 'horas'"
+                        v-model="fechaDetalle"
+                        type="date"
+                        data-testid="fecha-detalle"
                         class="rounded-md border border-hairline bg-white px-2 py-1.5 text-sm text-steel"
-                    >
-                        <option v-for="valor in HORIZONTES" :key="valor" :value="valor">
-                            {{ valor }} días
-                        </option>
-                    </select>
+                    />
+
+                    <template v-if="vista === 'dias'">
+                        <button
+                            type="button"
+                            class="rounded-md border border-hairline bg-white px-3 py-1.5 text-sm text-steel hover:bg-workshop"
+                            @click="moverSemana(-1)"
+                        >
+                            ← Semana
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded-md border border-hairline bg-white px-3 py-1.5 text-sm text-steel hover:bg-workshop"
+                            @click="irAHoy"
+                        >
+                            Hoy
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded-md border border-hairline bg-white px-3 py-1.5 text-sm text-steel hover:bg-workshop"
+                            @click="moverSemana(1)"
+                        >
+                            Semana →
+                        </button>
+                        <select
+                            v-model.number="horizonte"
+                            class="rounded-md border border-hairline bg-white px-2 py-1.5 text-sm text-steel"
+                        >
+                            <option v-for="valor in HORIZONTES" :key="valor" :value="valor">
+                                {{ valor }} días
+                            </option>
+                        </select>
+                    </template>
                 </div>
             </header>
 
@@ -238,12 +274,14 @@ const tasaPromedio = (valor: number | null): string =>
 
                 <section v-else class="rounded-lg border border-hairline bg-white p-4">
                     <GanttTimeline
+                        v-if="vista === 'dias'"
                         :filas="cronograma.filas"
                         :desde="desde"
                         :dias="horizonte"
                         :hoy="cronograma.hoy"
                         :marcas="marcas"
                     />
+                    <GanttHorario v-else :filas="cronograma.filas" :fecha="fechaDetalle" />
                 </section>
 
                 <section class="rounded-lg border border-hairline bg-white p-4">

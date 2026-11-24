@@ -170,4 +170,11 @@ describe('Tablero Predictivo', () => {
 
         expect(wrapper.text()).toContain('Sin insumos en riesgo de quiebre.');
     });
+    it('switches to the hourly view', async () => {
+        const wrapper = mount(Tablero, { props: props() });
+
+        await wrapper.get('[data-testid="vista-horas"]').trigger('click');
+
+        expect(wrapper.find('[data-testid="fecha-detalle"]').exists()).toBe(true);
+    });
 });

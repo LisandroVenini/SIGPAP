@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     barrasPorDia,
+    bloquesDelDia,
     columnasDe,
     diasEntre,
     lunesDe,
@@ -182,5 +183,38 @@ describe('barrasPorDia', () => {
 
     it('drops blocks outside the visible window', () => {
         expect(barrasPorDia(segmento, '2026-11-10', 7)).toEqual([]);
+    });
+});
+
+describe('bloquesDelDia', () => {
+    const segmento = {
+        inicio_en: '2026-11-06 19:00:00',
+        fin_en: '2026-11-09 09:00:00',
+        segmentos: [
+            { inicio: '2026-11-06 19:00:00', fin: '2026-11-06 20:00:00' },
+            { inicio: '2026-11-07 08:00:00', fin: '2026-11-07 12:00:00' },
+        ],
+    };
+
+    it('positions the working blocks of the day as percentages', () => {
+        const bloques = bloquesDelDia(segmento, '2026-11-06');
+
+        expect(bloques).toHaveLength(1);
+        expect(bloques[0].inicio).toBe('2026-11-06 19:00:00');
+        expect(bloques[0].izquierda).toBeCloseTo((19 / 24) * 100, 6);
+        expect(bloques[0].ancho).toBeCloseTo((1 / 24) * 100, 6);
+    });
+
+    it('returns nothing for a day without working blocks', () => {
+        expect(bloquesDelDia(segmento, '2026-11-08')).toEqual([]);
+    });
+
+    it('falls back to the resolved start and end', () => {
+        const bloques = bloquesDelDia(
+            { inicio_en: '2026-11-06 19:00:00', fin_en: '2026-11-06 20:00:00' },
+            '2026-11-06',
+        );
+
+        expect(bloques).toHaveLength(1);
     });
 });

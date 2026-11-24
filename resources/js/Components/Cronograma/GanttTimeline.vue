@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { FilaCronograma, MarcaDeAbastecimiento, Segmento } from './gantt';
-import { barrasPorDia, columnasDe, posicionarMarca } from './gantt';
+import { barrasPorDia, claseDeBarra, columnasDe, posicionarMarca } from './gantt';
 
 const props = defineProps<{
     filas: FilaCronograma[];
@@ -47,23 +47,7 @@ function barrasDe(
 }
 
 function claseDeEstado(estado: string, conflicto: boolean): string {
-    if (conflicto) {
-        return 'border border-dashed border-oxide/70 bg-oxide/10 text-oxide';
-    }
-
-    if (estado === 'En Curso') {
-        return 'bg-teja text-white';
-    }
-
-    if (estado === 'Pospuesta') {
-        return 'border border-dashed border-oxide/50 bg-oxide/10 text-oxide';
-    }
-
-    if (estado === 'Asignada') {
-        return 'border border-dashed border-steel/60 bg-pine-wash text-pine';
-    }
-
-    return 'border border-dashed border-steel/50 bg-workshop text-steel';
+    return claseDeBarra(estado, conflicto);
 }
 
 function claseBadge(estado: string): string {
