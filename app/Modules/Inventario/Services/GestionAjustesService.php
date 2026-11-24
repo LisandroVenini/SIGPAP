@@ -18,6 +18,7 @@ class GestionAjustesService
     public function __construct(
         private readonly AuditoriaService $auditoria,
         private readonly AlertaService $alertas,
+        private readonly EvaluarStockMinimoService $stockMinimo,
     ) {}
 
     public function ajustar(
@@ -33,7 +34,7 @@ class GestionAjustesService
             ]);
         }
 
-        return DB::transaction(function () use ($actor, $articulo, $nuevoStock, $motivo, $direccionIp): Articulo {
+        $ajustado = DB::transaction(function () use ($actor, $articulo, $nuevoStock, $motivo, $direccionIp): Articulo {
             $articulo = Articulo::query()
                 ->whereKey($articulo->getKey())
                 ->lockForUpdate()
@@ -96,5 +97,9 @@ class GestionAjustesService
 
             return $articulo;
         });
+
+        $this->stockMinimo->evaluar($ajustado->id);
+
+        return $ajustado;
     }
 }

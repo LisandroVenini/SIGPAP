@@ -2,7 +2,12 @@
 
 namespace Tests\Feature\Modules\Compras;
 
+use App\Modules\Compras\Mail\SolicitudDeCotizacionMail;
+use App\Modules\Compras\Models\Cotizacion;
+use App\Modules\Compras\Models\LineaCotizacion;
 use App\Modules\Compras\Models\Proveedor;
+use App\Modules\Compras\Models\SolicitudDeCotizacion;
+use App\Modules\Compras\Services\GestionSolicitudesDeCotizacionService;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
@@ -307,5 +312,39 @@ class SolicitudDeCotizacionControllerTest extends TestCase
         // Assert
         $response->assertSessionHasErrors('proveedores');
         $this->assertDatabaseCount('solicitudes_de_cotizacion', 0);
+    }
+
+    public function test_a_purchasing_manager_sends_a_draft(): void
+    {
+        Mail::fake();
+        $usuario = $this->usuarioConRol(Rol::EncargadoCompras);
+        $articulo = Articulo::factory()->create(['tipo' => 'Materia Prima', 'estado' => 'Activo']);
+        $proveedor = Proveedor::factory()->create([
+            'razon_social' => 'Aceros del Sur',
+            'email' => 'ventas@aceros.test',
+            'estado' => 'Activo',
+        ]);
+
+        $cotizacion = Cotizacion::factory()->create([
+            'proveedor_id' => $proveedor->id,
+            'fecha' => now()->toDateString(),
+        ]);
+        LineaCotizacion::factory()->create([
+            'cotizacion_id' => $cotizacion->id,
+            'articulo_id' => $articulo->id,
+        ]);
+
+        $servicio = app(GestionSolicitudesDeCotizacionService::class);
+        $id = $servicio->crearBorradorPorRiesgo($articulo->id, 50);
+
+        $this->actingAs($usuario)
+            ->post("/compras/solicitudes-de-cotizacion/{$id}/enviar")
+            ->assertRedirect();
+
+        $this->assertSame(
+            'Enviada',
+            SolicitudDeCotizacion::query()->findOrFail($id)->estado,
+        );
+        Mail::assertSent(SolicitudDeCotizacionMail::class);
     }
 }

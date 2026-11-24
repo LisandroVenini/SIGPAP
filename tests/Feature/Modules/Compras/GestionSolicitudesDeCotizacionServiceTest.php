@@ -650,7 +650,7 @@ class GestionSolicitudesDeCotizacionServiceTest extends TestCase
     public function test_a_draft_invites_a_supplier_that_already_quoted_the_article(): void
     {
         $articulo = $this->articulo('Tabla de pino');
-        $proveedor = $this->proveedor('Aceros del Sur', null);
+        $proveedor = $this->proveedor('Aceros del Sur', 'ventas@aceros.test');
 
         $cotizacion = CotizacionFactory::new()->create(['proveedor_id' => $proveedor->id]);
         LineaCotizacionFactory::new()->create([

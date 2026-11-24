@@ -14,7 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class GestionReservasService
 {
-    public function __construct(private readonly ReservasQuery $query) {}
+    public function __construct(
+        private readonly ReservasQuery $query,
+        private readonly EvaluarStockMinimoService $stockMinimo,
+    ) {}
 
     /**
      * Available stock is the physical stock minus the current reservations.
@@ -46,7 +49,7 @@ class GestionReservasService
     {
         $this->asegurarCantidadesPositivas($cantidades);
 
-        return DB::transaction(function () use ($ordenDeProduccionId, $cantidades): array {
+        $resultado = DB::transaction(function () use ($ordenDeProduccionId, $cantidades): array {
             $articuloIds = array_keys($cantidades);
 
             // Locking the article rows serializes concurrent reservations for the same insumos.
@@ -97,16 +100,43 @@ class GestionReservasService
 
             return ['faltantes' => [], 'cubierto' => true];
         });
+
+        // A reservation lowers the available stock, so the minimum may be crossed now.
+        foreach (array_keys($cantidades) as $articuloId) {
+            $this->stockMinimo->evaluar((int) $articuloId);
+        }
+
+        return $resultado;
     }
 
-    public function liberar(int $ordenDeProduccionId): void
+    /**
+     * @return array<int, int> the articles whose availability changed
+     */
+    public function liberar(int $ordenDeProduccionId): array
     {
-        DB::transaction(function () use ($ordenDeProduccionId): void {
+        $articuloIds = DB::transaction(function () use ($ordenDeProduccionId): array {
+            $ids = Reserva::query()
+                ->where('orden_de_produccion_id', $ordenDeProduccionId)
+                ->where('estado', EstadoReserva::Vigente->value)
+                ->pluck('articulo_id')
+                ->map(fn ($id): int => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
             Reserva::query()
                 ->where('orden_de_produccion_id', $ordenDeProduccionId)
                 ->where('estado', EstadoReserva::Vigente->value)
                 ->update(['estado' => EstadoReserva::Liberada->value]);
+
+            return $ids;
         });
+
+        foreach ($articuloIds as $articuloId) {
+            $this->stockMinimo->evaluar($articuloId);
+        }
+
+        return $articuloIds;
     }
 
     /**
@@ -269,6 +299,13 @@ class GestionReservasService
 
             return $consumido;
         });
+
+        // Consumption lowers the physical stock: refresh the alert and the draft.
+        foreach (array_keys($consumido) as $articuloId) {
+            $this->stockMinimo->evaluar((int) $articuloId);
+        }
+
+        return $consumido;
     }
 
     /**

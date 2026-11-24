@@ -378,4 +378,31 @@ describe('Compras SolicitudesDeCotizacion page', () => {
             expect.objectContaining({ preserveScroll: true }),
         );
     });
+    it('sends a draft request for quotation', async () => {
+        const wrapper = mount(Solicitudes, {
+            props: {
+                ...props,
+                solicitudes: {
+                    ...props.solicitudes,
+                    data: [
+                        {
+                            ...props.solicitudes.data[0],
+                            id: 9,
+                            estado: 'Borrador',
+                            estado_visible: 'Borrador',
+                        },
+                    ],
+                    total: 1,
+                },
+            },
+        });
+
+        await wrapper.get('[data-testid="enviar-9"]').trigger('click');
+
+        expect(hoisted.routerPost).toHaveBeenCalledWith(
+            '/compras/solicitudes-de-cotizacion/9/enviar',
+            {},
+            { preserveScroll: true },
+        );
+    });
 });

@@ -312,10 +312,10 @@ class GestionSolicitudesDeCotizacionService
                 'cantidad_solicitada' => round($cantidad, 2),
             ]);
 
-            $proveedor = $this->mejorProveedorParaArticulo($articuloId);
+            $proveedores = $this->proveedoresSugeridosParaArticulo($articuloId);
 
-            if ($proveedor !== null) {
-                $solicitud->proveedores()->attach($proveedor);
+            if ($proveedores !== []) {
+                $solicitud->proveedores()->attach($proveedores);
             }
 
             return (int) $solicitud->id;
@@ -409,25 +409,30 @@ class GestionSolicitudesDeCotizacionService
     }
 
     /**
-     * Best suppliers to invite for the draft lines: those that already quoted
-     * the articles, ranked, with an email. Never invents a supplier.
+     * Best suppliers with email for one article: those that already quoted it,
+     * ranked by performance. Never invents a supplier.
      *
      * @return array<int, int>
      */
-    private function proveedoresParaLicitacion(SolicitudDeCotizacion $solicitud): array
+    public function proveedoresSugeridosParaArticulo(int $articuloId): array
     {
-        $limite = max(1, (int) ($this->parametros->parametro('compras_proveedores_por_licitacion') ?? 3));
-        $leadTimes = $this->leadTimes->resumen()['por_articulo'];
+        $candidatos = $this->leadTimes->resumen()['por_articulo'][$articuloId]['proveedor_ids'] ?? [];
 
-        $candidatos = [];
+        return $this->seleccionarProveedores($candidatos, [], $this->limiteDeProveedores());
+    }
 
-        foreach ($solicitud->lineas as $linea) {
-            $candidatos = array_merge(
-                $candidatos,
-                $leadTimes[(int) $linea->articulo_id]['proveedor_ids'] ?? [],
-            );
-        }
+    private function limiteDeProveedores(): int
+    {
+        return max(1, (int) ($this->parametros->parametro('compras_proveedores_por_licitacion') ?? 3));
+    }
 
+    /**
+     * @param  array<int, int>  $candidatos
+     * @param  array<int, int>  $actuales
+     * @return array<int, int>
+     */
+    private function seleccionarProveedores(array $candidatos, array $actuales, int $limite): array
+    {
         $candidatos = array_values(array_unique(array_map('intval', $candidatos)));
         $puntajes = $this->ranking->puntajesPorProveedor($candidatos);
 
@@ -446,6 +451,27 @@ class GestionSolicitudesDeCotizacionService
             ->all();
 
         $seleccion = array_values(array_intersect($ordenados, $conEmail));
+        $seleccion = array_values(array_unique(array_merge($actuales, $seleccion)));
+
+        return array_slice($seleccion, 0, $limite);
+    }
+
+    /**
+     * Best suppliers to invite for the draft lines.
+     *
+     * @return array<int, int>
+     */
+    private function proveedoresParaLicitacion(SolicitudDeCotizacion $solicitud): array
+    {
+        $leadTimes = $this->leadTimes->resumen()['por_articulo'];
+        $candidatos = [];
+
+        foreach ($solicitud->lineas as $linea) {
+            $candidatos = array_merge(
+                $candidatos,
+                $leadTimes[(int) $linea->articulo_id]['proveedor_ids'] ?? [],
+            );
+        }
 
         $actuales = $solicitud->proveedores()
             ->whereNotNull('email')
@@ -453,28 +479,7 @@ class GestionSolicitudesDeCotizacionService
             ->map(fn ($id): int => (int) $id)
             ->all();
 
-        $seleccion = array_values(array_unique(array_merge($actuales, $seleccion)));
-
-        return array_slice($seleccion, 0, $limite);
-    }
-
-    private function mejorProveedorParaArticulo(int $articuloId): ?int
-    {
-        $candidatos = $this->leadTimes->resumen()['por_articulo'][$articuloId]['proveedor_ids'] ?? [];
-
-        if ($candidatos === []) {
-            return null;
-        }
-
-        $puntajes = $this->ranking->puntajesPorProveedor($candidatos);
-
-        if ($puntajes === []) {
-            return $candidatos[0];
-        }
-
-        uasort($puntajes, fn (array $a, array $b): int => $b['puntaje'] <=> $a['puntaje']);
-
-        return (int) array_key_first($puntajes);
+        return $this->seleccionarProveedores($candidatos, $actuales, $this->limiteDeProveedores());
     }
 
     private function reemplazarLineas(SolicitudDeCotizacion $solicitud, array $lineas): void

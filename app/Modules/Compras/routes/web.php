@@ -55,6 +55,9 @@ Route::middleware('web')->group(function (): void {
                 Route::post('solicitudes-de-cotizacion/{solicitud}/anular', [SolicitudDeCotizacionController::class, 'anular'])
                     ->whereNumber('solicitud')
                     ->name('solicitudes-de-cotizacion.anular');
+                Route::post('solicitudes-de-cotizacion/{solicitud}/enviar', [SolicitudDeCotizacionController::class, 'enviar'])
+                    ->whereNumber('solicitud')
+                    ->name('solicitudes-de-cotizacion.enviar');
 
                 Route::get('ordenes-de-compra', [OrdenDeCompraController::class, 'index'])
                     ->name('ordenes-de-compra.index');

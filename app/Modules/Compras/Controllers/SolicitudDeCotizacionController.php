@@ -12,6 +12,7 @@ use App\Modules\Compras\Services\GestionSolicitudesDeCotizacionService;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,6 +60,23 @@ class SolicitudDeCotizacionController
         return redirect()
             ->route('compras.solicitudes-de-cotizacion.index')
             ->with('success', 'Solicitud de cotización actualizada.');
+    }
+
+    public function enviar(Request $request, SolicitudDeCotizacion $solicitud): RedirectResponse
+    {
+        /** @var Usuario $actor */
+        $actor = $request->user();
+
+        abort_unless($this->solicitudes->puedeGestionar($actor), 403);
+
+        $resultado = $this->solicitudes->dispararLicitacion($solicitud->id, $actor->id);
+
+        return back()->with(
+            $resultado['disparada'] ? 'success' : 'error',
+            $resultado['disparada']
+                ? 'Solicitud de cotización enviada.'
+                : 'No se pudo enviar la solicitud: revisá los proveedores con email.',
+        );
     }
 
     public function anular(AnularSolicitudRequest $request, SolicitudDeCotizacion $solicitud): RedirectResponse
