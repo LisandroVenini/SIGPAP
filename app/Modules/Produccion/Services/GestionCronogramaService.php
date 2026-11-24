@@ -5,6 +5,7 @@ namespace App\Modules\Produccion\Services;
 use App\Modules\Auditoria\Services\AuditoriaService;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Predictivo\Services\PrediccionDeTiemposService;
+use App\Modules\Produccion\DTOs\OrdenDeSimulacion;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\MotivoCambioPrioridad;
 use App\Modules\Produccion\Models\LineaBaseDeCronograma;
@@ -38,6 +39,9 @@ class GestionCronogramaService
 
     /**
      * @return array{inicio: string, hoy: string, dias: int, filas: array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa_id:int, etapa:string, inicio:string, fin:string, inicio_en:string, fin_en:string, dias:int, minutos:int, segmentos: array<int, array{inicio:string, fin:string}>, producida:float, plan: array{inicio:string, fin:string}|null}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>}
+     */
+    /**
+     * @param  Collection<int, OrdenDeSimulacion>|null  $ordenesExtra
      */
     public function proyectar(?Collection $ordenesExtra = null): array
     {
@@ -137,7 +141,7 @@ class GestionCronogramaService
     }
 
     /**
-     * @param  Collection<int, OrdenDeProduccion>  $ordenes
+     * @param  Collection<int, OrdenDeProduccion|OrdenDeSimulacion>  $ordenes
      * @return array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa_id:int, etapa:string, inicio:string, fin:string, inicio_en:string, fin_en:string, dias:int, minutos:int, segmentos: array<int, array{inicio:string, fin:string}>, producida:float, plan: array{inicio:string, fin:string}|null}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>
      */
     private function construirFilas(Collection $ordenes): array

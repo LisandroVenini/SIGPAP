@@ -7,6 +7,7 @@ use App\Modules\Inventario\Enums\OrigenArticulo;
 use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
 use App\Modules\Predictivo\Models\TasaDeRendimiento;
+use App\Modules\Produccion\DTOs\OrdenDeSimulacion;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\MotivoCambioPrioridad;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
@@ -604,14 +605,14 @@ class GestionCronogramaServiceTest extends TestCase
             'fecha_entrega' => now()->addDays(30)->toDateString(),
         ]);
 
-        $ficticia = new OrdenDeProduccion([
-            'articulo_id' => $producto->id,
-            'estado' => 'Pendiente',
-            'cantidad_requerida' => 8,
-            'fecha_entrega' => now()->addDays(30)->toDateString(),
-            'prioridad_actual' => 1,
-        ]);
-        $ficticia->id = -1;
+        $ficticia = new OrdenDeSimulacion(
+            id: -1,
+            articulo_id: $producto->id,
+            cantidad_requerida: 8.0,
+            estado: 'Pendiente',
+            fecha_entrega: CarbonImmutable::parse(now()->addDays(30)->toDateString()),
+            prioridad_actual: 1,
+        );
 
         // Act
         $simulada = app(GestionCronogramaService::class)->proyectar(collect([$ficticia]));

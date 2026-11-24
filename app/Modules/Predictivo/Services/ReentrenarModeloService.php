@@ -67,7 +67,7 @@ class ReentrenarModeloService
                     'muestras' => $muestras,
                 ]);
             } catch (MLEngineException $error) {
-                if (in_array($error->codigo, self::CODIGOS_TRANSITORIOS, true)) {
+                if ($this->esErrorTransitorio($error)) {
                     throw $error;
                 }
 
@@ -105,6 +105,14 @@ class ReentrenarModeloService
         }
 
         return ['entrenadas' => $entrenadas, 'omitidas' => $omitidas, 'drift' => $drift];
+    }
+
+    /**
+     * Whether the engine failure is transient and worth retrying later.
+     */
+    public function esErrorTransitorio(MLEngineException $error): bool
+    {
+        return in_array($error->codigo, self::CODIGOS_TRANSITORIOS, true);
     }
 
     /**

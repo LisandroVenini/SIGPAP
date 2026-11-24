@@ -190,7 +190,7 @@ class PrediccionDeTiemposService
     }
 
     /**
-     * @param  array{etapa_id:int, tiempo_por_unidad:float, cantidad_pendiente:float, fecha_base:string, muestras:array<int, array{fecha:string, cantidad_conformada:float}>}  $datos
+     * @param  array{etapa_id:int, tiempo_por_unidad:float, cantidad_pendiente:float, fecha_base:string, minutos_habiles_por_dia:int, muestras:array<int, array{fecha:string, cantidad_conformada:float, minutos_habiles:int, tiempo_por_unidad?:float}>}  $datos
      * @return array{etapa_id:int, valor:float, desviacion:float, dias_proyectados:float, origen:string, metricas:array{r2:float|null, mae:float|null, n_muestras:int}}
      */
     private function predecir(array $datos): array

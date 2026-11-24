@@ -3,7 +3,8 @@
 namespace App\Modules\Predictivo\Services;
 
 use App\Modules\Predictivo\Models\EscenarioDeSimulacion;
-use App\Modules\Produccion\Models\OrdenDeProduccion;
+use App\Modules\Produccion\DTOs\OrdenDeSimulacion;
+use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Services\GestionCronogramaService;
 use Carbon\CarbonImmutable;
 
@@ -109,21 +110,17 @@ class SimularEscenarioService
         ];
     }
 
-    private function ordenFicticia(int $articuloId, float $cantidad, string $fechaLimite): OrdenDeProduccion
+    private function ordenFicticia(int $articuloId, float $cantidad, string $fechaLimite): OrdenDeSimulacion
     {
-        $ficticia = new OrdenDeProduccion([
-            'articulo_id' => $articuloId,
-            'estado' => 'Pendiente',
-            'cantidad_requerida' => $cantidad,
-            'fecha_entrega' => $fechaLimite,
-            'prioridad_actual' => 1,
-            'cantidad_producida' => 0,
-        ]);
-
         // Never persisted: a negative key keeps it out of the real data.
-        $ficticia->id = -1;
-
-        return $ficticia;
+        return new OrdenDeSimulacion(
+            id: -1,
+            articulo_id: $articuloId,
+            cantidad_requerida: $cantidad,
+            estado: EstadoOrdenProduccion::Pendiente->value,
+            fecha_entrega: CarbonImmutable::parse($fechaLimite)->startOfDay(),
+            prioridad_actual: 1,
+        );
     }
 
     /**

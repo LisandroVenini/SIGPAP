@@ -30,7 +30,7 @@ class ReentrenarModeloJob implements ShouldQueue
 
             Log::info('Predictive model retrained.', $resultado);
         } catch (MLEngineException $error) {
-            if (in_array($error->codigo, ['timeout', 'proceso_fallido', 'respuesta_invalida'], true)) {
+            if ($servicio->esErrorTransitorio($error)) {
                 $alertas->emitirPorTipo('reentrenamiento_fallido', [
                     'motivo' => $error->codigo === 'timeout'
                         ? 'Timeout del componente predictivo'
