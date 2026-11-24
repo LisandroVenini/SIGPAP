@@ -25,7 +25,7 @@ function bloquesDe(
     );
 }
 
-function etiqueta(fila: FilaCronograma, segmento: Segmento): string {
+function etiqueta(segmento: Segmento): string {
     return `${segmento.etapa} · ${segmento.inicio_en ?? segmento.inicio} → ${segmento.fin_en ?? segmento.fin}`;
 }
 </script>
@@ -91,7 +91,7 @@ function etiqueta(fila: FilaCronograma, segmento: Segmento): string {
                                 marginLeft: `${bloque.izquierda}%`,
                                 width: `${bloque.ancho}%`,
                             }"
-                            :title="etiqueta(fila, bloque.segmento)"
+                            :title="etiqueta(bloque.segmento)"
                             :data-testid="`bloque-hora-${fila.orden_id}`"
                         >
                             <span class="truncate">{{ bloque.segmento.etapa }}</span>

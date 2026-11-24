@@ -147,15 +147,6 @@ export function posicionarMarca(
     return { columna: indice + 1, left: (indice / dias) * 100 };
 }
 
-/** Number of whole hours between two datetimes. */
-export function horasEntre(desde: string, hasta: string): number {
-    return (
-        (new Date(hasta.replace(' ', 'T')).getTime() -
-            new Date(desde.replace(' ', 'T')).getTime()) /
-        3_600_000
-    );
-}
-
 /**
  * Split a stage into one bar per working day, using its real working blocks.
  * A stage that stops at night or over the weekend no longer paints a

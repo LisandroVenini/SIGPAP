@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     barrasPorDia,
     bloquesDelDia,
+    claseDeBarra,
     columnasDe,
     diasEntre,
     lunesDe,
@@ -216,5 +217,23 @@ describe('bloquesDelDia', () => {
         );
 
         expect(bloques).toHaveLength(1);
+    });
+});
+
+describe('claseDeBarra', () => {
+    it('prioritizes the delivery conflict over the stage state', () => {
+        expect(claseDeBarra('En Curso', true)).toContain('border-dashed');
+    });
+
+    it('paints the state of a stage without conflict', () => {
+        expect(claseDeBarra('En Curso', false)).toBe('bg-teja text-white');
+        expect(claseDeBarra('Pospuesta', false)).toContain('border-dashed');
+        expect(claseDeBarra('Asignada', false)).toContain('bg-pine-wash');
+    });
+
+    it('falls back to the neutral class for any other state', () => {
+        expect(claseDeBarra('Finalizada', false)).toBe(
+            'border border-dashed border-steel/50 bg-workshop text-steel',
+        );
     });
 });
