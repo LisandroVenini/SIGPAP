@@ -14,6 +14,7 @@ export interface Segmento {
     dias: number;
     minutos?: number;
     segmentos?: BloqueDeTrabajo[];
+    plan?: { inicio: string; fin: string } | null;
     producida: number;
 }
 

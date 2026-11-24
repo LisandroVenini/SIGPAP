@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { FilaCronograma, MarcaDeAbastecimiento, Segmento } from './gantt';
-import { barrasPorDia, claseDeBarra, columnasDe, posicionarMarca } from './gantt';
+import {
+    barrasPorDia,
+    claseDeBarra,
+    columnasDe,
+    posicionarMarca,
+    posicionarSegmento,
+} from './gantt';
 
 const props = defineProps<{
     filas: FilaCronograma[];
@@ -44,6 +50,24 @@ function barrasDe(
             horario: barra.horario,
         })),
     );
+}
+
+function planesDe(
+    fila: FilaCronograma,
+): Array<{ segmento: Segmento; columna: number; span: number }> {
+    return fila.etapas.flatMap((segmento) => {
+        if (!segmento.plan) {
+            return [];
+        }
+
+        const barra = posicionarSegmento(
+            { inicio: segmento.plan.inicio.slice(0, 10), fin: segmento.plan.fin.slice(0, 10) },
+            props.desde,
+            props.dias,
+        );
+
+        return barra === null ? [] : [{ segmento, columna: barra.columna, span: barra.span }];
+    });
 }
 
 function claseDeEstado(estado: string, conflicto: boolean): string {
@@ -216,9 +240,25 @@ function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento, horario: stri
                             ></div>
 
                             <div
+                                v-for="plan in planesDe(fila)"
+                                :key="`plan-${plan.segmento.etapa}-${plan.columna}`"
+                                class="relative z-0 mt-1 h-1.5 self-start rounded-sm border border-dashed border-steel/60 bg-steel/10"
+                                :style="{
+                                    gridRow: 1,
+                                    gridColumn: `${plan.columna} / span ${plan.span}`,
+                                }"
+                                :title="
+                                    plan.segmento.plan
+                                        ? `Plan: ${plan.segmento.plan.inicio} → ${plan.segmento.plan.fin}`
+                                        : ''
+                                "
+                                :data-testid="`plan-orden-${fila.orden_id}`"
+                            ></div>
+
+                            <div
                                 v-for="barra in barrasDe(fila)"
                                 :key="`${barra.segmento.etapa}-${barra.fecha}`"
-                                class="relative z-10 my-1.5 flex h-7 items-center justify-between gap-1 overflow-hidden rounded px-1.5 text-[0.625rem] font-medium"
+                                class="relative z-10 mb-1 flex h-5 items-center justify-between gap-1 self-end overflow-hidden rounded px-1.5 text-[0.625rem] font-medium"
                                 :class="claseDeEstado(fila.estado, fila.conflicto_entrega)"
                                 :style="{
                                     gridRow: 1,
