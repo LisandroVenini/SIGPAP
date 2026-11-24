@@ -81,6 +81,17 @@ def construir_muestras(
         if minutos <= 0:
             continue
 
+        tiempo = numero(
+            muestra.get("tiempo_por_unidad", tiempo_por_unidad),
+            "muestra.tiempo_por_unidad",
+        )
+
+        if tiempo <= 0:
+            raise ErrorDeDominio(
+                "tiempo_por_unidad_invalido",
+                "muestra.tiempo_por_unidad must be greater than zero",
+            )
+
         registros.append(
             {
                 "fecha": fecha_iso(muestra.get("fecha"), "muestra.fecha"),
@@ -88,11 +99,15 @@ def construir_muestras(
                     muestra.get("cantidad_conformada"), "muestra.cantidad_conformada"
                 ),
                 "minutos_habiles": minutos,
+                "tiempo_por_unidad": tiempo,
             }
         )
 
-    columnas = ["fecha", "cantidad_conformada", "minutos_habiles", "indice_dia", "tasa"]
-    frame = pd.DataFrame(registros, columns=["fecha", "cantidad_conformada", "minutos_habiles"])
+    columnas = ["fecha", "cantidad_conformada", "minutos_habiles", "tiempo_por_unidad", "indice_dia", "tasa"]
+    frame = pd.DataFrame(
+        registros,
+        columns=["fecha", "cantidad_conformada", "minutos_habiles", "tiempo_por_unidad"],
+    )
 
     if frame.empty:
         return pd.DataFrame(columns=columnas)
@@ -100,7 +115,9 @@ def construir_muestras(
     frame["fecha"] = pd.to_datetime(frame["fecha"])
     frame = frame.sort_values("fecha").reset_index(drop=True)
     frame["indice_dia"] = (frame["fecha"] - frame["fecha"].min()).dt.days
-    frame["tasa"] = frame["cantidad_conformada"] / (frame["minutos_habiles"] / tiempo_por_unidad)
+    frame["tasa"] = frame["cantidad_conformada"] / (
+        frame["minutos_habiles"] / frame["tiempo_por_unidad"]
+    )
 
     return frame
 

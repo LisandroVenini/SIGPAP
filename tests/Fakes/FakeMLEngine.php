@@ -61,9 +61,11 @@ final class FakeMLEngine implements MLEngine
             throw $this->error;
         }
 
-        return [
+        return $this->resultado + [
             'etapa_id' => (int) ($datos['etapa_id'] ?? 0),
             'metricas' => ['r2' => null, 'mae' => 0.0, 'n_muestras' => 0],
+            'metricas_anteriores' => null,
+            'delta' => ['r2' => null, 'mae' => null],
             'n_muestras' => 0,
             'guardado' => true,
         ];

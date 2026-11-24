@@ -17,16 +17,12 @@ def test_training_persists_the_model_and_returns_its_metrics():
         }
     )
 
-    assert resultado == {
-        "etapa_id": 3,
-        "metricas": {
-            "r2": resultado["metricas"]["r2"],
-            "mae": resultado["metricas"]["mae"],
-            "n_muestras": 4,
-        },
-        "n_muestras": 4,
-        "guardado": True,
-    }
+    assert resultado["etapa_id"] == 3
+    assert resultado["n_muestras"] == 4
+    assert resultado["guardado"] is True
+    assert resultado["metricas"]["n_muestras"] == 4
+    assert resultado["metricas_anteriores"] is None
+    assert resultado["delta"] == {"r2": None, "mae": None}
 
     from engine.settings import ruta_modelo_trr
 
@@ -49,3 +45,25 @@ def test_training_requires_enough_samples():
 def test_training_rejects_a_missing_stage():
     with pytest.raises(ErrorDeDominio):
         entrenar({"tiempo_por_unidad": TIEMPO_POR_UNIDAD, "muestras": muestras(48, 40, 30)})
+
+def test_training_reports_the_drift_against_the_previous_model():
+    entrenar(
+        {
+            "etapa_id": 4,
+            "tiempo_por_unidad": TIEMPO_POR_UNIDAD,
+            "muestras": muestras(48, 43.2, 38.4, 33.6),
+        }
+    )
+
+    # A much noisier series lowers the in-sample fit.
+    resultado = entrenar(
+        {
+            "etapa_id": 4,
+            "tiempo_por_unidad": TIEMPO_POR_UNIDAD,
+            "muestras": muestras(48, 10, 45, 5),
+        }
+    )
+
+    assert resultado["metricas_anteriores"] is not None
+    assert resultado["delta"]["r2"] is not None
+    assert resultado["delta"]["r2"] < 0

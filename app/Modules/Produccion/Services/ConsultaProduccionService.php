@@ -7,6 +7,9 @@ use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Queries\CronogramaQuery;
 use App\Modules\Produccion\Queries\HojaDeRutaQuery;
 use App\Modules\Produccion\Queries\PartesDiariosQuery;
+use App\Modules\Produccion\Queries\PartesHistoricosQuery;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -22,6 +25,8 @@ class ConsultaProduccionService
         private readonly CronogramaQuery $cronograma,
         private readonly HojaDeRutaQuery $hojaDeRuta,
         private readonly PartesDiariosQuery $partesDiarios,
+        private readonly PartesHistoricosQuery $partesHistoricos,
+        private readonly CalendarioLaboral $calendario,
     ) {}
 
     /**
@@ -80,6 +85,36 @@ class ConsultaProduccionService
                 ->all(),
             'generado_en' => now()->toDateTimeString(),
         ];
+    }
+
+    /**
+     * Historical daily parts grouped by stage, for model training.
+     *
+     * @return array<int, array{etapa_id:int, etapa:string, muestras: array<int, array{fecha:string, cantidad_conformada:float, minutos_habiles:int, tiempo_por_unidad:float}>}>
+     */
+    public function historicoDePartes(string $desde, string $hasta): array
+    {
+        $porEtapa = [];
+
+        foreach ($this->partesHistoricos->entre($desde, $hasta) as $fila) {
+            $etapaId = (int) $fila->etapa_id;
+            $fecha = Carbon::parse((string) $fila->fecha)->toDateString();
+
+            $porEtapa[$etapaId] ??= [
+                'etapa_id' => $etapaId,
+                'etapa' => (string) $fila->etapa,
+                'muestras' => [],
+            ];
+
+            $porEtapa[$etapaId]['muestras'][] = [
+                'fecha' => $fecha,
+                'cantidad_conformada' => (float) $fila->cantidad_conformada,
+                'minutos_habiles' => $this->calendario->minutosDelDia(CarbonImmutable::parse($fecha)),
+                'tiempo_por_unidad' => (float) $fila->tiempo_por_unidad,
+            ];
+        }
+
+        return array_values($porEtapa);
     }
 
     /**

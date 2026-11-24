@@ -154,3 +154,14 @@ def test_an_invalid_stage_is_rejected():
 def test_an_invalid_sample_is_rejected():
     with pytest.raises(ErrorDeDominio):
         predecir(datos_prediccion(muestras=[{"fecha": "ayer", "cantidad_conformada": 1}]))
+
+def test_a_sample_can_carry_its_own_standard_time():
+    # Same stage, different article standard: 480 minutes / 20 min per unit = 24 units.
+    # With the default standard (10) the rate would be 0.25 instead of 0.5.
+    frame = construir_muestras(
+        [{"fecha": "2026-11-02", "cantidad_conformada": 12, "tiempo_por_unidad": 20}],
+        TIEMPO_POR_UNIDAD,
+        480,
+    )
+
+    assert list(frame["tasa"]) == [0.5]

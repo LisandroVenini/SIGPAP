@@ -218,4 +218,41 @@ class ConsultaProduccionServiceTest extends TestCase
         $this->assertSame([], $datos['maquinaria']);
         $this->assertArrayHasKey('generado_en', $datos);
     }
+
+    public function test_it_returns_the_historical_parts_grouped_by_stage(): void
+    {
+        $articulo = Articulo::factory()->create();
+        $etapa = Etapa::factory()->create(['nombre' => 'Corte']);
+
+        AsignacionDeEtapa::factory()->create([
+            'articulo_id' => $articulo->id,
+            'etapa_id' => $etapa->id,
+            'tiempo_por_unidad' => 10,
+            'orden' => 1,
+        ]);
+
+        $orden = OrdenDeProduccion::factory()->create([
+            'articulo_id' => $articulo->id,
+            'estado' => 'Cerrada',
+        ]);
+
+        foreach (['2026-11-02', '2026-11-03', '2026-11-04'] as $fecha) {
+            ParteDiario::factory()->create([
+                'orden_de_produccion_id' => $orden->id,
+                'etapa_id' => $etapa->id,
+                'maquinaria_id' => null,
+                'fecha' => $fecha,
+                'cantidad_conformada' => 40,
+            ]);
+        }
+
+        $historico = $this->servicio()->historicoDePartes('2026-11-01', '2026-11-30');
+
+        $this->assertCount(1, $historico);
+        $this->assertSame($etapa->id, $historico[0]['etapa_id']);
+        $this->assertCount(3, $historico[0]['muestras']);
+        $this->assertSame('2026-11-02', $historico[0]['muestras'][0]['fecha']);
+        $this->assertSame(480, $historico[0]['muestras'][0]['minutos_habiles']);
+        $this->assertSame(10.0, $historico[0]['muestras'][0]['tiempo_por_unidad']);
+    }
 }

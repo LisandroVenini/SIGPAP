@@ -23,7 +23,7 @@ interface MLEngine
      * Fit and persist the Tasa de Rendimiento model of a stage.
      *
      * @param  array{etapa_id: int, tiempo_por_unidad: float, muestras: array<int, array{fecha: string, cantidad_conformada: float}>}  $datos
-     * @return array{etapa_id: int, metricas: array{r2: float|null, mae: float, n_muestras: int}, n_muestras: int, guardado: bool}
+     * @return array{etapa_id: int, metricas: array{r2: float|null, mae: float, n_muestras: int}, metricas_anteriores: array{r2: float|null, mae: float, n_muestras: int}|null, delta: array{r2: float|null, mae: float|null}, n_muestras: int, guardado: bool}
      */
     public function entrenar(array $datos): array;
 

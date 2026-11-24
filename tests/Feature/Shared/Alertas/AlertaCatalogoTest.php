@@ -14,7 +14,7 @@ class AlertaCatalogoTest extends TestCase
         $tipos = CatalogoDeAlertas::todos();
 
         // Assert
-        $this->assertCount(18, $tipos);
+        $this->assertCount(20, $tipos);
 
         foreach ($tipos as $clave => $tipo) {
             $this->assertSame($clave, $tipo->clave);
@@ -42,7 +42,7 @@ class AlertaCatalogoTest extends TestCase
         $this->assertCount(5, CatalogoDeAlertas::porModulo(ModuloDeAlerta::Inventario));
         $this->assertCount(7, CatalogoDeAlertas::porModulo(ModuloDeAlerta::Compras));
         $this->assertCount(5, CatalogoDeAlertas::porModulo(ModuloDeAlerta::Produccion));
-        $this->assertCount(1, CatalogoDeAlertas::porModulo(ModuloDeAlerta::Predictivo));
+        $this->assertCount(3, CatalogoDeAlertas::porModulo(ModuloDeAlerta::Predictivo));
         $this->assertNull(CatalogoDeAlertas::obtener('inexistente'));
     }
 }
