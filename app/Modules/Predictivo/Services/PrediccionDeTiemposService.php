@@ -78,6 +78,7 @@ class PrediccionDeTiemposService
         ]);
 
         TasaDeRendimiento::create([
+            'orden_de_produccion_id' => $ordenDeProduccionId,
             'etapa_id' => $etapaId,
             'valor' => $prediccion['valor'],
             'desviacion' => $prediccion['desviacion'],

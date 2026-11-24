@@ -104,6 +104,7 @@ class PrediccionDeTiemposServiceTest extends TestCase
         $this->assertSame('Corte', $resultado['etapa']);
 
         $tasa = TasaDeRendimiento::query()->firstOrFail();
+        $this->assertSame($orden->id, $tasa->orden_de_produccion_id);
         $this->assertSame($primera->id, $tasa->etapa_id);
         $this->assertSame(1.0, (float) $tasa->valor);
         $this->assertSame(0.0, (float) $tasa->desviacion);
