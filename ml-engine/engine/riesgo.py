@@ -7,7 +7,7 @@ static minimum/maximum thresholds, as the use case requires.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Any
 
 from .protocol import ErrorDeDominio, entero, fecha_iso, lista, numero

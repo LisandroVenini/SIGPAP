@@ -7,6 +7,7 @@ never writes to the transactional database.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import joblib
@@ -57,7 +58,7 @@ def entrenar(datos: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _metricas_anteriores(ruta) -> dict[str, Any] | None:
+def _metricas_anteriores(ruta: Path) -> dict[str, Any] | None:
     """Metrics of the previous artifact, when it exists and is readable."""
     if not ruta.is_file():
         return None

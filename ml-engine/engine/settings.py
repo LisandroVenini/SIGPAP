@@ -7,7 +7,6 @@ read from the environment on every call so tests can isolate it.
 from __future__ import annotations
 
 import os
-from datetime import date
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,7 +28,3 @@ def ruta_modelo_trr(etapa_id: int) -> Path:
     """Serialized Tasa de Rendimiento model for one stage."""
     return directorio_modelos() / f"trr_{etapa_id}.joblib"
 
-
-def hoy() -> date:
-    """Today, isolated for tests."""
-    return date.today()

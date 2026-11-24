@@ -12,7 +12,6 @@ extrapolation worse. It stays in the documented future work (Prophet).
 from __future__ import annotations
 
 import math
-from datetime import date
 from typing import Any
 
 import joblib
