@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Modules\Usuarios\Models\Usuario;
+use App\Modules\Usuarios\Services\UsuariosService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class SistemaUserSeeder extends Seeder
 {
@@ -13,9 +12,6 @@ class SistemaUserSeeder extends Seeder
      */
     public function run(): void
     {
-        Usuario::query()->firstOrCreate(
-            ['email' => 'sistema@sigpap.local'],
-            ['nombre' => 'Sistema', 'clave_acceso' => Str::password(32)],
-        );
+        app(UsuariosService::class)->usuarioSistema();
     }
 }

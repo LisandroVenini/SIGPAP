@@ -314,7 +314,7 @@ final class CatalogoDeAlertas
     }
 
     /**
-     * @return array{clave: string, etiqueta: string, tipo: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
+     * @return array{clave: string, etiqueta: string, tipo: string, operador: string, variable: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
      */
     private static function entero(string $clave, string $etiqueta, int $minimo, int $maximo, int $porDefecto, string $operador = 'lte', ?string $variable = null): array
     {
@@ -331,7 +331,7 @@ final class CatalogoDeAlertas
     }
 
     /**
-     * @return array{clave: string, etiqueta: string, tipo: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
+     * @return array{clave: string, etiqueta: string, tipo: string, operador: string, variable: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
      */
     private static function decimal(string $clave, string $etiqueta, float $minimo, float $maximo, float $porDefecto, string $operador = 'gte', ?string $variable = null): array
     {
