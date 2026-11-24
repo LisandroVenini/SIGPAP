@@ -49,6 +49,18 @@ class SolicitudesDeCotizacionQuery
     }
 
     /**
+     * Whether an open draft already covers the article, so the automatic
+     * process never duplicates a pending request.
+     */
+    public function borradorAbiertoParaArticulo(int $articuloId): bool
+    {
+        return SolicitudDeCotizacion::query()
+            ->where('estado', EstadoSolicitudDeCotizacion::Borrador->value)
+            ->whereHas('lineas', fn (Builder $query) => $query->where('articulo_id', $articuloId))
+            ->exists();
+    }
+
+    /**
      * Sent solicitudes that already received quotes, with the data needed to compare them.
      *
      * @return Collection<int, SolicitudDeCotizacion>

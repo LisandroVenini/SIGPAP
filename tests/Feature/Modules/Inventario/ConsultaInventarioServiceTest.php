@@ -35,6 +35,18 @@ class ConsultaInventarioServiceTest extends TestCase
         ]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function enElPayload(Articulo $articulo): array
+    {
+        $encontrado = collect($this->servicio()->datosDeInventario()['articulos'])->firstWhere('id', $articulo->id);
+
+        $this->assertNotNull($encontrado, 'The article is missing from the payload.');
+
+        return $encontrado;
+    }
+
     public function test_it_returns_only_active_inputs(): void
     {
         $insumo = $this->insumo();
@@ -87,7 +99,7 @@ class ConsultaInventarioServiceTest extends TestCase
             'estado' => EstadoReserva::Liberada->value,
         ]);
 
-        $articulo = $this->servicio()->datosDeInventario()['articulos'][0];
+        $articulo = $this->enElPayload($insumo);
 
         $this->assertSame(30.0, $articulo['comprometido']);
         $this->assertSame(70.0, $articulo['disponible']);
@@ -110,7 +122,7 @@ class ConsultaInventarioServiceTest extends TestCase
             'fecha' => now()->subDays(5)->toDateString(),
         ]);
 
-        $articulo = $this->servicio()->datosDeInventario(90)['articulos'][0];
+        $articulo = collect($this->servicio()->datosDeInventario(90)['articulos'])->firstWhere('id', $insumo->id);
 
         // 900 consumed over a 90-day window.
         $this->assertSame(10.0, $articulo['consumo_diario']);
@@ -127,7 +139,7 @@ class ConsultaInventarioServiceTest extends TestCase
             'fecha' => now()->subDays(120)->toDateString(),
         ]);
 
-        $articulo = $this->servicio()->datosDeInventario(90)['articulos'][0];
+        $articulo = collect($this->servicio()->datosDeInventario(90)['articulos'])->firstWhere('id', $insumo->id);
 
         $this->assertSame(0.0, $articulo['consumo_diario']);
     }

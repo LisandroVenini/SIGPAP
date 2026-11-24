@@ -24,6 +24,7 @@ class ReglaDeAlertaSeeder extends Seeder
             ['tipo' => 'orden_atrasada', 'nombre' => 'Orden atrasada', 'condiciones' => [], 'mensaje' => 'La orden {{orden}} de {{producto}} está atrasada desde el {{fecha_entrega}}.'],
             ['tipo' => 'orden_por_vencer', 'nombre' => 'Orden por vencer', 'condiciones' => ['dias' => 2, 'avance_maximo' => 100], 'mensaje' => 'La orden {{orden}} vence el {{fecha_entrega}} con {{avance}}% de avance.'],
             ['tipo' => 'calidad_baja', 'nombre' => 'Calidad baja', 'condiciones' => ['rechazo_minimo_pct' => 5], 'mensaje' => '«{{producto}}» tiene {{rechazo_pct}}% de rechazo: {{rechazadas}} de {{unidades}} unidades en {{etapa}}.'],
+            ['tipo' => 'quiebre_de_stock', 'nombre' => 'Quiebre de stock', 'condiciones' => [], 'mensaje' => '{{articulo}} se agota en {{dias_hasta_quiebre}} días: quedan {{disponible}} y el mínimo es {{minimo}}. Pedir antes del {{fecha_limite_pedido}}.'],
             ['tipo' => 'cuello_de_botella_predictivo', 'nombre' => 'Cuello de botella predictivo', 'condiciones' => [], 'mensaje' => 'La orden {{orden}} de {{producto}} se proyecta para el {{fecha_proyectada}}, {{dias_retraso}} días después de la entrega ({{fecha_entrega}}).'],
         ];
 

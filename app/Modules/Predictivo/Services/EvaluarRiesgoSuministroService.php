@@ -52,18 +52,21 @@ class EvaluarRiesgoSuministroService
             'insumos' => $insumos,
         ]);
 
-        $descripciones = collect($inventario['articulos'])
-            ->keyBy('id')
-            ->map(fn (array $articulo): string => $articulo['descripcion'])
-            ->all();
+        $porArticulo = collect($inventario['articulos'])->keyBy('id');
 
         return [
             'fecha_base' => $fecha,
             'criticidad' => collect($resultado['criticidad'])
-                ->map(fn (array $fila): array => [
-                    ...$fila,
-                    'descripcion' => $descripciones[$fila['articulo_id']] ?? null,
-                ])
+                ->map(function (array $fila) use ($porArticulo): array {
+                    $articulo = $porArticulo[$fila['articulo_id']] ?? null;
+
+                    return [
+                        ...$fila,
+                        'descripcion' => $articulo['descripcion'] ?? null,
+                        'stock_minimo' => $articulo['stock_minimo'] ?? 0.0,
+                        'stock_maximo' => $articulo['stock_maximo'] ?? 0.0,
+                    ];
+                })
                 ->values()
                 ->all(),
             'evaluados' => (int) $resultado['evaluados'],

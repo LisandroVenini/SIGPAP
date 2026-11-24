@@ -10,9 +10,11 @@ use App\Modules\Compras\Models\LineaCotizacion;
 use App\Modules\Compras\Models\LineaSolicitudCotizacion;
 use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
+use App\Modules\Compras\Queries\LeadTimePorArticuloQuery;
 use App\Modules\Compras\Queries\SolicitudesDeCotizacionQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
+use App\Modules\Usuarios\Services\ParametroGlobalService;
 use App\Modules\Usuarios\Services\UsuariosService;
 use App\Shared\Alertas\Services\AlertaService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -32,6 +34,9 @@ class GestionSolicitudesDeCotizacionService
         private readonly GestionArticulosService $articulos,
         private readonly SolicitudesDeCotizacionQuery $query,
         private readonly AlertaService $alertas,
+        private readonly ParametroGlobalService $parametros,
+        private readonly LeadTimePorArticuloQuery $leadTimes,
+        private readonly GestionRankingService $ranking,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
@@ -276,6 +281,66 @@ class GestionSolicitudesDeCotizacionService
     /**
      * @param  array<int, array{articulo_id: int, cantidad_solicitada: float|int|string}>  $lineas
      */
+    /**
+     * Create a draft request for an article at supply risk.
+     *
+     * The Inventario origin process calls this; it returns the new id or null
+     * when a draft is already pending or there is nothing to request.
+     */
+    public function crearBorradorPorRiesgo(int $articuloId, float $cantidad): ?int
+    {
+        if ($cantidad <= 0 || $this->query->borradorAbiertoParaArticulo($articuloId)) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($articuloId, $cantidad): ?int {
+            // Re-check inside the transaction to avoid two concurrent runs.
+            if ($this->query->borradorAbiertoParaArticulo($articuloId)) {
+                return null;
+            }
+
+            $vigencia = (int) $this->parametros->parametro('compras_vigencia_cotizacion_dias');
+
+            $solicitud = SolicitudDeCotizacion::query()->create([
+                'fecha' => today()->toDateString(),
+                'fecha_vencimiento' => today()->addDays($vigencia > 0 ? $vigencia : 7)->toDateString(),
+                'estado' => EstadoSolicitudDeCotizacion::Borrador->value,
+            ]);
+
+            $solicitud->lineas()->create([
+                'articulo_id' => $articuloId,
+                'cantidad_solicitada' => round($cantidad, 2),
+            ]);
+
+            $proveedor = $this->mejorProveedorParaArticulo($articuloId);
+
+            if ($proveedor !== null) {
+                $solicitud->proveedores()->attach($proveedor);
+            }
+
+            return (int) $solicitud->id;
+        });
+    }
+
+    private function mejorProveedorParaArticulo(int $articuloId): ?int
+    {
+        $candidatos = $this->leadTimes->resumen()['por_articulo'][$articuloId]['proveedor_ids'] ?? [];
+
+        if ($candidatos === []) {
+            return null;
+        }
+
+        $puntajes = $this->ranking->puntajesPorProveedor($candidatos);
+
+        if ($puntajes === []) {
+            return $candidatos[0];
+        }
+
+        uasort($puntajes, fn (array $a, array $b): int => $b['puntaje'] <=> $a['puntaje']);
+
+        return (int) array_key_first($puntajes);
+    }
+
     private function reemplazarLineas(SolicitudDeCotizacion $solicitud, array $lineas): void
     {
         foreach ($lineas as $linea) {

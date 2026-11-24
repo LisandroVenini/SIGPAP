@@ -239,6 +239,18 @@ final class CatalogoDeAlertas
                 ['maquinaria', 'desgaste', 'umbral'],
             ),
             new TipoDeAlerta(
+                'quiebre_de_stock',
+                'Quiebre de stock',
+                'Un insumo va a agotarse antes de que llegue la reposición.',
+                ModuloDeAlerta::Inventario,
+                OrigenAlerta::Condicion,
+                SeveridadAlerta::Critica,
+                [Rol::EncargadoStock, Rol::Gerente],
+                [],
+                ['articulo', 'disponible', 'minimo', 'dias_hasta_quiebre', 'fecha_limite_pedido', 'cantidad_sugerida'],
+                'Disponible: {{disponible}} · Mínimo: {{minimo}} · Pedir antes del {{fecha_limite_pedido}}',
+            ),
+            new TipoDeAlerta(
                 'cuello_de_botella_predictivo',
                 'Cuello de botella predictivo',
                 'La fecha proyectada de una orden supera su fecha de entrega según la tasa de rendimiento real.',
