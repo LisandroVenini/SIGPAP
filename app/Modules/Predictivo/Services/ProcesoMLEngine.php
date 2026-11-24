@@ -26,6 +26,11 @@ class ProcesoMLEngine implements MLEngine
         return $this->ejecutar('entrenar', $datos, (int) $this->config['training_timeout']);
     }
 
+    public function evaluarRiesgoSuministro(array $datos): array
+    {
+        return $this->ejecutar('evaluar_riesgo', $datos, (int) $this->config['timeout']);
+    }
+
     /**
      * @param  array<string, mixed>  $datos
      * @return array<string, mixed>

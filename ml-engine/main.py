@@ -19,6 +19,7 @@ from engine.protocol import (
     respuesta_error,
     respuesta_ok,
 )
+from engine.riesgo import evaluar
 from engine.trr import predecir
 
 Operacion = Callable[[dict[str, Any]], dict[str, Any]]
@@ -26,6 +27,7 @@ Operacion = Callable[[dict[str, Any]], dict[str, Any]]
 OPERACIONES: dict[str, Operacion] = {
     "entrenar": entrenar,
     "predecir_trr": predecir,
+    "evaluar_riesgo": evaluar,
 }
 
 

@@ -38,6 +38,7 @@ class ParametroGlobalSeeder extends Seeder
             ['nombre' => 'predictivo_reentrenamiento', 'valor' => 'domingo_0200', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'predictivo_ventana_entrenamiento_meses', 'valor' => '12', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'predictivo_confianza_minima', 'valor' => '75', 'categoria' => 'Motor Predictivo'],
+            ['nombre' => 'predictivo_dias_aviso_riesgo', 'valor' => '7', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'seguridad_expiracion_sesion_min', 'valor' => '30', 'categoria' => 'Seguridad y Sesión'],
             ['nombre' => 'seguridad_intentos_fallidos', 'valor' => '5', 'categoria' => 'Seguridad y Sesión'],
         ];

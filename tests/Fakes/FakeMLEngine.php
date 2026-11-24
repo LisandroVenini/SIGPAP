@@ -39,6 +39,20 @@ final class FakeMLEngine implements MLEngine
         ];
     }
 
+    public function evaluarRiesgoSuministro(array $datos): array
+    {
+        $this->llamadas[] = ['metodo' => 'evaluar_riesgo', 'datos' => $datos];
+
+        if ($this->error !== null) {
+            throw $this->error;
+        }
+
+        return $this->resultado + [
+            'criticidad' => [],
+            'evaluados' => count($datos['insumos'] ?? []),
+        ];
+    }
+
     public function entrenar(array $datos): array
     {
         $this->llamadas[] = ['metodo' => 'entrenar', 'datos' => $datos];
