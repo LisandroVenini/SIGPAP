@@ -16,9 +16,6 @@ class UsuariosService
     }
 
     /**
-     * Resolve a user by its email.
-     */
-    /**
      * Technical actor for automated decisions (CAM-001).
      *
      * It has no role and no access on purpose: it only exists so the audit
@@ -32,6 +29,9 @@ class UsuariosService
         );
     }
 
+    /**
+     * Resolve a user by its email.
+     */
     public function buscarPorEmail(string $email): ?Usuario
     {
         return Usuario::query()->where('email', $email)->first();
