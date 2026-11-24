@@ -24,7 +24,7 @@ class ConsumoPorArticuloQuery
             ->whereIn('articulo_id', $articuloIds)
             ->where('tipo', TipoMovimientoStock::Consumo->value)
             ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])
-            ->selectRaw('articulo_id, sum(cantidad) as total')
+            ->selectRaw('articulo_id, abs(sum(cantidad)) as total')
             ->groupBy('articulo_id')
             ->pluck('total', 'articulo_id')
             ->mapWithKeys(fn (int|string $total, int|string $articuloId): array => [

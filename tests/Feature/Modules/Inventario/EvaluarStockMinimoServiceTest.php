@@ -193,4 +193,25 @@ class EvaluarStockMinimoServiceTest extends TestCase
         $this->assertSame(1, SolicitudDeCotizacion::query()->count());
         $this->assertSame(1, Alerta::query()->where('tipo', 'stock_bajo_minimo')->count());
     }
+
+    public function test_a_consumption_that_crosses_the_minimum_creates_the_draft(): void
+    {
+        $articulo = $this->articulo(stock: 100, minimo: 20);
+        $orden = OrdenDeProduccion::factory()->create(['articulo_id' => $articulo->id]);
+
+        // Reserve directly so the reservation hook does not create the draft first.
+        Reserva::factory()->create([
+            'articulo_id' => $articulo->id,
+            'orden_de_produccion_id' => $orden->id,
+            'cantidad' => 90,
+            'estado' => 'Vigente',
+        ]);
+
+        $this->assertSame(0, SolicitudDeCotizacion::query()->count());
+
+        app(GestionReservasService::class)->consumir($orden->id, [$articulo->id => 90]);
+
+        $this->assertSame(1, Alerta::query()->where('tipo', 'stock_bajo_minimo')->count());
+        $this->assertSame(1, SolicitudDeCotizacion::query()->count());
+    }
 }

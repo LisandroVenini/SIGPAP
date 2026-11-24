@@ -112,7 +112,7 @@ class ConsultaInventarioServiceTest extends TestCase
         MovimientoDeStock::query()->create([
             'articulo_id' => $insumo->id,
             'tipo' => TipoMovimientoStock::Consumo->value,
-            'cantidad' => 900,
+            'cantidad' => -900,
             'fecha' => now()->subDays(10)->toDateString(),
         ]);
         MovimientoDeStock::query()->create([
@@ -135,7 +135,7 @@ class ConsultaInventarioServiceTest extends TestCase
         MovimientoDeStock::query()->create([
             'articulo_id' => $insumo->id,
             'tipo' => TipoMovimientoStock::Consumo->value,
-            'cantidad' => 900,
+            'cantidad' => -900,
             'fecha' => now()->subDays(120)->toDateString(),
         ]);
 

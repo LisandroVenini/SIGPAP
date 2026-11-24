@@ -207,7 +207,7 @@ class GestionReservasService
     {
         $this->asegurarCantidadesPositivas($cantidades);
 
-        return DB::transaction(function () use ($ordenDeProduccionId, $cantidades): array {
+        $consumido = DB::transaction(function () use ($ordenDeProduccionId, $cantidades): array {
             $articuloIds = array_keys($cantidades);
 
             // Lock article rows to serialize concurrent reservations and consumptions.

@@ -38,10 +38,8 @@ class GestionCronogramaService
     ) {}
 
     /**
-     * @return array{inicio: string, hoy: string, dias: int, filas: array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa_id:int, etapa:string, inicio:string, fin:string, inicio_en:string, fin_en:string, dias:int, minutos:int, segmentos: array<int, array{inicio:string, fin:string}>, producida:float, plan: array{inicio:string, fin:string}|null}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>}
-     */
-    /**
      * @param  Collection<int, OrdenDeSimulacion>|null  $ordenesExtra
+     * @return array{inicio: string, hoy: string, dias: int, filas: array<int, array{orden_id:int, producto:string, estado:string, prioridad:int, fecha_entrega:string|null, reubicable:bool, conflicto_entrega:bool, cantidad_requerida:float, etapa_actual:string|null, avance:float, dias_totales:int, etapas: array<int, array{etapa_id:int, etapa:string, inicio:string, fin:string, inicio_en:string, fin_en:string, dias:int, minutos:int, segmentos: array<int, array{inicio:string, fin:string}>, producida:float, plan: array{inicio:string, fin:string}|null}>, historial: array<int, array{prioridad_anterior:int|null, prioridad_nueva:int, motivo:string, detalle:string|null, fecha:string|null, usuario:string|null}>}>}
      */
     public function proyectar(?Collection $ordenesExtra = null): array
     {

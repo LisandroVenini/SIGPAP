@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventario\Services;
 
+use App\Modules\Inventario\Enums\EstadoArticulo;
 use App\Modules\Inventario\Models\Articulo;
 use App\Shared\Alertas\Services\AlertaService;
 
@@ -26,7 +27,7 @@ class VigilanteDeAlertasService
         $bajos = 0;
 
         Articulo::query()
-            ->where('estado', 'Activo')
+            ->where('estado', EstadoArticulo::Activo->value)
             ->whereNotNull('stock_minimo')
             ->pluck('id')
             ->each(function (int $articuloId) use (&$bajos): void {
