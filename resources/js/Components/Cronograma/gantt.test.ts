@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
+    barrasPorDia,
+    bloquesDelDia,
+    claseDeBarra,
     columnasDe,
     diasEntre,
     lunesDe,
     numeroSemana,
+    posicionarMarca,
     posicionarSegmento,
     rangoVisible,
 } from './gantt';
@@ -125,5 +129,111 @@ describe('cronograma gantt helpers', () => {
         expect(primeraSemana).toBe(1);
         expect(lunes).toBe(domingo);
         expect(rango).toBe('09/11 → 15/11');
+    });
+});
+
+describe('posicionarMarca', () => {
+    it('places a dated marker inside the visible window', () => {
+        expect(posicionarMarca({ fecha: '2026-11-04' }, '2026-11-02', 14)).toEqual({
+            columna: 3,
+            left: (2 / 14) * 100,
+        });
+    });
+
+    it('places the first and last visible days', () => {
+        expect(posicionarMarca({ fecha: '2026-11-02' }, '2026-11-02', 14)).toEqual({
+            columna: 1,
+            left: 0,
+        });
+        expect(posicionarMarca({ fecha: '2026-11-15' }, '2026-11-02', 14)).toEqual({
+            columna: 14,
+            left: (13 / 14) * 100,
+        });
+    });
+
+    it('returns null when the date falls outside the window', () => {
+        expect(posicionarMarca({ fecha: '2026-11-01' }, '2026-11-02', 14)).toBeNull();
+        expect(posicionarMarca({ fecha: '2026-11-16' }, '2026-11-02', 14)).toBeNull();
+    });
+});
+
+describe('barrasPorDia', () => {
+    const segmento = {
+        inicio: '2026-11-06',
+        fin: '2026-11-09',
+        segmentos: [
+            { inicio: '2026-11-06 19:00:00', fin: '2026-11-06 20:00:00' },
+            { inicio: '2026-11-07 08:00:00', fin: '2026-11-07 12:00:00' },
+            { inicio: '2026-11-09 08:00:00', fin: '2026-11-09 09:00:00' },
+        ],
+    };
+
+    it('emits one bar per working day from the real blocks', () => {
+        expect(barrasPorDia(segmento, '2026-11-02', 14)).toEqual([
+            { columna: 5, fecha: '2026-11-06', horario: '19:00-20:00' },
+            { columna: 6, fecha: '2026-11-07', horario: '08:00-12:00' },
+            { columna: 8, fecha: '2026-11-09', horario: '08:00-09:00' },
+        ]);
+    });
+
+    it('falls back to the plain range without blocks', () => {
+        expect(barrasPorDia({ inicio: '2026-11-04', fin: '2026-11-06' }, '2026-11-02', 14)).toEqual(
+            [{ columna: 3, fecha: '2026-11-04', horario: '' }],
+        );
+    });
+
+    it('drops blocks outside the visible window', () => {
+        expect(barrasPorDia(segmento, '2026-11-10', 7)).toEqual([]);
+    });
+});
+
+describe('bloquesDelDia', () => {
+    const segmento = {
+        inicio_en: '2026-11-06 19:00:00',
+        fin_en: '2026-11-09 09:00:00',
+        segmentos: [
+            { inicio: '2026-11-06 19:00:00', fin: '2026-11-06 20:00:00' },
+            { inicio: '2026-11-07 08:00:00', fin: '2026-11-07 12:00:00' },
+        ],
+    };
+
+    it('positions the working blocks of the day as percentages', () => {
+        const bloques = bloquesDelDia(segmento, '2026-11-06');
+
+        expect(bloques).toHaveLength(1);
+        expect(bloques[0].inicio).toBe('2026-11-06 19:00:00');
+        expect(bloques[0].izquierda).toBeCloseTo((19 / 24) * 100, 6);
+        expect(bloques[0].ancho).toBeCloseTo((1 / 24) * 100, 6);
+    });
+
+    it('returns nothing for a day without working blocks', () => {
+        expect(bloquesDelDia(segmento, '2026-11-08')).toEqual([]);
+    });
+
+    it('falls back to the resolved start and end', () => {
+        const bloques = bloquesDelDia(
+            { inicio_en: '2026-11-06 19:00:00', fin_en: '2026-11-06 20:00:00' },
+            '2026-11-06',
+        );
+
+        expect(bloques).toHaveLength(1);
+    });
+});
+
+describe('claseDeBarra', () => {
+    it('prioritizes the delivery conflict over the stage state', () => {
+        expect(claseDeBarra('En Curso', true)).toContain('border-dashed');
+    });
+
+    it('paints the state of a stage without conflict', () => {
+        expect(claseDeBarra('En Curso', false)).toBe('bg-teja text-white');
+        expect(claseDeBarra('Pospuesta', false)).toContain('border-dashed');
+        expect(claseDeBarra('Asignada', false)).toContain('bg-pine-wash');
+    });
+
+    it('falls back to the neutral class for any other state', () => {
+        expect(claseDeBarra('Finalizada', false)).toBe(
+            'border border-dashed border-steel/50 bg-workshop text-steel',
+        );
     });
 });

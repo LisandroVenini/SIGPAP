@@ -10,9 +10,11 @@ use App\Modules\Compras\Models\LineaCotizacion;
 use App\Modules\Compras\Models\LineaSolicitudCotizacion;
 use App\Modules\Compras\Models\Proveedor;
 use App\Modules\Compras\Models\SolicitudDeCotizacion;
+use App\Modules\Compras\Queries\LeadTimePorArticuloQuery;
 use App\Modules\Compras\Queries\SolicitudesDeCotizacionQuery;
 use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Usuarios\Models\Usuario;
+use App\Modules\Usuarios\Services\ParametroGlobalService;
 use App\Modules\Usuarios\Services\UsuariosService;
 use App\Shared\Alertas\Services\AlertaService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -32,6 +34,9 @@ class GestionSolicitudesDeCotizacionService
         private readonly GestionArticulosService $articulos,
         private readonly SolicitudesDeCotizacionQuery $query,
         private readonly AlertaService $alertas,
+        private readonly ParametroGlobalService $parametros,
+        private readonly LeadTimePorArticuloQuery $leadTimes,
+        private readonly GestionRankingService $ranking,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
@@ -274,8 +279,206 @@ class GestionSolicitudesDeCotizacionService
     }
 
     /**
-     * @param  array<int, array{articulo_id: int, cantidad_solicitada: float|int|string}>  $lineas
+     * Create a draft request for an article at supply risk.
+     *
+     * The Inventario origin process calls this; it returns the new id or null
+     * when a draft is already pending or there is nothing to request.
      */
+    public function crearBorradorPorRiesgo(int $articuloId, float $cantidad): ?int
+    {
+        if ($cantidad <= 0 || $this->query->idDeBorradorAbiertoParaArticulo($articuloId) !== null) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($articuloId, $cantidad): ?int {
+            // Re-check inside the transaction to avoid two concurrent runs.
+            if ($this->query->idDeBorradorAbiertoParaArticulo($articuloId) !== null) {
+                return null;
+            }
+
+            $vigencia = (int) $this->parametros->parametro('compras_vigencia_cotizacion_dias');
+
+            $solicitud = SolicitudDeCotizacion::query()->create([
+                'fecha' => today()->toDateString(),
+                'fecha_vencimiento' => today()->addDays($vigencia > 0 ? $vigencia : 7)->toDateString(),
+                'estado' => EstadoSolicitudDeCotizacion::Borrador->value,
+            ]);
+
+            $solicitud->lineas()->create([
+                'articulo_id' => $articuloId,
+                'cantidad_solicitada' => round($cantidad, 2),
+            ]);
+
+            $proveedores = $this->proveedoresSugeridosParaArticulo($articuloId);
+
+            if ($proveedores !== []) {
+                $solicitud->proveedores()->attach($proveedores);
+            }
+
+            return (int) $solicitud->id;
+        });
+    }
+
+    /**
+     * Id of the open draft covering the article, if any.
+     */
+    public function idDeBorradorAbiertoParaArticulo(int $articuloId): ?int
+    {
+        return $this->query->idDeBorradorAbiertoParaArticulo($articuloId);
+    }
+
+    /**
+     * Turn a pending draft into a sent request for quotation.
+     *
+     * Used by the automatic licitation: it picks the best suppliers, generates
+     * their tokens, moves the request to `Enviada`, audits the decision and
+     * sends the invitations. It never fires twice thanks to the state check
+     * under a row lock.
+     *
+     * @return array{disparada: bool, motivo: string|null, proveedores: int}
+     */
+    public function dispararLicitacion(int $solicitudId, int $actorId): array
+    {
+        $solicitud = SolicitudDeCotizacion::query()->with('lineas')->find($solicitudId);
+
+        if ($solicitud === null) {
+            return ['disparada' => false, 'motivo' => 'solicitud_inexistente', 'proveedores' => 0];
+        }
+
+        if ($solicitud->estado !== EstadoSolicitudDeCotizacion::Borrador->value) {
+            return ['disparada' => false, 'motivo' => 'estado_invalido', 'proveedores' => 0];
+        }
+
+        $proveedores = $this->proveedoresParaLicitacion($solicitud);
+
+        if ($proveedores === []) {
+            return ['disparada' => false, 'motivo' => 'sin_proveedores_con_email', 'proveedores' => 0];
+        }
+
+        $envios = [];
+        $disparada = false;
+
+        DB::transaction(function () use ($solicitudId, $proveedores, $actorId, &$envios, &$disparada): void {
+            $solicitud = SolicitudDeCotizacion::query()
+                ->whereKey($solicitudId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($solicitud->estado !== EstadoSolicitudDeCotizacion::Borrador->value) {
+                return;
+            }
+
+            $this->sincronizarProveedores($solicitud, $proveedores);
+
+            $solicitud->update(['estado' => EstadoSolicitudDeCotizacion::Enviada->value]);
+
+            $this->auditoria->registrarEvento(
+                $actorId,
+                'disparar_licitacion_automatica',
+                ['estado' => EstadoSolicitudDeCotizacion::Borrador->value],
+                ['estado' => EstadoSolicitudDeCotizacion::Enviada->value, 'proveedores' => count($proveedores)],
+                null,
+                SolicitudDeCotizacion::class,
+                $solicitud->id,
+            );
+
+            $envios = $solicitud->proveedores()
+                ->whereIn('proveedores.id', $proveedores)
+                ->whereNotNull('proveedores.email')
+                ->get()
+                ->map(fn (Proveedor $proveedor): array => [
+                    'proveedor' => $proveedor,
+                    'token' => (string) $proveedor->pivot->token,
+                ])
+                ->values()
+                ->all();
+
+            $disparada = true;
+        });
+
+        if (! $disparada) {
+            return ['disparada' => false, 'motivo' => 'estado_invalido', 'proveedores' => 0];
+        }
+
+        $this->enviarInvitaciones($solicitud->refresh(), $envios);
+
+        return ['disparada' => true, 'motivo' => null, 'proveedores' => count($proveedores)];
+    }
+
+    /**
+     * Best suppliers with email for one article: those that already quoted it,
+     * ranked by performance. Never invents a supplier.
+     *
+     * @return array<int, int>
+     */
+    public function proveedoresSugeridosParaArticulo(int $articuloId): array
+    {
+        $candidatos = $this->leadTimes->resumen()['por_articulo'][$articuloId]['proveedor_ids'] ?? [];
+
+        return $this->seleccionarProveedores($candidatos, [], $this->limiteDeProveedores());
+    }
+
+    private function limiteDeProveedores(): int
+    {
+        return max(1, (int) ($this->parametros->parametro('compras_proveedores_por_licitacion') ?? 3));
+    }
+
+    /**
+     * @param  array<int, int>  $candidatos
+     * @param  array<int, int>  $actuales
+     * @return array<int, int>
+     */
+    private function seleccionarProveedores(array $candidatos, array $actuales, int $limite): array
+    {
+        $candidatos = array_values(array_unique(array_map('intval', $candidatos)));
+        $puntajes = $this->ranking->puntajesPorProveedor($candidatos);
+
+        if ($puntajes !== []) {
+            uasort($puntajes, fn (array $a, array $b): int => $b['puntaje'] <=> $a['puntaje']);
+            $ordenados = array_map('intval', array_keys($puntajes));
+        } else {
+            $ordenados = $candidatos;
+        }
+
+        $conEmail = Proveedor::query()
+            ->whereIn('id', $ordenados)
+            ->whereNotNull('email')
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        $seleccion = array_values(array_intersect($ordenados, $conEmail));
+        $seleccion = array_values(array_unique(array_merge($actuales, $seleccion)));
+
+        return array_slice($seleccion, 0, $limite);
+    }
+
+    /**
+     * Best suppliers to invite for the draft lines.
+     *
+     * @return array<int, int>
+     */
+    private function proveedoresParaLicitacion(SolicitudDeCotizacion $solicitud): array
+    {
+        $leadTimes = $this->leadTimes->resumen()['por_articulo'];
+        $candidatos = [];
+
+        foreach ($solicitud->lineas as $linea) {
+            $candidatos = array_merge(
+                $candidatos,
+                $leadTimes[(int) $linea->articulo_id]['proveedor_ids'] ?? [],
+            );
+        }
+
+        $actuales = $solicitud->proveedores()
+            ->whereNotNull('email')
+            ->pluck('proveedores.id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        return $this->seleccionarProveedores($candidatos, $actuales, $this->limiteDeProveedores());
+    }
+
     private function reemplazarLineas(SolicitudDeCotizacion $solicitud, array $lineas): void
     {
         foreach ($lineas as $linea) {

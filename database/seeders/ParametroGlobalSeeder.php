@@ -13,14 +13,14 @@ class ParametroGlobalSeeder extends Seeder
     public function run(): void
     {
         $parametros = [
-            ['nombre' => 'prod_turno_manana_inicio', 'valor' => '06:00', 'categoria' => 'Producción'],
-            ['nombre' => 'prod_turno_manana_fin', 'valor' => '14:00', 'categoria' => 'Producción'],
-            ['nombre' => 'prod_turno_tarde_inicio', 'valor' => '14:00', 'categoria' => 'Producción'],
-            ['nombre' => 'prod_turno_tarde_fin', 'valor' => '22:00', 'categoria' => 'Producción'],
+            ['nombre' => 'prod_calendario_laboral', 'valor' => '{"1":[["08:00","12:00"],["16:00","20:00"]],"2":[["08:00","12:00"],["16:00","20:00"]],"3":[["08:00","12:00"],["16:00","20:00"]],"4":[["08:00","12:00"],["16:00","20:00"]],"5":[["08:00","12:00"],["16:00","20:00"]],"6":[["08:00","12:00"]],"7":[]}', 'categoria' => 'Producción'],
+            ['nombre' => 'prod_feriados_tipos_bloqueantes', 'valor' => '["inamovible","trasladable","especial","turistico"]', 'categoria' => 'Producción'],
             ['nombre' => 'prod_tolerancia_desvio_dias', 'valor' => '2', 'categoria' => 'Producción'],
             ['nombre' => 'prod_umbral_calidad', 'valor' => '95', 'categoria' => 'Producción'],
             ['nombre' => 'compras_vigencia_cotizacion_dias', 'valor' => '7', 'categoria' => 'Compras'],
             ['nombre' => 'compras_minimo_cotizaciones', 'valor' => '3', 'categoria' => 'Compras'],
+            ['nombre' => 'compras_proveedores_por_licitacion', 'valor' => '3', 'categoria' => 'Compras'],
+            ['nombre' => 'compras_disponibilidad_umbral', 'valor' => '0.15', 'categoria' => 'Compras'],
             ['nombre' => 'compras_umbral_aprobacion_gerente', 'valor' => '500000', 'categoria' => 'Compras'],
             ['nombre' => 'compras_ranking_peso_perfecta', 'valor' => '1', 'categoria' => 'Compras'],
             ['nombre' => 'compras_ranking_peso_retraso', 'valor' => '0.6', 'categoria' => 'Compras'],
@@ -36,6 +36,9 @@ class ParametroGlobalSeeder extends Seeder
             ['nombre' => 'predictivo_reentrenamiento', 'valor' => 'domingo_0200', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'predictivo_ventana_entrenamiento_meses', 'valor' => '12', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'predictivo_confianza_minima', 'valor' => '75', 'categoria' => 'Motor Predictivo'],
+            ['nombre' => 'predictivo_dias_aviso_riesgo', 'valor' => '7', 'categoria' => 'Motor Predictivo'],
+            ['nombre' => 'predictivo_drift_umbral', 'valor' => '0.1', 'categoria' => 'Motor Predictivo'],
+            ['nombre' => 'predictivo_licitacion_automatica', 'valor' => '0', 'categoria' => 'Motor Predictivo'],
             ['nombre' => 'seguridad_expiracion_sesion_min', 'valor' => '30', 'categoria' => 'Seguridad y Sesión'],
             ['nombre' => 'seguridad_intentos_fallidos', 'valor' => '5', 'categoria' => 'Seguridad y Sesión'],
         ];

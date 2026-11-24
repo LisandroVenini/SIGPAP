@@ -3,6 +3,7 @@
 namespace App\Modules\Usuarios\Services;
 
 use App\Modules\Usuarios\Models\Usuario;
+use Illuminate\Support\Str;
 
 class UsuariosService
 {
@@ -12,6 +13,20 @@ class UsuariosService
     public function autorizar(Usuario $usuario, string $operacion): bool
     {
         return $usuario->can($operacion);
+    }
+
+    /**
+     * Technical actor for automated decisions (CAM-001).
+     *
+     * It has no role and no access on purpose: it only exists so the audit
+     * trail keeps a non-null actor for system processes.
+     */
+    public function usuarioSistema(): Usuario
+    {
+        return Usuario::query()->firstOrCreate(
+            ['email' => 'sistema@sigpap.local'],
+            ['nombre' => 'Sistema', 'clave_acceso' => Str::password(32)],
+        );
     }
 
     /**

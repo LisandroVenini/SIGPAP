@@ -31,7 +31,7 @@ import Configuracion from './Configuracion.vue';
 
 const parametros = {
     Producción: [
-        { id: 1, nombre: 'prod_turno_manana_inicio', valor: '06:00', categoria: 'Producción' },
+        { id: 1, nombre: 'prod_tolerancia_desvio_dias', valor: '06:00', categoria: 'Producción' },
     ],
     Compras: [
         { id: 2, nombre: 'compras_vigencia_cotizacion_dias', valor: '7', categoria: 'Compras' },
@@ -52,7 +52,7 @@ describe('Configuracion page', () => {
         hoisted.put.mockClear();
         hoisted.page.props.flash.success = null;
         hoisted.form.parametros = {
-            prod_turno_manana_inicio: '06:00',
+            prod_tolerancia_desvio_dias: '06:00',
             compras_vigencia_cotizacion_dias: '7',
             compras_ranking_peso_perfecta: '1',
             predictivo_reentrenamiento: 'domingo_0200',
@@ -81,7 +81,7 @@ describe('Configuracion page', () => {
         // Assert
         expect(wrapper.text()).toContain('Producción');
         expect(wrapper.text()).toContain('Compras');
-        expect(wrapper.find('input#prod_turno_manana_inicio').exists()).toBe(true);
+        expect(wrapper.find('input#prod_tolerancia_desvio_dias').exists()).toBe(true);
         expect(wrapper.find('input#compras_vigencia_cotizacion_dias').exists()).toBe(true);
     });
 
@@ -103,7 +103,7 @@ describe('Configuracion page', () => {
         const wrapper = mount(Configuracion, { props: { parametros, puedeEditar: false } });
 
         // Assert
-        expect(wrapper.find('input#prod_turno_manana_inicio').attributes('disabled')).toBeDefined();
+        expect(wrapper.find('input#prod_tolerancia_desvio_dias').attributes('disabled')).toBeDefined();
         expect(wrapper.text()).toContain('Solo lectura');
         expect(wrapper.find('button[type="submit"]').exists()).toBe(false);
     });

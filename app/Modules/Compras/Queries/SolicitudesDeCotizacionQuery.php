@@ -49,6 +49,22 @@ class SolicitudesDeCotizacionQuery
     }
 
     /**
+     * Id of the open draft that covers the article, so the automatic process
+     * never duplicates a pending request and can fire it when the deadline
+     * arrives.
+     */
+    public function idDeBorradorAbiertoParaArticulo(int $articuloId): ?int
+    {
+        $id = SolicitudDeCotizacion::query()
+            ->where('estado', EstadoSolicitudDeCotizacion::Borrador->value)
+            ->whereHas('lineas', fn (Builder $query) => $query->where('articulo_id', $articuloId))
+            ->orderBy('id')
+            ->value('id');
+
+        return $id !== null ? (int) $id : null;
+    }
+
+    /**
      * Sent solicitudes that already received quotes, with the data needed to compare them.
      *
      * @return Collection<int, SolicitudDeCotizacion>

@@ -14,7 +14,7 @@ class TasaDeRendimiento extends Model
     /**
      * @var array<int, string>
      */
-    protected $fillable = ['etapa_id', 'valor', 'desviacion', 'fecha_calculo'];
+    protected $fillable = ['orden_de_produccion_id', 'etapa_id', 'valor', 'desviacion', 'fecha_calculo'];
 
     /**
      * @return array<string, string>

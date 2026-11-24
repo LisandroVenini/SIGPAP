@@ -21,6 +21,7 @@ class GestionRecursosDeOrdenService
         private readonly GestionRecetasService $recetas,
         private readonly GestionReservasService $reservas,
         private readonly UsuariosService $usuarios,
+        private readonly CapturarLineaBaseService $lineaBase,
     ) {}
 
     public function puedeGestionar(Usuario $actor): bool
@@ -77,7 +78,9 @@ class GestionRecursosDeOrdenService
         array $maquinariaIds,
         ?string $direccionIp = null,
     ): void {
-        DB::transaction(function () use ($actor, $orden, $operarioIds, $maquinariaIds, $direccionIp): void {
+        $asignada = false;
+
+        DB::transaction(function () use ($actor, $orden, $operarioIds, $maquinariaIds, $direccionIp, &$asignada): void {
             $orden = OrdenDeProduccion::query()->whereKey($orden->getKey())->lockForUpdate()->firstOrFail();
 
             $estadosPermitidos = [
@@ -137,6 +140,7 @@ class GestionRecursosDeOrdenService
 
             $orden->estado = $nuevoEstado;
             $orden->save();
+            $asignada = $nuevoEstado === EstadoOrdenProduccion::Asignada->value;
 
             $this->auditoria->registrarEvento(
                 $actor->id,
@@ -152,6 +156,10 @@ class GestionRecursosDeOrdenService
                 $orden->id,
             );
         });
+
+        if ($asignada) {
+            $this->lineaBase->capturar($orden->id);
+        }
     }
 
     public function iniciar(

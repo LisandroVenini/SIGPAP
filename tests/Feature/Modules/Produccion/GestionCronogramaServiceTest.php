@@ -6,10 +6,13 @@ use App\Modules\Inventario\Enums\EstadoArticulo;
 use App\Modules\Inventario\Enums\OrigenArticulo;
 use App\Modules\Inventario\Enums\TipoArticulo;
 use App\Modules\Inventario\Models\Articulo;
+use App\Modules\Predictivo\Models\TasaDeRendimiento;
+use App\Modules\Produccion\DTOs\OrdenDeSimulacion;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
 use App\Modules\Produccion\Enums\MotivoCambioPrioridad;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\Etapa;
+use App\Modules\Produccion\Models\Feriado;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
 use App\Modules\Produccion\Models\ParteDiario;
 use App\Modules\Produccion\Models\PlanificacionDeProduccion;
@@ -17,15 +20,33 @@ use App\Modules\Produccion\Models\RegistroPrioridad;
 use App\Modules\Produccion\Services\GestionCronogramaService;
 use App\Modules\Usuarios\Enums\Rol;
 use App\Modules\Usuarios\Models\Usuario;
+use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class GestionCronogramaServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The projection now walks a working calendar, so the clock must be
+        // deterministic: Monday 2026-11-02 at the start of the first window.
+        Carbon::setTestNow(CarbonImmutable::parse('2026-11-02 08:00:00'));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     private function actor(): Usuario
     {
@@ -101,7 +122,7 @@ class GestionCronogramaServiceTest extends TestCase
         $this->assertSame(1, $cronograma['filas'][0]['etapas'][0]['dias']);
         $this->assertSame(1, $cronograma['filas'][0]['etapas'][1]['dias']);
         $this->assertSame(now()->toDateString(), $cronograma['filas'][0]['etapas'][0]['inicio']);
-        $this->assertSame(now()->addDays(2)->toDateString(), $cronograma['filas'][1]['etapas'][0]['inicio']);
+        $this->assertSame(now()->addDay()->toDateString(), $cronograma['filas'][1]['etapas'][0]['inicio']);
         $this->assertSame(now()->toDateString(), $cronograma['hoy']);
         $this->assertSame(8.0, $cronograma['filas'][0]['cantidad_requerida']);
         $this->assertSame(0.0, $cronograma['filas'][0]['avance']);
@@ -465,5 +486,139 @@ class GestionCronogramaServiceTest extends TestCase
         $this->assertSame(2, $fila['historial'][0]['prioridad_anterior']);
         $this->assertSame(1, $fila['historial'][0]['prioridad_nueva']);
         $this->assertSame($actor->nombre, $fila['historial'][0]['usuario']);
+    }
+
+    public function test_it_exposes_the_working_minutes_of_each_stage(): void
+    {
+        // Arrange
+        $producto = $this->producto();
+        $this->ruta($producto, [60]);
+
+        $this->orden([
+            'articulo_id' => $producto->id,
+            'cantidad_requerida' => 8,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+
+        // Act
+        $etapa = app(GestionCronogramaService::class)->proyectar()['filas'][0]['etapas'][0];
+
+        // Assert: 8 units × 60 min/unit = 480 working minutes.
+        $this->assertSame(480, $etapa['minutos']);
+        $this->assertNotEmpty($etapa['segmentos']);
+    }
+
+    public function test_the_schedule_never_places_work_outside_the_working_calendar(): void
+    {
+        // Arrange: Friday 19:00, 360 working minutes.
+        Carbon::setTestNow(CarbonImmutable::parse('2026-11-06 19:00:00'));
+
+        $producto = $this->producto();
+        $this->ruta($producto, [360]);
+
+        $this->orden([
+            'articulo_id' => $producto->id,
+            'cantidad_requerida' => 1,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+
+        // Act
+        $etapa = app(GestionCronogramaService::class)->proyectar()['filas'][0]['etapas'][0];
+
+        // Assert: Friday 19-20, Saturday 08-12, Sunday closed, Monday 08-09.
+        $this->assertSame([
+            ['inicio' => '2026-11-06 19:00:00', 'fin' => '2026-11-06 20:00:00'],
+            ['inicio' => '2026-11-07 08:00:00', 'fin' => '2026-11-07 12:00:00'],
+            ['inicio' => '2026-11-09 08:00:00', 'fin' => '2026-11-09 09:00:00'],
+        ], $etapa['segmentos']);
+        $this->assertSame('2026-11-06', $etapa['inicio']);
+        $this->assertSame('2026-11-09', $etapa['fin']);
+    }
+
+    public function test_a_holiday_moves_the_schedule_to_the_next_working_day(): void
+    {
+        // Arrange: the frozen Monday 2026-11-02 is a holiday.
+        Feriado::query()->create([
+            'fecha' => '2026-11-02',
+            'nombre' => 'Feriado',
+            'tipo' => 'inamovible',
+            'fuente' => 'datos.gob.ar',
+        ]);
+
+        $producto = $this->producto();
+        $this->ruta($producto, [60]);
+
+        $this->orden([
+            'articulo_id' => $producto->id,
+            'cantidad_requerida' => 1,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+
+        // Act
+        $etapa = app(GestionCronogramaService::class)->proyectar()['filas'][0]['etapas'][0];
+
+        // Assert
+        $this->assertSame('2026-11-03 08:00:00', $etapa['inicio_en']);
+        $this->assertSame('2026-11-03', $etapa['inicio']);
+    }
+
+    public function test_a_slow_stage_extends_the_projection(): void
+    {
+        // Arrange: 8 units × 60 min = 480 minutes without a rate.
+        $producto = $this->producto();
+        $this->ruta($producto, [60]);
+
+        $orden = $this->orden([
+            'articulo_id' => $producto->id,
+            'cantidad_requerida' => 8,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+
+        $etapaId = AsignacionDeEtapa::query()->where('articulo_id', $producto->id)->value('etapa_id');
+
+        // A rate of 0.5 doubles the required time.
+        TasaDeRendimiento::query()->create([
+            'orden_de_produccion_id' => $orden->id,
+            'etapa_id' => $etapaId,
+            'valor' => 0.5,
+            'desviacion' => -0.5,
+            'fecha_calculo' => now()->toDateString(),
+        ]);
+
+        // Act
+        $etapa = app(GestionCronogramaService::class)->proyectar()['filas'][0]['etapas'][0];
+
+        // Assert
+        $this->assertSame(960, $etapa['minutos']);
+    }
+
+    public function test_a_simulated_order_jumps_the_queue(): void
+    {
+        // Arrange
+        $producto = $this->producto();
+        $this->ruta($producto, [60]);
+
+        $real = $this->orden([
+            'articulo_id' => $producto->id,
+            'prioridad_actual' => 1,
+            'cantidad_requerida' => 8,
+            'fecha_entrega' => now()->addDays(30)->toDateString(),
+        ]);
+
+        $ficticia = new OrdenDeSimulacion(
+            id: -1,
+            articulo_id: $producto->id,
+            cantidad_requerida: 8.0,
+            estado: 'Pendiente',
+            fecha_entrega: CarbonImmutable::parse(now()->addDays(30)->toDateString()),
+            prioridad_actual: 1,
+        );
+
+        // Act
+        $simulada = app(GestionCronogramaService::class)->proyectar(collect([$ficticia]));
+
+        // Assert
+        $this->assertSame(-1, $simulada['filas'][0]['orden_id']);
+        $this->assertSame($real->id, $simulada['filas'][1]['orden_id']);
     }
 }

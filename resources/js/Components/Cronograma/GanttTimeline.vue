@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { FilaCronograma, Segmento } from './gantt';
-import { columnasDe, posicionarSegmento } from './gantt';
+import type { FilaCronograma, MarcaDeAbastecimiento, Segmento } from './gantt';
+import {
+    barrasPorDia,
+    claseDeBarra,
+    columnasDe,
+    posicionarMarca,
+    posicionarSegmento,
+} from './gantt';
 
 const props = defineProps<{
     filas: FilaCronograma[];
     desde: string;
     dias: number;
     hoy: string;
+    marcas?: MarcaDeAbastecimiento[];
 }>();
 
 const emit = defineEmits<{ reordenar: [fila: FilaCronograma] }>();
@@ -16,6 +23,16 @@ const columnas = computed(() => columnasDe(props.desde, props.dias, props.hoy));
 
 const indiceHoy = computed(() => columnas.value.findIndex((columna) => columna.esHoy));
 
+const marcasVisibles = computed(() =>
+    (props.marcas ?? [])
+        .map((marca) => {
+            const posicion = posicionarMarca(marca, props.desde, props.dias);
+
+            return posicion === null ? null : { ...marca, ...posicion };
+        })
+        .filter((marca): marca is NonNullable<typeof marca> => marca !== null),
+);
+
 const estiloGrilla = computed(() => ({
     gridTemplateColumns: `repeat(${props.dias}, minmax(44px, 1fr))`,
     minWidth: `${props.dias * 44}px`,
@@ -23,32 +40,38 @@ const estiloGrilla = computed(() => ({
 
 function barrasDe(
     fila: FilaCronograma,
+): Array<{ segmento: Segmento; columna: number; span: number; fecha: string; horario: string }> {
+    return fila.etapas.flatMap((segmento) =>
+        barrasPorDia(segmento, props.desde, props.dias).map((barra) => ({
+            segmento,
+            columna: barra.columna,
+            span: 1,
+            fecha: barra.fecha,
+            horario: barra.horario,
+        })),
+    );
+}
+
+function planesDe(
+    fila: FilaCronograma,
 ): Array<{ segmento: Segmento; columna: number; span: number }> {
     return fila.etapas.flatMap((segmento) => {
-        const barra = posicionarSegmento(segmento, props.desde, props.dias);
+        if (!segmento.plan) {
+            return [];
+        }
+
+        const barra = posicionarSegmento(
+            { inicio: segmento.plan.inicio.slice(0, 10), fin: segmento.plan.fin.slice(0, 10) },
+            props.desde,
+            props.dias,
+        );
 
         return barra === null ? [] : [{ segmento, columna: barra.columna, span: barra.span }];
     });
 }
 
 function claseDeEstado(estado: string, conflicto: boolean): string {
-    if (conflicto) {
-        return 'border border-dashed border-oxide/70 bg-oxide/10 text-oxide';
-    }
-
-    if (estado === 'En Curso') {
-        return 'bg-teja text-white';
-    }
-
-    if (estado === 'Pospuesta') {
-        return 'border border-dashed border-oxide/50 bg-oxide/10 text-oxide';
-    }
-
-    if (estado === 'Asignada') {
-        return 'border border-dashed border-steel/60 bg-pine-wash text-pine';
-    }
-
-    return 'border border-dashed border-steel/50 bg-workshop text-steel';
+    return claseDeBarra(estado, conflicto);
 }
 
 function claseBadge(estado: string): string {
@@ -67,8 +90,11 @@ function claseBadge(estado: string): string {
     return 'bg-workshop text-steel';
 }
 
-function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento): string {
-    const rango = `${segmento.inicio} → ${segmento.fin} · ${segmento.dias} d`;
+function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento, horario: string): string {
+    const rango =
+        horario !== ''
+            ? `${segmento.inicio} → ${segmento.fin} · ${horario}`
+            : `${segmento.inicio} → ${segmento.fin} · ${segmento.dias} d`;
 
     if (fila.estado === 'En Curso') {
         return `${segmento.etapa} · ${rango} · ${fila.avance}% de avance`;
@@ -191,6 +217,18 @@ function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento): string {
                             :style="{ left: `${(indiceHoy / dias) * 100}%` }"
                         ></div>
 
+                        <div
+                            v-for="marca in marcasVisibles"
+                            :key="`${marca.fecha}-${marca.etiqueta}`"
+                            class="pointer-events-none absolute inset-y-0 z-10 border-l"
+                            :class="
+                                marca.tono === 'riesgo' ? 'border-oxide/60' : 'border-amber-400/70'
+                            "
+                            :style="{ left: `${marca.left}%` }"
+                            :title="marca.etiqueta"
+                            :data-testid="`marca-${marca.fecha}`"
+                        ></div>
+
                         <div class="grid h-full" :style="estiloGrilla">
                             <div
                                 v-for="columna in columnas"
@@ -202,15 +240,31 @@ function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento): string {
                             ></div>
 
                             <div
+                                v-for="plan in planesDe(fila)"
+                                :key="`plan-${plan.segmento.etapa}-${plan.columna}`"
+                                class="relative z-0 mt-1 h-1.5 self-start rounded-sm border border-dashed border-steel/60 bg-steel/10"
+                                :style="{
+                                    gridRow: 1,
+                                    gridColumn: `${plan.columna} / span ${plan.span}`,
+                                }"
+                                :title="
+                                    plan.segmento.plan
+                                        ? `Plan: ${plan.segmento.plan.inicio} → ${plan.segmento.plan.fin}`
+                                        : ''
+                                "
+                                :data-testid="`plan-orden-${fila.orden_id}`"
+                            ></div>
+
+                            <div
                                 v-for="barra in barrasDe(fila)"
-                                :key="`${barra.segmento.etapa}-${barra.segmento.inicio}`"
-                                class="relative z-10 my-1.5 flex h-7 items-center justify-between gap-1 overflow-hidden rounded px-1.5 text-[0.625rem] font-medium"
+                                :key="`${barra.segmento.etapa}-${barra.fecha}`"
+                                class="relative z-10 mb-1 flex h-5 items-center justify-between gap-1 self-end overflow-hidden rounded px-1.5 text-[0.625rem] font-medium"
                                 :class="claseDeEstado(fila.estado, fila.conflicto_entrega)"
                                 :style="{
                                     gridRow: 1,
                                     gridColumn: `${barra.columna} / span ${barra.span}`,
                                 }"
-                                :title="etiquetaDeBarra(fila, barra.segmento)"
+                                :title="etiquetaDeBarra(fila, barra.segmento, barra.horario)"
                                 :data-testid="`barra-orden-${fila.orden_id}`"
                             >
                                 <span class="truncate">{{ barra.segmento.etapa }}</span>

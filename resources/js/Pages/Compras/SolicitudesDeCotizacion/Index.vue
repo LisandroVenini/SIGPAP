@@ -255,6 +255,18 @@ function puedeAnular(solicitud: Solicitud): boolean {
     return solicitud.estado !== 'Anulada' && solicitud.estado !== 'Adjudicada';
 }
 
+function puedeEnviar(solicitud: Solicitud): boolean {
+    return solicitud.estado === 'Borrador';
+}
+
+function enviar(solicitud: Solicitud): void {
+    router.post(
+        `/compras/solicitudes-de-cotizacion/${solicitud.id}/enviar`,
+        {},
+        { preserveScroll: true },
+    );
+}
+
 function labelDePagina(label: string): string {
     if (label.includes('Previous')) {
         return '‹';
@@ -536,6 +548,17 @@ function porcentaje(valor: number): string {
                                     {{ solicitud.respuestas.esperadas }}
                                 </td>
                                 <td class="px-4 py-2.5 text-right text-xs whitespace-nowrap">
+                                    <template v-if="puedeEnviar(solicitud)">
+                                        <button
+                                            type="button"
+                                            class="font-medium text-pine hover:underline"
+                                            :data-testid="`enviar-${solicitud.id}`"
+                                            @click="enviar(solicitud)"
+                                        >
+                                            Enviar
+                                        </button>
+                                        <span class="mx-2 text-clay/40">|</span>
+                                    </template>
                                     <button
                                         type="button"
                                         class="font-medium text-teja hover:underline"

@@ -10,6 +10,7 @@ enum ModuloDeAlerta: string
     case Compras = 'Compras';
     case Produccion = 'Produccion';
     case Usuarios = 'Usuarios';
+    case Predictivo = 'Predictivo';
 
     public function permiso(): string
     {
@@ -18,6 +19,7 @@ enum ModuloDeAlerta: string
             self::Compras => 'compras.gestionar',
             self::Produccion => 'produccion.gestionar',
             self::Usuarios => 'usuarios.gestionar',
+            self::Predictivo => 'predictivo.consultar',
         };
     }
 
@@ -31,6 +33,7 @@ enum ModuloDeAlerta: string
             self::Compras => [Rol::EncargadoCompras],
             self::Produccion => [Rol::SupervisorProduccion],
             self::Usuarios => [],
+            self::Predictivo => [Rol::Gerente],
         };
     }
 

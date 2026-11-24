@@ -7,6 +7,7 @@ use App\Modules\Inventario\Services\GestionArticulosService;
 use App\Modules\Inventario\Services\GestionReservasService;
 use App\Modules\Produccion\Enums\EstadoMaquinaria;
 use App\Modules\Produccion\Enums\EstadoOrdenProduccion;
+use App\Modules\Produccion\Jobs\RecalcularTiempoProduccionJob;
 use App\Modules\Produccion\Models\AsignacionDeEtapa;
 use App\Modules\Produccion\Models\Maquinaria;
 use App\Modules\Produccion\Models\OrdenDeProduccion;
@@ -99,7 +100,7 @@ class GestionPartesDiariosService
         ?string $observaciones,
         ?string $direccionIp = null,
     ): ParteDiario {
-        return DB::transaction(function () use ($actor, $orden, $etapaId, $maquinariaId, $fecha, $cantidad, $observaciones, $direccionIp): ParteDiario {
+        $parte = DB::transaction(function () use ($actor, $orden, $etapaId, $maquinariaId, $fecha, $cantidad, $observaciones, $direccionIp): ParteDiario {
             $orden = OrdenDeProduccion::query()->whereKey($orden->getKey())->lockForUpdate()->firstOrFail();
 
             if ($orden->estado !== EstadoOrdenProduccion::EnCurso->value) {
@@ -227,6 +228,16 @@ class GestionPartesDiariosService
 
             return $parte;
         });
+
+        // CU-PRED-02: recalculate the projected finish in the background, so the
+        // operator is never blocked. Dispatched after commit on purpose.
+        RecalcularTiempoProduccionJob::dispatch(
+            $parte->orden_de_produccion_id,
+            $etapaId,
+            $parte->fecha->toDateString(),
+        );
+
+        return $parte;
     }
 
     /**

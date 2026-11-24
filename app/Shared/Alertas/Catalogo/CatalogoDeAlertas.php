@@ -238,11 +238,83 @@ final class CatalogoDeAlertas
                 [],
                 ['maquinaria', 'desgaste', 'umbral'],
             ),
+            new TipoDeAlerta(
+                'quiebre_de_stock',
+                'Quiebre de stock',
+                'Un insumo va a agotarse antes de que llegue la reposición.',
+                ModuloDeAlerta::Inventario,
+                OrigenAlerta::Condicion,
+                SeveridadAlerta::Critica,
+                [Rol::EncargadoStock, Rol::Gerente],
+                [],
+                ['articulo', 'disponible', 'minimo', 'dias_hasta_quiebre', 'fecha_limite_pedido', 'cantidad_sugerida'],
+                'Disponible: {{disponible}} · Mínimo: {{minimo}} · Pedir antes del {{fecha_limite_pedido}}',
+            ),
+            new TipoDeAlerta(
+                'licitacion_no_disparada',
+                'Licitación no disparada',
+                'El riesgo de quiebre llegó a su fecha límite y la licitación automática no pudo enviarse.',
+                ModuloDeAlerta::Compras,
+                OrigenAlerta::Evento,
+                SeveridadAlerta::Atencion,
+                [Rol::EncargadoCompras, Rol::Gerente],
+                [],
+                ['articulo', 'motivo'],
+                'Motivo: {{motivo}}',
+            ),
+            new TipoDeAlerta(
+                'variacion_fuerte_disponibilidad',
+                'Variación fuerte de disponibilidad',
+                'El proveedor confirmó una condición que rompe el umbral de precio o el cronograma.',
+                ModuloDeAlerta::Compras,
+                OrigenAlerta::Evento,
+                SeveridadAlerta::Atencion,
+                [Rol::EncargadoCompras, Rol::Gerente],
+                [],
+                ['articulo', 'motivos', 'precio_anterior', 'precio_actual', 'fecha_prometida', 'fecha_requerida'],
+                'Motivos: {{motivos}} · Precio: {{precio_anterior}} → {{precio_actual}}',
+            ),
+            new TipoDeAlerta(
+                'reentrenamiento_fallido',
+                'Reentrenamiento del modelo fallido',
+                'El componente predictivo no respondió durante el reentrenamiento.',
+                ModuloDeAlerta::Predictivo,
+                OrigenAlerta::Evento,
+                SeveridadAlerta::Critica,
+                [Rol::Administrador],
+                [],
+                ['motivo'],
+                'Motivo: {{motivo}}',
+            ),
+            new TipoDeAlerta(
+                'drift_detectado',
+                'Drift del modelo',
+                'El rendimiento del modelo empeoró respecto del entrenamiento anterior.',
+                ModuloDeAlerta::Predictivo,
+                OrigenAlerta::Evento,
+                SeveridadAlerta::Atencion,
+                [Rol::Administrador],
+                [],
+                ['etapa', 'r2_anterior', 'r2_actual', 'umbral'],
+                'Etapa: {{etapa}} · R²: {{r2_anterior}} → {{r2_actual}} (umbral {{umbral}})',
+            ),
+            new TipoDeAlerta(
+                'cuello_de_botella_predictivo',
+                'Cuello de botella predictivo',
+                'La fecha proyectada de una orden supera su fecha de entrega según la tasa de rendimiento real.',
+                ModuloDeAlerta::Predictivo,
+                OrigenAlerta::Condicion,
+                SeveridadAlerta::Atencion,
+                [Rol::Gerente, Rol::SupervisorProduccion],
+                [],
+                ['orden', 'producto', 'etapa', 'fecha_entrega', 'fecha_proyectada', 'dias_retraso', 'tasa_rendimiento'],
+                'Etapa: {{etapa}} · TRR: {{tasa_rendimiento}} · Proyectada: {{fecha_proyectada}} (entrega: {{fecha_entrega}})',
+            ),
         ];
     }
 
     /**
-     * @return array{clave: string, etiqueta: string, tipo: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
+     * @return array{clave: string, etiqueta: string, tipo: string, operador: string, variable: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
      */
     private static function entero(string $clave, string $etiqueta, int $minimo, int $maximo, int $porDefecto, string $operador = 'lte', ?string $variable = null): array
     {
@@ -259,7 +331,7 @@ final class CatalogoDeAlertas
     }
 
     /**
-     * @return array{clave: string, etiqueta: string, tipo: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
+     * @return array{clave: string, etiqueta: string, tipo: string, operador: string, variable: string, minimo: float|int, maximo: float|int, por_defecto: float|int}
      */
     private static function decimal(string $clave, string $etiqueta, float $minimo, float $maximo, float $porDefecto, string $operador = 'gte', ?string $variable = null): array
     {
