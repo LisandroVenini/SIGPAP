@@ -31,6 +31,11 @@ class ProcesoMLEngine implements MLEngine
         return $this->ejecutar('evaluar_riesgo', $datos, (int) $this->config['timeout']);
     }
 
+    public function resolverDisponibilidad(array $datos): array
+    {
+        return $this->ejecutar('resolver_disponibilidad', $datos, (int) $this->config['timeout']);
+    }
+
     /**
      * @param  array<string, mixed>  $datos
      * @return array<string, mixed>

@@ -263,6 +263,18 @@ final class CatalogoDeAlertas
                 'Motivo: {{motivo}}',
             ),
             new TipoDeAlerta(
+                'variacion_fuerte_disponibilidad',
+                'Variación fuerte de disponibilidad',
+                'El proveedor confirmó una condición que rompe el umbral de precio o el cronograma.',
+                ModuloDeAlerta::Compras,
+                OrigenAlerta::Evento,
+                SeveridadAlerta::Atencion,
+                [Rol::EncargadoCompras, Rol::Gerente],
+                [],
+                ['articulo', 'motivos', 'precio_anterior', 'precio_actual', 'fecha_prometida', 'fecha_requerida'],
+                'Motivos: {{motivos}} · Precio: {{precio_anterior}} → {{precio_actual}}',
+            ),
+            new TipoDeAlerta(
                 'reentrenamiento_fallido',
                 'Reentrenamiento del modelo fallido',
                 'El componente predictivo no respondió durante el reentrenamiento.',

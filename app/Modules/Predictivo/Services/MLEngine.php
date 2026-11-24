@@ -34,4 +34,12 @@ interface MLEngine
      * @return array{criticidad: array<int, array<string, mixed>>, evaluados: int}
      */
     public function evaluarRiesgoSuministro(array $datos): array;
+
+    /**
+     * Resolve a supplier availability answer into a scenario recommendation.
+     *
+     * @param  array{cantidad_disponible: float, precio_unitario: float, precio_referencia: float|null, umbral: float, fecha_prometida: string, fecha_requerida: string|null}  $datos
+     * @return array{escenario: string, motivos: array<int, string>, desviacion_precio: float|null, dias_de_atraso: int|null}
+     */
+    public function resolverDisponibilidad(array $datos): array;
 }

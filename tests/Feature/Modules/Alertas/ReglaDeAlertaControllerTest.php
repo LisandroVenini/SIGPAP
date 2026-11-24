@@ -75,7 +75,7 @@ class ReglaDeAlertaControllerTest extends TestCase
         $response->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Alertas/Reglas/Index')
             ->has('reglas.data')
-            ->has('tipos', 20)
+            ->has('tipos', 21)
             ->has('roles')
             ->where('puedeGestionar', true)
         );

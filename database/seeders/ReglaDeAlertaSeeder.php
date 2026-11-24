@@ -24,6 +24,7 @@ class ReglaDeAlertaSeeder extends Seeder
             ['tipo' => 'orden_atrasada', 'nombre' => 'Orden atrasada', 'condiciones' => [], 'mensaje' => 'La orden {{orden}} de {{producto}} está atrasada desde el {{fecha_entrega}}.'],
             ['tipo' => 'orden_por_vencer', 'nombre' => 'Orden por vencer', 'condiciones' => ['dias' => 2, 'avance_maximo' => 100], 'mensaje' => 'La orden {{orden}} vence el {{fecha_entrega}} con {{avance}}% de avance.'],
             ['tipo' => 'calidad_baja', 'nombre' => 'Calidad baja', 'condiciones' => ['rechazo_minimo_pct' => 5], 'mensaje' => '«{{producto}}» tiene {{rechazo_pct}}% de rechazo: {{rechazadas}} de {{unidades}} unidades en {{etapa}}.'],
+            ['tipo' => 'variacion_fuerte_disponibilidad', 'nombre' => 'Variación fuerte de disponibilidad', 'condiciones' => [], 'mensaje' => '{{articulo}}: {{motivos}}. Precio {{precio_anterior}} → {{precio_actual}}.'],
             ['tipo' => 'reentrenamiento_fallido', 'nombre' => 'Reentrenamiento fallido', 'condiciones' => [], 'mensaje' => 'El reentrenamiento del modelo no pudo completarse: {{motivo}}.'],
             ['tipo' => 'drift_detectado', 'nombre' => 'Drift del modelo', 'condiciones' => [], 'mensaje' => 'La etapa {{etapa}} empeoró: R² {{r2_anterior}} → {{r2_actual}} (umbral {{umbral}}).'],
             ['tipo' => 'licitacion_no_disparada', 'nombre' => 'Licitación no disparada', 'condiciones' => [], 'mensaje' => 'No se pudo disparar la licitación de {{articulo}}: {{motivo}}.'],

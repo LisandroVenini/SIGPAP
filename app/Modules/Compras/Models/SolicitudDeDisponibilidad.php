@@ -20,6 +20,7 @@ class SolicitudDeDisponibilidad extends Model
         'proveedor_id',
         'articulo_id',
         'fecha',
+        'fecha_requerida',
         'cantidad_solicitada',
         'estado',
         'token',
@@ -32,6 +33,7 @@ class SolicitudDeDisponibilidad extends Model
     {
         return [
             'fecha' => 'date',
+            'fecha_requerida' => 'date',
             'cantidad_solicitada' => 'decimal:2',
         ];
     }

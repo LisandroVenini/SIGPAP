@@ -1,7 +1,9 @@
 <?php
 
+use App\Modules\Compras\Controllers\DisponibilidadController;
 use App\Modules\Compras\Controllers\OrdenDeCompraController;
 use App\Modules\Compras\Controllers\PortalCotizacionController;
+use App\Modules\Compras\Controllers\PortalDisponibilidadController;
 use App\Modules\Compras\Controllers\PortalOrdenController;
 use App\Modules\Compras\Controllers\ProveedorController;
 use App\Modules\Compras\Controllers\RankingController;
@@ -15,6 +17,13 @@ Route::middleware('web')->group(function (): void {
     Route::post('portal/cotizaciones/{token}', [PortalCotizacionController::class, 'store'])
         ->middleware('throttle:20,1')
         ->name('portal.cotizaciones.store');
+
+    Route::get('portal/disponibilidad/{token}', [PortalDisponibilidadController::class, 'show'])
+        ->middleware('throttle:20,1')
+        ->name('portal.disponibilidad.show');
+    Route::post('portal/disponibilidad/{token}', [PortalDisponibilidadController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('portal.disponibilidad.store');
 
     Route::get('portal/ordenes/{token}', [PortalOrdenController::class, 'show'])
         ->middleware('throttle:20,1')
@@ -58,6 +67,10 @@ Route::middleware('web')->group(function (): void {
                     ->whereNumber('orden')
                     ->name('ordenes-de-compra.anular');
 
+                Route::get('disponibilidad', [DisponibilidadController::class, 'index'])
+                    ->name('disponibilidad.index');
+                Route::post('disponibilidad', [DisponibilidadController::class, 'store'])
+                    ->name('disponibilidad.store');
                 Route::get('ranking', [RankingController::class, 'index'])->name('ranking.index');
             });
         });

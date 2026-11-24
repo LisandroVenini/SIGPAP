@@ -53,6 +53,22 @@ final class FakeMLEngine implements MLEngine
         ];
     }
 
+    public function resolverDisponibilidad(array $datos): array
+    {
+        $this->llamadas[] = ['metodo' => 'resolver_disponibilidad', 'datos' => $datos];
+
+        if ($this->error !== null) {
+            throw $this->error;
+        }
+
+        return $this->resultado + [
+            'escenario' => 'Ideal',
+            'motivos' => [],
+            'desviacion_precio' => null,
+            'dias_de_atraso' => null,
+        ];
+    }
+
     public function entrenar(array $datos): array
     {
         $this->llamadas[] = ['metodo' => 'entrenar', 'datos' => $datos];

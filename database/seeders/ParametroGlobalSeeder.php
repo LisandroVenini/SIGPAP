@@ -20,6 +20,7 @@ class ParametroGlobalSeeder extends Seeder
             ['nombre' => 'compras_vigencia_cotizacion_dias', 'valor' => '7', 'categoria' => 'Compras'],
             ['nombre' => 'compras_minimo_cotizaciones', 'valor' => '3', 'categoria' => 'Compras'],
             ['nombre' => 'compras_proveedores_por_licitacion', 'valor' => '3', 'categoria' => 'Compras'],
+            ['nombre' => 'compras_disponibilidad_umbral', 'valor' => '0.15', 'categoria' => 'Compras'],
             ['nombre' => 'compras_umbral_aprobacion_gerente', 'valor' => '500000', 'categoria' => 'Compras'],
             ['nombre' => 'compras_ranking_peso_perfecta', 'valor' => '1', 'categoria' => 'Compras'],
             ['nombre' => 'compras_ranking_peso_retraso', 'valor' => '0.6', 'categoria' => 'Compras'],

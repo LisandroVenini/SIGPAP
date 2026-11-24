@@ -19,6 +19,7 @@ from engine.protocol import (
     respuesta_error,
     respuesta_ok,
 )
+from engine.disponibilidad import resolver as resolver_disponibilidad
 from engine.riesgo import evaluar
 from engine.trr import predecir
 
@@ -28,6 +29,7 @@ OPERACIONES: dict[str, Operacion] = {
     "entrenar": entrenar,
     "predecir_trr": predecir,
     "evaluar_riesgo": evaluar,
+    "resolver_disponibilidad": resolver_disponibilidad,
 }
 
 

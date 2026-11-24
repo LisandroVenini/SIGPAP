@@ -86,6 +86,7 @@ const navEntries = computed<NavEntry[]>(() => [
             },
             { label: 'Órdenes de Compra', href: '/compras/ordenes-de-compra' },
             { label: 'Ranking de Proveedores', href: '/compras/ranking' },
+            { label: 'Disponibilidad', href: '/compras/disponibilidad' },
         ],
     },
     {
