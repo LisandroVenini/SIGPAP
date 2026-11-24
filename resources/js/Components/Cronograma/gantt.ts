@@ -1,11 +1,26 @@
 import { MS_DIA, aUTC, sumarDias } from '@/lib/fechas';
 
+export interface BloqueDeTrabajo {
+    inicio: string;
+    fin: string;
+}
+
 export interface Segmento {
     etapa: string;
     inicio: string;
     fin: string;
+    inicio_en?: string;
+    fin_en?: string;
     dias: number;
+    minutos?: number;
+    segmentos?: BloqueDeTrabajo[];
     producida: number;
+}
+
+export interface BarraDeDia {
+    columna: number;
+    fecha: string;
+    horario: string;
 }
 
 export interface RegistroDePrioridad {
@@ -129,6 +144,60 @@ export function posicionarMarca(
     }
 
     return { columna: indice + 1, left: (indice / dias) * 100 };
+}
+
+/** Number of whole hours between two datetimes. */
+export function horasEntre(desde: string, hasta: string): number {
+    return (
+        (new Date(hasta.replace(' ', 'T')).getTime() -
+            new Date(desde.replace(' ', 'T')).getTime()) /
+        3_600_000
+    );
+}
+
+/**
+ * Split a stage into one bar per working day, using its real working blocks.
+ * A stage that stops at night or over the weekend no longer paints a
+ * continuous bar across the calendar. Falls back to the plain date range.
+ */
+export function barrasPorDia(
+    segmento: Pick<Segmento, 'inicio' | 'fin' | 'segmentos'>,
+    desde: string,
+    dias: number,
+): BarraDeDia[] {
+    const bloques = segmento.segmentos ?? [];
+
+    if (bloques.length === 0) {
+        const barra = posicionarSegmento(segmento, desde, dias);
+
+        return barra === null
+            ? []
+            : [{ columna: barra.columna, fecha: segmento.inicio, horario: '' }];
+    }
+
+    const porFecha = new Map<string, string[]>();
+
+    for (const bloque of bloques) {
+        const fecha = bloque.inicio.slice(0, 10);
+        const horario = `${bloque.inicio.slice(11, 16)}-${bloque.fin.slice(11, 16)}`;
+        const horarios = porFecha.get(fecha) ?? [];
+
+        horarios.push(horario);
+        porFecha.set(fecha, horarios);
+    }
+
+    return [...porFecha.entries()]
+        .map(([fecha, horarios]) => {
+            const indice = diasEntre(desde, fecha);
+
+            if (indice < 0 || indice >= dias) {
+                return null;
+            }
+
+            return { columna: indice + 1, fecha, horario: horarios.join(' · ') };
+        })
+        .filter((barra): barra is BarraDeDia => barra !== null)
+        .sort((a, b) => a.columna - b.columna);
 }
 
 function formatearCorto(fecha: string): string {

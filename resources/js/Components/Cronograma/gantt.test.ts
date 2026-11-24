@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+    barrasPorDia,
     columnasDe,
     diasEntre,
     lunesDe,
@@ -151,5 +152,35 @@ describe('posicionarMarca', () => {
     it('returns null when the date falls outside the window', () => {
         expect(posicionarMarca({ fecha: '2026-11-01' }, '2026-11-02', 14)).toBeNull();
         expect(posicionarMarca({ fecha: '2026-11-16' }, '2026-11-02', 14)).toBeNull();
+    });
+});
+
+describe('barrasPorDia', () => {
+    const segmento = {
+        inicio: '2026-11-06',
+        fin: '2026-11-09',
+        segmentos: [
+            { inicio: '2026-11-06 19:00:00', fin: '2026-11-06 20:00:00' },
+            { inicio: '2026-11-07 08:00:00', fin: '2026-11-07 12:00:00' },
+            { inicio: '2026-11-09 08:00:00', fin: '2026-11-09 09:00:00' },
+        ],
+    };
+
+    it('emits one bar per working day from the real blocks', () => {
+        expect(barrasPorDia(segmento, '2026-11-02', 14)).toEqual([
+            { columna: 5, fecha: '2026-11-06', horario: '19:00-20:00' },
+            { columna: 6, fecha: '2026-11-07', horario: '08:00-12:00' },
+            { columna: 8, fecha: '2026-11-09', horario: '08:00-09:00' },
+        ]);
+    });
+
+    it('falls back to the plain range without blocks', () => {
+        expect(barrasPorDia({ inicio: '2026-11-04', fin: '2026-11-06' }, '2026-11-02', 14)).toEqual(
+            [{ columna: 3, fecha: '2026-11-04', horario: '' }],
+        );
+    });
+
+    it('drops blocks outside the visible window', () => {
+        expect(barrasPorDia(segmento, '2026-11-10', 7)).toEqual([]);
     });
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { FilaCronograma, MarcaDeAbastecimiento, Segmento } from './gantt';
-import { columnasDe, posicionarMarca, posicionarSegmento } from './gantt';
+import { barrasPorDia, columnasDe, posicionarMarca } from './gantt';
 
 const props = defineProps<{
     filas: FilaCronograma[];
@@ -34,12 +34,16 @@ const estiloGrilla = computed(() => ({
 
 function barrasDe(
     fila: FilaCronograma,
-): Array<{ segmento: Segmento; columna: number; span: number }> {
-    return fila.etapas.flatMap((segmento) => {
-        const barra = posicionarSegmento(segmento, props.desde, props.dias);
-
-        return barra === null ? [] : [{ segmento, columna: barra.columna, span: barra.span }];
-    });
+): Array<{ segmento: Segmento; columna: number; span: number; fecha: string; horario: string }> {
+    return fila.etapas.flatMap((segmento) =>
+        barrasPorDia(segmento, props.desde, props.dias).map((barra) => ({
+            segmento,
+            columna: barra.columna,
+            span: 1,
+            fecha: barra.fecha,
+            horario: barra.horario,
+        })),
+    );
 }
 
 function claseDeEstado(estado: string, conflicto: boolean): string {
@@ -78,8 +82,11 @@ function claseBadge(estado: string): string {
     return 'bg-workshop text-steel';
 }
 
-function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento): string {
-    const rango = `${segmento.inicio} → ${segmento.fin} · ${segmento.dias} d`;
+function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento, horario: string): string {
+    const rango =
+        horario !== ''
+            ? `${segmento.inicio} → ${segmento.fin} · ${horario}`
+            : `${segmento.inicio} → ${segmento.fin} · ${segmento.dias} d`;
 
     if (fila.estado === 'En Curso') {
         return `${segmento.etapa} · ${rango} · ${fila.avance}% de avance`;
@@ -207,9 +214,7 @@ function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento): string {
                             :key="`${marca.fecha}-${marca.etiqueta}`"
                             class="pointer-events-none absolute inset-y-0 z-10 border-l"
                             :class="
-                                marca.tono === 'riesgo'
-                                    ? 'border-oxide/60'
-                                    : 'border-amber-400/70'
+                                marca.tono === 'riesgo' ? 'border-oxide/60' : 'border-amber-400/70'
                             "
                             :style="{ left: `${marca.left}%` }"
                             :title="marca.etiqueta"
@@ -228,14 +233,14 @@ function etiquetaDeBarra(fila: FilaCronograma, segmento: Segmento): string {
 
                             <div
                                 v-for="barra in barrasDe(fila)"
-                                :key="`${barra.segmento.etapa}-${barra.segmento.inicio}`"
+                                :key="`${barra.segmento.etapa}-${barra.fecha}`"
                                 class="relative z-10 my-1.5 flex h-7 items-center justify-between gap-1 overflow-hidden rounded px-1.5 text-[0.625rem] font-medium"
                                 :class="claseDeEstado(fila.estado, fila.conflicto_entrega)"
                                 :style="{
                                     gridRow: 1,
                                     gridColumn: `${barra.columna} / span ${barra.span}`,
                                 }"
-                                :title="etiquetaDeBarra(fila, barra.segmento)"
+                                :title="etiquetaDeBarra(fila, barra.segmento, barra.horario)"
                                 :data-testid="`barra-orden-${fila.orden_id}`"
                             >
                                 <span class="truncate">{{ barra.segmento.etapa }}</span>
